@@ -24,8 +24,8 @@ RUN cd /app/sdk && npm run build
 
 # Run the export-production-chains command
 RUN cd /app/sdk && npm run export-production-chains file=productionChains.json
-# RUN ls -l ./productionChains.json  # List the JSON file for verification
-# RUN cat ./productionChains.json  # Output the contents of the JSON file for verification
+# RUN ls -l /app/sdk/productionChains.json  # List the JSON file for verification
+# RUN cat /app/sdk/productionChains.json  # Output the contents of the JSON file for verification
 
 # Build the Next.js app
 RUN cd /app && npm run build
