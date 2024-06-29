@@ -13,25 +13,22 @@ RUN npm install
 # Copy the rest of the application code to the working directory
 COPY app .
 
-# Build the React app using npm run build which will call craco build
-RUN npm run build
+# Copy the SDK folder to the working directory
+COPY sdk /app/sdk
 
-# Copy the SDK
-COPY sdk ./sdk
+# Install the SDK dependencies
+RUN cd /app/sdk && npm install && npm install -g rollup
 
-# Install rollup globally and build the SDK
-WORKDIR /usr/src/app/sdk
-RUN npm install
-RUN npm install -g rollup
-RUN npm run build
+# Build the SDK
+RUN cd /app/sdk && npm run build
 
-# Generate the production chains JSON file
-RUN npm run export-production-chains file=productionChains.json
+# Run the export-production-chains command
+RUN cd /app/sdk && npm run export-production-chains file=productionChains.json
 # RUN ls -l ./productionChains.json  # List the JSON file for verification
 # RUN cat ./productionChains.json  # Output the contents of the JSON file for verification
 
-# Set the working directory back to root
-WORKDIR /usr/src/app
+# Build the Next.js app
+RUN cd /app && npm run build
 
 # Expose the port the app runs on
 EXPOSE 3000
