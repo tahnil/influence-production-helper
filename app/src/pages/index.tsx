@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Product } from '../types/types';
 import ProductList from '../components/ProductList';
 import ProcessConfigurator from '../components/ProcessConfigurator';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Product } from '../types/types';
 
 const formSchema = z.object({
   amount: z.number().min(1, { message: "Amount must be at least 1." })
@@ -18,7 +18,7 @@ const HomePage: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedProcesses, setSelectedProcesses] = useState<{ [key: string]: string }>({});
   const [productionChain, setProductionChain] = useState<any>(null);
-  
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -50,6 +50,12 @@ const HomePage: React.FC = () => {
   };
 
   const handleConfigureChain = (values: any) => {
+    if (!selectedProduct) {
+      // Handle the case where selectedProduct is null, possibly show an error message to the user
+      console.error('No product selected');
+      return;
+    }
+
     const data = {
       product: selectedProduct,
       amount: values.amount,
