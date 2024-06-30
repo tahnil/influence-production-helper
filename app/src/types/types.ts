@@ -23,12 +23,13 @@ export interface Process {
 export interface ProductionChainProduct {
   product: Product;
   amount: number;
-  process?: ProductionChainProcess;
+  process?: ProductionChainProcess | null;
 }
 
 export interface ProductionChainProcess {
   id: string;
   name: string;
+  buildingId: string;
   inputs: ProductionChainProduct[];
   requiredOutput: ProductionChainProduct[];
   otherOutput: ProductionChainProduct[];
