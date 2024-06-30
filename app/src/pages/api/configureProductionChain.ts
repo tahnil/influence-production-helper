@@ -3,6 +3,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { loadProductionChains, productMap, processMap } from '../../lib/dataLoader';
 import { Process, Product, InputOutput, ProductionChain, ProductionChainProduct, ProductionChainProcess } from '../../types/types';
+import { createProductionChainProcess, createProductionChainProduct } from '../../lib/constructors';
 
 function findProcessesThatYieldProduct(productId: string): Process[] {
   const productionChains = loadProductionChains();
@@ -29,13 +30,7 @@ function getOutputsForProcess(process: Process, amount: number): ProductionChain
     if (!productName) {
       throw new Error(`Product with ID ${output.productId} not found in productMap.`);
     }
-    return {
-      product: {
-        id: output.productId,
-        name: productName,
-      },
-      amount: calculateOutputAmount(process, amount, output),
-    };
+    return createProductionChainProduct({ id: output.productId, name: productName }, calculateOutputAmount(process, amount, output));
   });
 }
 
@@ -57,14 +52,11 @@ function configureProcess(
 
   if (processes.length === 0) {
     requiredProducts.add(productId);
-    return {
-      product: {
-        id: productId,
-        name: productMap.get(productId) || 'Unknown Product',
-      },
+    return createProductionChainProduct(
+      { id: productId, name: productMap.get(productId) || 'Unknown Product' },
       amount,
-      process: undefined, // Updated to undefined
-    };
+      undefined
+    );
   }
 
   const selectedProcessId = selectedProcesses[productId];
@@ -78,14 +70,14 @@ function configureProcess(
 
   requiredProcesses.add(userPreferredProcess.id);
   const outputs = getOutputsForProcess(userPreferredProcess, amount);
-  const processNode: ProductionChainProcess = {
-    id: userPreferredProcess.id,
-    name: userPreferredProcess.name,
-    buildingId: userPreferredProcess.buildingId,
-    inputs: [],
-    requiredOutput: outputs.filter(output => output.product.id === productId),
-    otherOutput: outputs.filter(output => output.product.id !== productId),
-  };
+  const processNode: ProductionChainProcess = createProductionChainProcess(
+    userPreferredProcess.id,
+    userPreferredProcess.name,
+    userPreferredProcess.buildingId,
+    [],
+    outputs.filter(output => output.product.id === productId),
+    outputs.filter(output => output.product.id !== productId)
+  );
 
   const inputs = getInputsForProcess(userPreferredProcess);
 
@@ -94,11 +86,7 @@ function configureProcess(
     try {
       const inputAmount = calculateInputAmount(userPreferredProcess, amount, input);
       const inputNode = configureProcess(input.productId, inputAmount, selectedProcesses, requiredProducts, requiredProcesses);
-      processNode.inputs.push({
-        product: inputNode.product,
-        amount: inputAmount,
-        process: inputNode.process,
-      });
+      processNode.inputs.push(createProductionChainProduct(inputNode.product, inputAmount, inputNode.process));
 
       if (inputNode.process) {
         inputNode.process.requiredOutput[0].amount = inputAmount;
@@ -108,14 +96,11 @@ function configureProcess(
     }
   }
 
-  return {
-    product: {
-      id: productId,
-      name: productMap.get(productId) || 'Unknown Product',
-    },
+  return createProductionChainProduct(
+    { id: productId, name: productMap.get(productId) || 'Unknown Product' },
     amount,
-    process: processNode,
-  };
+    processNode
+  );
 }
 
 function configureProductionChain(product: Product, amount: number, selectedProcesses: { [key: string]: string }): ProductionChain {
@@ -158,7 +143,7 @@ function configureProductionChain(product: Product, amount: number, selectedProc
       };
     }),
     productionChain: {
-      process: productionChain.process,
+      process: productionChain.process, // This is now guaranteed to be a ProductionChainProcess
     },
   };
   return productionData;
