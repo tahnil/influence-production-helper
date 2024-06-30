@@ -88,12 +88,19 @@ const HomePage: React.FC = () => {
       <h1 className="text-2xl font-bold mb-4">Production Chain Configurator</h1>
       <ProductList products={products} onProductSelect={handleProductSelect} />
       {selectedProduct && (
-        <form onSubmit={form.handleSubmit(handleConfigureChain)} className="space-y-8">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            form.handleSubmit(handleConfigureChain)(e);
+          }}
+          className="space-y-8"
+        >
           <div>
             <label>Amount:</label>
             <input
               type="number"
               {...form.register('amount')}
+              name="amount"
               placeholder="Amount"
               className="w-full border rounded-lg p-2 mb-2"
             />
