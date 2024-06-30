@@ -53,6 +53,10 @@ const HomePage: React.FC = () => {
   };
 
   const handleConfigureChain = (values: any) => {
+    console.log('Form submitted');
+    console.log('Selected Product:', selectedProduct);
+    console.log('Form values:', values);
+
     if (!selectedProduct) {
       console.error('No product selected');
       return;
@@ -67,8 +71,11 @@ const HomePage: React.FC = () => {
       }
     };
 
+    console.log('Data to send:', data);
+
     axios.post('/api/configureProductionChain', data)
       .then(response => {
+        console.log('API response:', response.data);
         setProductionChain(response.data);
       })
       .catch(error => {
