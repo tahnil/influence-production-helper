@@ -4,9 +4,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Process, Product, Input, ProcessConfiguratorProps } from '../types/types';
 
+// Generate a unique identifier for each product instance based on product ID and level
+const generateUniqueId = (productId: string, level: number) => `${productId}-${level}`;
+
 const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amount, selectedProcesses, onProcessSelect, level = 0 }) => {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [inputs, setInputs] = useState<Input[]>([]);
+  const uniqueId = generateUniqueId(product.id, level);
 
   useEffect(() => {
     axios.get(`/api/processes?productId=${product.id}`)
@@ -19,8 +23,8 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
   }, [product.id]);
 
   useEffect(() => {
-    if (selectedProcesses[product.id]) {
-      axios.get(`/api/inputs?processId=${selectedProcesses[product.id]}`)
+    if (selectedProcesses[uniqueId]) {
+      axios.get(`/api/inputs?processId=${selectedProcesses[uniqueId]}`)
         .then(response => {
           setInputs(response.data);
         })
@@ -30,11 +34,11 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
     } else {
       setInputs([]);
     }
-  }, [product.id, selectedProcesses]);
+  }, [uniqueId, selectedProcesses]);
 
   const handleProcessChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const processId = e.target.value;
-    onProcessSelect(product.id, processId);
+    onProcessSelect(uniqueId, processId);
   };
 
   return (
@@ -43,7 +47,7 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
       <label>
         Select Process:
         <select
-          value={selectedProcesses[product.id] || ''}
+          value={selectedProcesses[uniqueId] || ''}
           onChange={handleProcessChange}
           className="w-full border rounded-lg p-2 mb-2"
         >
@@ -56,7 +60,7 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
       <div>
         {inputs.map(input => (
           <ProcessConfigurator
-            key={input.product.id}
+            key={generateUniqueId(input.product.id, level + 1)}
             product={input.product}
             amount={amount}
             selectedProcesses={selectedProcesses}

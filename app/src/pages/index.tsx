@@ -9,6 +9,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Product } from '../types/types';
 
+// Generate a unique identifier for each product instance based on product ID and level
+const generateUniqueId = (productId: string, level: number) => `${productId}-${level}`;
+
 const formSchema = z.object({
   amount: z.number().min(1, { message: "Amount must be at least 1." })
 });
@@ -42,10 +45,10 @@ const HomePage: React.FC = () => {
     setProductionChain(null);
   };
 
-  const handleProcessSelect = (productId: string, processId: string) => {
+  const handleProcessSelect = (uniqueId: string, processId: string) => {
     setSelectedProcesses(prev => ({
       ...prev,
-      [productId]: processId
+      [uniqueId]: processId
     }));
   };
 
@@ -60,7 +63,7 @@ const HomePage: React.FC = () => {
       amount: values.amount,
       selectedProcesses: {
         ...selectedProcesses,
-        [selectedProduct.id]: selectedProcesses[selectedProduct.id] // ensure the selected process for the end product is included
+        [generateUniqueId(selectedProduct.id, 0)]: selectedProcesses[generateUniqueId(selectedProduct.id, 0)] // ensure the selected process for the end product is included
       }
     };
 
