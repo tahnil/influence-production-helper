@@ -1,3 +1,5 @@
+// src/pages/api/inputs.ts
+
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { loadProductionChains } from '../../lib/dataLoader';
 

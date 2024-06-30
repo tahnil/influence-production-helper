@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { ProductionChain } from '../types/types';
 
-const productionChainsPath = path.resolve(process.cwd(), '/app/sdk/productionChains.json'); // adjust path to correct path, e. g. ./sdk/productionChains.json (msl)
+const productionChainsPath = path.resolve(process.cwd(), 'src/sdk/productionChains.json'); // adjust path to correct path, e. g. ./sdk/productionChains.json (msl)
 
 let productionChains: ProductionChain;
 

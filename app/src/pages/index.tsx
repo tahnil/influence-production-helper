@@ -1,75 +1,105 @@
-import React, { useState } from 'react';
-import EndProductSelector from '../components/EndProductSelector';
-import ProcessSelector from '../components/ProcessSelector';
-import RawMaterialSelector from '../components/RawMaterialSelector';
-import { Process, Product } from '../types/types';
+// src/pages/index.tsx
 
-interface Input {
-  product: Product;
-  unitsPerSR: string;
-}
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Product } from '../types/types';
+import ProductList from '../components/ProductList';
+import ProcessConfigurator from '../components/ProcessConfigurator';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const formSchema = z.object({
+  amount: z.number().min(1, { message: "Amount must be at least 1." })
+});
 
 const HomePage: React.FC = () => {
-  const [endProduct, setEndProduct] = useState<{ id: string; amount: number } | null>(null);
-  const [selectedProcesses, setSelectedProcesses] = useState<Process[]>([]);
-  const [selectedRawMaterials, setSelectedRawMaterials] = useState<Product[]>([]);
-  const [inputs, setInputs] = useState<Input[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProcesses, setSelectedProcesses] = useState<{ [key: string]: string }>({});
+  const [productionChain, setProductionChain] = useState<any>(null);
+  
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      amount: 1,
+    },
+  });
 
-  const handleEndProductSelect = (id: string, amount: number) => {
-    setEndProduct({ id, amount });
-    setSelectedProcesses([]);
-    setSelectedRawMaterials([]);
-    setInputs([]);
+  useEffect(() => {
+    axios.get('/api/products')
+      .then(response => {
+        setProducts(response.data);
+      })
+      .catch(error => {
+        console.error('Error fetching products:', error);
+      });
+  }, []);
+
+  const handleProductSelect = (product: Product) => {
+    setSelectedProduct(product);
+    setSelectedProcesses({});
+    setProductionChain(null);
   };
 
-  const handleProcessSelect = (process: Process) => {
-    setSelectedProcesses((prevProcesses) => [...prevProcesses, process]);
+  const handleProcessSelect = (productId: string, processId: string) => {
+    setSelectedProcesses(prev => ({
+      ...prev,
+      [productId]: processId
+    }));
   };
 
-  const handleInputsLoaded = (inputs: Input[]) => {
-    setInputs(inputs);
-  };
+  const handleConfigureChain = (values: any) => {
+    const data = {
+      product: selectedProduct,
+      amount: values.amount,
+      selectedProcesses: {
+        ...selectedProcesses,
+        [selectedProduct.id]: selectedProcesses[selectedProduct.id] // ensure the selected process for the end product is included
+      }
+    };
 
-  const handleRawMaterialSelect = (product: Product) => {
-    setSelectedRawMaterials((prevMaterials) => [...prevMaterials, product]);
+    axios.post('/api/configureProductionChain', data)
+      .then(response => {
+        setProductionChain(response.data);
+      })
+      .catch(error => {
+        console.error('Error configuring production chain:', error);
+      });
   };
 
   return (
-    <div>
-      <h1>Production Chain Generator</h1>
-      {!endProduct && <EndProductSelector onSelect={handleEndProductSelect} />}
-      {endProduct && selectedProcesses.length === 0 && (
-        <ProcessSelector productId={endProduct.id} onSelect={handleProcessSelect} onInputsLoaded={handleInputsLoaded} />
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Production Chain Configurator</h1>
+      <ProductList products={products} onProductSelect={handleProductSelect} />
+      {selectedProduct && (
+        <form onSubmit={form.handleSubmit(handleConfigureChain)} className="space-y-8">
+          <div>
+            <label>Amount:</label>
+            <input
+              type="number"
+              {...form.register('amount')}
+              placeholder="Amount"
+              className="w-full border rounded-lg p-2 mb-2"
+            />
+          </div>
+          <ProcessConfigurator
+            product={selectedProduct}
+            amount={form.watch('amount')}
+            selectedProcesses={selectedProcesses}
+            onProcessSelect={handleProcessSelect}
+          />
+          <button type="submit" className="btn btn-primary">Configure Chain</button>
+        </form>
       )}
-      {inputs.map((input, index) => (
-        <div key={index}>
-          <h3>Input: {input.product.name} ({input.unitsPerSR} units)</h3>
-          <ProcessSelector productId={input.product.id} onSelect={handleProcessSelect} onInputsLoaded={handleInputsLoaded} />
-        </div>
-      ))}
-      {selectedProcesses.length > 0 && selectedRawMaterials.length === 0 && (
-        <RawMaterialSelector onSelect={handleRawMaterialSelect} />
-      )}
-      {/* Display the selected chain */}
-      {endProduct && (
+      {productionChain && (
         <div>
-          <h2>Selected End Product: {endProduct.id} - {endProduct.amount}</h2>
-          <h3>Processes:</h3>
-          <ul>
-            {selectedProcesses.map((process) => (
-              <li key={process.id}>{process.name}</li>
-            ))}
-          </ul>
-          <h3>Raw Materials:</h3>
-          <ul>
-            {selectedRawMaterials.map((material) => (
-              <li key={material.id}>{material.name}</li>
-            ))}
-          </ul>
+          <h2 className="text-xl font-bold">Production Chain:</h2>
+          <pre className="p-4 bg-gray-100 rounded">{JSON.stringify(productionChain, null, 2)}</pre>
         </div>
       )}
     </div>
   );
-};
+}
 
 export default HomePage;
