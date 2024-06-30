@@ -46,7 +46,8 @@ function configureProcess(
   amount: number,
   selectedProcesses: { [key: string]: string },
   requiredProducts: Set<string>,
-  requiredProcesses: Set<string>
+  requiredProcesses: Set<string>,
+  level: number
 ): ProductionChainProduct {
   const processes = findProcessesThatYieldProduct(productId);
 
@@ -59,7 +60,8 @@ function configureProcess(
     );
   }
 
-  const selectedProcessId = selectedProcesses[productId];
+  const uniqueId = `${productId}-${level}`;
+  const selectedProcessId = selectedProcesses[uniqueId];
   const userPreferredProcess = selectedProcessId
     ? processes.find(process => process.id === selectedProcessId)
     : processes[0];
@@ -85,7 +87,7 @@ function configureProcess(
     requiredProducts.add(input.productId);
     try {
       const inputAmount = calculateInputAmount(userPreferredProcess, amount, input);
-      const inputNode = configureProcess(input.productId, inputAmount, selectedProcesses, requiredProducts, requiredProcesses);
+      const inputNode = configureProcess(input.productId, inputAmount, selectedProcesses, requiredProducts, requiredProcesses, level + 1);
       processNode.inputs.push(createProductionChainProduct(inputNode.product, inputAmount, inputNode.process));
 
       if (inputNode.process) {
@@ -107,7 +109,7 @@ function configureProductionChain(product: Product, amount: number, selectedProc
   const productionChains = loadProductionChains();
   const requiredProducts = new Set<string>();
   const requiredProcesses = new Set<string>();
-  const productionChain = configureProcess(product.id, amount, selectedProcesses, requiredProducts, requiredProcesses);
+  const productionChain = configureProcess(product.id, amount, selectedProcesses, requiredProducts, requiredProcesses, 0);
 
   if (!productionChain.process) {
     throw new Error(`No process configured for product ${product.id}`);
