@@ -51,7 +51,6 @@ const HomePage: React.FC = () => {
 
   const handleConfigureChain = (values: any) => {
     if (!selectedProduct) {
-      // Handle the case where selectedProduct is null, possibly show an error message to the user
       console.error('No product selected');
       return;
     }

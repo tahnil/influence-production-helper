@@ -16,7 +16,7 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
       .catch(error => {
         console.error('Error fetching processes:', error);
       });
-  }, [product]);
+  }, [product.id]);
 
   useEffect(() => {
     if (selectedProcesses[product.id]) {
