@@ -24,15 +24,14 @@ RUN cd /app/sdk && npm run build
 
 # Run the export-production-chains command
 RUN cd /app/sdk && npm run export-production-chains file=productionChains.json
-# RUN ls -l /app/sdk/productionChains.json  # List the JSON file for verification
-# RUN cat /app/sdk/productionChains.json  # Output the contents of the JSON file for verification
+# Verify the JSON file is created
+RUN ls -l /app/sdk/productionChains.json && cat /app/sdk/productionChains.json
 
-# Move the JSON file to the working directory
-WORKDIR /app
-COPY --from=sdk /app/sdk/productionChains.json ./src/sdk/productionChains.json
+# Move the JSON file to the appropriate directory
+RUN mkdir -p /app/src/sdk && mv /app/sdk/productionChains.json /app/src/sdk/productionChains.json
 
 # Build the Next.js app
-RUN cd /app && npm run build
+RUN npm run build
 
 # Expose the port the app runs on
 EXPOSE 3000
