@@ -13,7 +13,7 @@ import { Product } from '../types/types';
 const generateUniqueId = (productId: string, level: number) => `${productId}-${level}`;
 
 const formSchema = z.object({
-  amount: z.number().min(1, { message: "Amount must be at least 1." })
+  amount: z.preprocess((val) => Number(val), z.number().min(1, { message: "Amount must be at least 1." }))
 });
 
 const HomePage: React.FC = () => {
@@ -22,7 +22,7 @@ const HomePage: React.FC = () => {
   const [selectedProcesses, setSelectedProcesses] = useState<{ [key: string]: string }>({});
   const [productionChain, setProductionChain] = useState<any>(null);
 
-  const form = useForm({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       amount: 1,
@@ -88,26 +88,21 @@ const HomePage: React.FC = () => {
       <h1 className="text-2xl font-bold mb-4">Production Chain Configurator</h1>
       <ProductList products={products} onProductSelect={handleProductSelect} />
       {selectedProduct && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            form.handleSubmit(handleConfigureChain)(e);
-          }}
-          className="space-y-8"
-        >
+        <form onSubmit={handleSubmit(handleConfigureChain)} className="space-y-8">
           <div>
             <label>Amount:</label>
             <input
               type="number"
-              {...form.register('amount')}
+              {...register('amount')}
               name="amount"
               placeholder="Amount"
               className="w-full border rounded-lg p-2 mb-2"
             />
+            {errors.amount && <span className="text-red-500">{errors.amount.message}</span>}
           </div>
           <ProcessConfigurator
             product={selectedProduct}
-            amount={form.watch('amount')}
+            amount={watch('amount')}
             selectedProcesses={selectedProcesses}
             onProcessSelect={handleProcessSelect}
           />
