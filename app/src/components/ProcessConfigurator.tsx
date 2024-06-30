@@ -33,7 +33,8 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
   }, [product.id, selectedProcesses]);
 
   const handleProcessChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onProcessSelect(product.id, e.target.value);
+    const processId = e.target.value;
+    onProcessSelect(product.id, processId);
   };
 
   return (
@@ -66,6 +67,6 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
       </div>
     </div>
   );
-}
+};
 
 export default ProcessConfigurator;
