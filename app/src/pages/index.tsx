@@ -128,9 +128,9 @@ const HomePage: React.FC = () => {
         </Form>
       )}
       {productionChain && (
-        <div>
-          <h2 className="text-xl font-bold">Production Chain:</h2>
-          <pre className="p-4 bg-gray-100 rounded">{JSON.stringify(productionChain, null, 2)}</pre>
+        <div className="mt-8">
+          <h2 className="text-xl font-bold mb-4">Production Chain:</h2>
+          <pre className="p-4 bg-gray-100 rounded overflow-x-auto whitespace-pre max-h-[650px]">{JSON.stringify(productionChain, null, 2)}</pre>
         </div>
       )}
     </div>
