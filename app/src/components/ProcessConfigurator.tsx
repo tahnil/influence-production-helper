@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 // Generate a unique identifier for each product instance based on product ID and level
 const generateUniqueId = (productId: string, level: number) => `${productId}-${level}`;
@@ -50,11 +51,10 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
   return (
     <div className="mb-4" style={{ marginLeft: level * 20 }}>
       <h3 className="text-md font-semibold mb-2">{product.name}</h3>
-      <label>
-        Select Process:
+      <Label htmlFor="process-select">Select a process</Label>
         <Select onValueChange={handleProcessChange} defaultValue={selectedProcesses[uniqueId] || ''}>
-          <SelectTrigger className="w-full border rounded-lg p-2 mb-2">
-            <SelectValue placeholder="Select a process" />
+          <SelectTrigger id="process-select" className="w-full border rounded-lg p-2 mb-2">
+            <SelectValue placeholder="---" />
           </SelectTrigger>
           <SelectContent>
             {processes.map(process => (
@@ -62,7 +62,6 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
             ))}
           </SelectContent>
         </Select>
-      </label>
       <div>
         {inputs.map(input => (
           <ProcessConfigurator

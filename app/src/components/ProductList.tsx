@@ -1,6 +1,16 @@
 // src/components/ProductList.tsx
 
 import React from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Label
+} from "@/components/ui/label";
 
 interface ProductListProps {
   products: any[];
@@ -8,22 +18,26 @@ interface ProductListProps {
 }
 
 const ProductList: React.FC<ProductListProps> = ({ products, onProductSelect }) => {
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedProduct = products.find(product => product.id === e.target.value);
+  const handleChange = (value: string) => {
+    const selectedProduct = products.find(product => product.id === value);
     onProductSelect(selectedProduct);
   };
 
   return (
     <div className="mb-4">
-      <h2 className="text-lg font-semibold mb-2">Select a Product</h2>
-      <select onChange={handleChange} className="w-full border rounded-lg p-2">
-        <option value="">Select a product</option>
-        {products.map(product => (
-          <option key={product.id} value={product.id}>
-            {product.name}
-          </option>
-        ))}
-      </select>
+      <Label htmlFor="product-select">Select a Product</Label>
+      <Select onValueChange={handleChange}>
+        <SelectTrigger id="product-select" className="w-full border rounded-lg p-2">
+          <SelectValue placeholder="---" />
+        </SelectTrigger>
+        <SelectContent>
+          {products.map(product => (
+            <SelectItem key={product.id} value={product.id}>
+              {product.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
