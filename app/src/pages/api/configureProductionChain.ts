@@ -85,18 +85,27 @@ function configureProcess(
 
   const inputs = getInputsForProcess(userPreferredProcess);
 
-  for (const input of inputs) {
-    requiredProducts.add(input.productId);
-    try {
-      const inputAmount = calculateInputAmount(userPreferredProcess, amount, input);
-      const inputNode = configureProcess(input.productId, inputAmount, selectedProcesses, requiredProducts, requiredProcesses, level + 1, uniqueId);
-      processNode.inputs.push(createProductionChainProduct(inputNode.product, inputAmount, inputNode.process));
+  if (inputs.length === 0) {
+    // If there are no inputs, this is a mining process or raw material production.
+    // Ensure the amount is correctly set for the required output.
+    const requiredOutput = processNode.requiredOutput.find(output => output.product.id === productId);
+    if (requiredOutput) {
+      requiredOutput.amount = amount;
+    }
+  } else {
+    for (const input of inputs) {
+      requiredProducts.add(input.productId);
+      try {
+        const inputAmount = calculateInputAmount(userPreferredProcess, amount, input);
+        const inputNode = configureProcess(input.productId, inputAmount, selectedProcesses, requiredProducts, requiredProcesses, level + 1, uniqueId);
+        processNode.inputs.push(createProductionChainProduct(inputNode.product, inputAmount, inputNode.process));
 
-      if (inputNode.process) {
-        inputNode.process.requiredOutput[0].amount = inputAmount;
+        if (inputNode.process) {
+          inputNode.process.requiredOutput[0].amount = inputAmount;
+        }
+      } catch (error) {
+        console.error(`Error configuring input process for productId: ${input.productId}, amount: ${amount}`, error);
       }
-    } catch (error) {
-      console.error(`Error configuring input process for productId: ${input.productId}, amount: ${amount}`, error);
     }
   }
 
