@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import CopyButton from '../components/CopyButton';
 
 // Generate a unique identifier for each product instance based on product ID and level
 const generateUniqueId = (productId: string, level: number) => `${productId}-${level}`;
@@ -102,7 +103,7 @@ const HomePage: React.FC = () => {
       <ProductList products={products} onProductSelect={handleProductSelect} />
       {selectedProduct && (
         <Form {...form}>
-          <form onSubmit={handleSubmit(handleConfigureChain)} className="space-y-8">
+          <form onSubmit={handleSubmit(handleConfigureChain)} className="mb-8 space-y-8">
             <FormField
               control={form.control}
               name="amount"
@@ -128,9 +129,12 @@ const HomePage: React.FC = () => {
         </Form>
       )}
       {productionChain && (
-        <div className="mt-8">
+        <div className="relative">
           <h2 className="text-xl font-bold mb-4">Production Chain:</h2>
-          <pre className="p-4 bg-gray-100 rounded overflow-x-auto whitespace-pre max-h-[650px]">{JSON.stringify(productionChain, null, 2)}</pre>
+          <CopyButton textToCopy={JSON.stringify(productionChain, null, 2)} />
+          <pre className="p-4 bg-gray-100 rounded overflow-x-auto whitespace-pre max-h-96">
+            {JSON.stringify(productionChain, null, 2)}
+          </pre>
         </div>
       )}
     </div>
