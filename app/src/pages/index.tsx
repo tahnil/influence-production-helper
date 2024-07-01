@@ -25,7 +25,13 @@ import CopyButton from '../components/CopyButton';
 const generateUniqueId = (productId: string, level: number) => `${productId}-${level}`;
 
 const formSchema = z.object({
-  amount: z.preprocess((val) => Number(val), z.number().min(1, { message: "Amount must be at least 1." }))
+  amount: z.preprocess((val) => {
+    // Convert value to number, if possible
+    if (typeof val === "string") {
+      return parseFloat(val);
+    }
+    return val;
+  }, z.number().min(1, { message: "Amount must be at least 1." }))
 });
 
 const HomePage: React.FC = () => {
@@ -97,6 +103,13 @@ const HomePage: React.FC = () => {
       });
   };
 
+  const handleNumericInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (/^\d*$/.test(value)) {
+      form.setValue('amount', value === "" ? 0 : parseInt(value, 10) as number);
+    }
+  };
+  
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Production Chain Configurator</h1>
@@ -111,7 +124,12 @@ const HomePage: React.FC = () => {
                 <FormItem>
                   <FormLabel>Amount</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="Amount" {...field} />
+                    <Input
+                      type="number"
+                      placeholder="Amount"
+                      value={field.value}
+                      onChange={handleNumericInput}
+                    />
                   </FormControl>
                   <FormDescription>Enter the amount</FormDescription>
                   {errors.amount && <FormMessage>{errors.amount.message}</FormMessage>}
