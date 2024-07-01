@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Process, Product, Input, ProcessConfiguratorProps } from '../types/types';
+import { generateUniqueId } from '../lib/uniqueId';
 import {
   Select,
   SelectContent,
@@ -12,13 +13,10 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
-// Generate a unique identifier for each product instance based on product ID and level
-const generateUniqueId = (productId: string, level: number) => `${productId}-${level}`;
-
-const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amount, selectedProcesses, onProcessSelect, level = 0 }) => {
+const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amount, selectedProcesses, onProcessSelect, level = 0, parentId = null }) => {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [inputs, setInputs] = useState<Input[]>([]);
-  const uniqueId = generateUniqueId(product.id, level);
+  const uniqueId = generateUniqueId(product.id, level, parentId);
 
   useEffect(() => {
     axios.get(`/api/processes?productId=${product.id}`)
@@ -65,12 +63,13 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
       <div>
         {inputs.map(input => (
           <ProcessConfigurator
-            key={generateUniqueId(input.product.id, level + 1)}
+            key={generateUniqueId(input.product.id, level + 1, uniqueId)}
             product={input.product}
             amount={amount}
             selectedProcesses={selectedProcesses}
             onProcessSelect={onProcessSelect}
             level={level + 1}
+            parentId={uniqueId}
           />
         ))}
       </div>

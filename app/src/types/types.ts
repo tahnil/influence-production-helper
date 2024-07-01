@@ -53,6 +53,7 @@ export interface ProcessConfiguratorProps {
   product: Product;
   amount: number;
   selectedProcesses: { [key: string]: string };
-  onProcessSelect: (productId: string, processId: string) => void;
+  onProcessSelect: (uniqueId: string, processId: string) => void;
   level?: number;
+  parentId?: string | null;
 }

@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Product } from '../types/types';
+import { generateUniqueId } from '../lib/uniqueId';
 import {
   Form,
   FormField,
@@ -20,9 +21,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import CopyButton from '../components/CopyButton';
-
-// Generate a unique identifier for each product instance based on product ID and level
-const generateUniqueId = (productId: string, level: number) => `${productId}-${level}`;
 
 const formSchema = z.object({
   amount: z.preprocess((val) => {
@@ -82,12 +80,13 @@ const HomePage: React.FC = () => {
       return;
     }
 
+    const rootUniqueId = generateUniqueId(selectedProduct.id, 0);
     const data = {
       product: selectedProduct,
       amount: values.amount,
       selectedProcesses: {
         ...selectedProcesses,
-        [generateUniqueId(selectedProduct.id, 0)]: selectedProcesses[generateUniqueId(selectedProduct.id, 0)] // ensure the selected process for the end product is included
+        [rootUniqueId]: selectedProcesses[rootUniqueId]
       }
     };
 
@@ -109,7 +108,7 @@ const HomePage: React.FC = () => {
       form.setValue('amount', value === "" ? 0 : parseInt(value, 10) as number);
     }
   };
-  
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Production Chain Configurator</h1>
