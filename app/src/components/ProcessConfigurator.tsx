@@ -3,6 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Process, Product, Input, ProcessConfiguratorProps } from '../types/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Generate a unique identifier for each product instance based on product ID and level
 const generateUniqueId = (productId: string, level: number) => `${productId}-${level}`;
@@ -36,9 +43,8 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
     }
   }, [uniqueId, selectedProcesses]);
 
-  const handleProcessChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const processId = e.target.value;
-    onProcessSelect(uniqueId, processId);
+  const handleProcessChange = (value: string) => {
+    onProcessSelect(uniqueId, value);
   };
 
   return (
@@ -46,16 +52,16 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
       <h3 className="text-md font-semibold mb-2">{product.name}</h3>
       <label>
         Select Process:
-        <select
-          value={selectedProcesses[uniqueId] || ''}
-          onChange={handleProcessChange}
-          className="w-full border rounded-lg p-2 mb-2"
-        >
-          <option value="">Select a process</option>
-          {processes.map(process => (
-            <option key={process.id} value={process.id}>{process.name}</option>
-          ))}
-        </select>
+        <Select onValueChange={handleProcessChange} defaultValue={selectedProcesses[uniqueId] || ''}>
+          <SelectTrigger className="w-full border rounded-lg p-2 mb-2">
+            <SelectValue placeholder="Select a process" />
+          </SelectTrigger>
+          <SelectContent>
+            {processes.map(process => (
+              <SelectItem key={process.id} value={process.id}>{process.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </label>
       <div>
         {inputs.map(input => (
