@@ -8,6 +8,17 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Product } from '../types/types';
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormDescription,
+  FormMessage
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 // Generate a unique identifier for each product instance based on product ID and level
 const generateUniqueId = (productId: string, level: number) => `${productId}-${level}`;
@@ -22,12 +33,14 @@ const HomePage: React.FC = () => {
   const [selectedProcesses, setSelectedProcesses] = useState<{ [key: string]: string }>({});
   const [productionChain, setProductionChain] = useState<any>(null);
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+  const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       amount: 1,
     },
   });
+
+  const { watch, handleSubmit, formState: { errors } } = form;
 
   useEffect(() => {
     axios.get('/api/products')
@@ -88,26 +101,31 @@ const HomePage: React.FC = () => {
       <h1 className="text-2xl font-bold mb-4">Production Chain Configurator</h1>
       <ProductList products={products} onProductSelect={handleProductSelect} />
       {selectedProduct && (
-        <form onSubmit={handleSubmit(handleConfigureChain)} className="space-y-8">
-          <div>
-            <label>Amount:</label>
-            <input
-              type="number"
-              {...register('amount')}
+        <Form {...form}>
+          <form onSubmit={handleSubmit(handleConfigureChain)} className="space-y-8">
+            <FormField
+              control={form.control}
               name="amount"
-              placeholder="Amount"
-              className="w-full border rounded-lg p-2 mb-2"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="Amount" {...field} />
+                  </FormControl>
+                  <FormDescription>Enter the amount</FormDescription>
+                  {errors.amount && <FormMessage>{errors.amount.message}</FormMessage>}
+                </FormItem>
+              )}
             />
-            {errors.amount && <span className="text-red-500">{errors.amount.message}</span>}
-          </div>
-          <ProcessConfigurator
-            product={selectedProduct}
-            amount={watch('amount')}
-            selectedProcesses={selectedProcesses}
-            onProcessSelect={handleProcessSelect}
-          />
-          <button type="submit" className="btn btn-primary">Configure Chain</button>
-        </form>
+            <ProcessConfigurator
+              product={selectedProduct}
+              amount={watch('amount')}
+              selectedProcesses={selectedProcesses}
+              onProcessSelect={handleProcessSelect}
+            />
+            <Button type="submit">Configure Chain</Button>
+          </form>
+        </Form>
       )}
       {productionChain && (
         <div>
