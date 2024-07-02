@@ -1,3 +1,5 @@
+// src/components/CopyButton.tsx
+
 import React from 'react';
 
 interface CopyButtonProps {

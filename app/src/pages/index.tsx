@@ -1,13 +1,13 @@
 // src/pages/index.tsx
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
+import useProducts from '../hooks/useProducts';
 import ProductList from '../components/ProductList';
 import ProcessConfigurator from '../components/ProcessConfigurator';
+import { Product } from '../types/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Product } from '../types/types';
 import { generateUniqueId } from '../lib/uniqueId';
 import {
   Form,
@@ -24,7 +24,6 @@ import CopyButton from '../components/CopyButton';
 
 const formSchema = z.object({
   amount: z.preprocess((val) => {
-    // Convert value to number, if possible
     if (typeof val === "string") {
       return parseFloat(val);
     }
@@ -33,7 +32,7 @@ const formSchema = z.object({
 });
 
 const HomePage: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const { products, loading, error } = useProducts();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedProcesses, setSelectedProcesses] = useState<{ [key: string]: string }>({});
   const [productionChain, setProductionChain] = useState<any>(null);
@@ -46,16 +45,6 @@ const HomePage: React.FC = () => {
   });
 
   const { watch, handleSubmit, formState: { errors } } = form;
-
-  useEffect(() => {
-    axios.get('/api/products')
-      .then(response => {
-        setProducts(response.data);
-      })
-      .catch(error => {
-        console.error('Error fetching products:', error);
-      });
-  }, []);
 
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
@@ -71,10 +60,6 @@ const HomePage: React.FC = () => {
   };
 
   const handleConfigureChain = (values: any) => {
-    console.log('Form submitted');
-    console.log('Selected Product:', selectedProduct);
-    console.log('Form values:', values);
-
     if (!selectedProduct) {
       console.error('No product selected');
       return;
@@ -90,11 +75,8 @@ const HomePage: React.FC = () => {
       }
     };
 
-    console.log('Data to send:', data);
-
     axios.post('/api/configureProductionChain', data)
       .then(response => {
-        console.log('API response:', response.data);
         setProductionChain(response.data);
       })
       .catch(error => {
@@ -112,7 +94,13 @@ const HomePage: React.FC = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Production Chain Configurator</h1>
-      <ProductList products={products} onProductSelect={handleProductSelect} />
+      {loading ? (
+        <p>Loading products...</p>
+      ) : error ? (
+        <p>{error}</p>
+      ) : (
+        <ProductList products={products} onProductSelect={handleProductSelect} />
+      )}
       {selectedProduct && (
         <Form {...form}>
           <form onSubmit={handleSubmit(handleConfigureChain)} className="mb-8 space-y-8">
