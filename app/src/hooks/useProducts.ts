@@ -1,6 +1,6 @@
 // src/hooks/useProducts.ts
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { fetchProducts } from '../services/apiService';
 import { Product } from '../types/types';
 
 const useProducts = () => {
@@ -9,10 +9,10 @@ const useProducts = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const loadProducts = async () => {
       try {
-        const response = await axios.get('/api/products');
-        setProducts(response.data);
+        const products = await fetchProducts();
+        setProducts(products);
       } catch (error) {
         setError('Error fetching products');
         console.error('Error fetching products:', error);
@@ -21,7 +21,7 @@ const useProducts = () => {
       }
     };
 
-    fetchProducts();
+    loadProducts();
   }, []);
 
   return { products, loading, error };

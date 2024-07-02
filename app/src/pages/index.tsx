@@ -1,14 +1,13 @@
 // src/pages/index.tsx
-import React, { useState } from 'react';
+import React from 'react';
 import axios from 'axios';
 import useProducts from '../hooks/useProducts';
+import useProductionChain from '../hooks/useProductionChain';
 import ProductList from '../components/ProductList';
 import ProcessConfigurator from '../components/ProcessConfigurator';
-import { Product } from '../types/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { generateUniqueId } from '../lib/uniqueId';
 import {
   Form,
   FormField,
@@ -33,9 +32,14 @@ const formSchema = z.object({
 
 const HomePage: React.FC = () => {
   const { products, loading, error } = useProducts();
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedProcesses, setSelectedProcesses] = useState<{ [key: string]: string }>({});
-  const [productionChain, setProductionChain] = useState<any>(null);
+  const {
+    selectedProduct,
+    selectedProcesses,
+    productionChain,
+    handleProductSelect,
+    handleProcessSelect,
+    configureChain
+  } = useProductionChain();
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -45,44 +49,6 @@ const HomePage: React.FC = () => {
   });
 
   const { watch, handleSubmit, formState: { errors } } = form;
-
-  const handleProductSelect = (product: Product) => {
-    setSelectedProduct(product);
-    setSelectedProcesses({});
-    setProductionChain(null);
-  };
-
-  const handleProcessSelect = (uniqueId: string, processId: string) => {
-    setSelectedProcesses(prev => ({
-      ...prev,
-      [uniqueId]: processId
-    }));
-  };
-
-  const handleConfigureChain = (values: any) => {
-    if (!selectedProduct) {
-      console.error('No product selected');
-      return;
-    }
-
-    const rootUniqueId = generateUniqueId(selectedProduct.id, 0);
-    const data = {
-      product: selectedProduct,
-      amount: values.amount,
-      selectedProcesses: {
-        ...selectedProcesses,
-        [rootUniqueId]: selectedProcesses[rootUniqueId]
-      }
-    };
-
-    axios.post('/api/configureProductionChain', data)
-      .then(response => {
-        setProductionChain(response.data);
-      })
-      .catch(error => {
-        console.error('Error configuring production chain:', error);
-      });
-  };
 
   const handleNumericInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -98,7 +64,7 @@ const HomePage: React.FC = () => {
         <ProductList products={products} onProductSelect={handleProductSelect} />
         {selectedProduct && (
           <Form {...form}>
-            <form onSubmit={handleSubmit(handleConfigureChain)} className="mb-8 space-y-8">
+            <form onSubmit={handleSubmit((values) => configureChain(values.amount))} className="mb-8 space-y-8">
               <FormField
                 control={form.control}
                 name="amount"
