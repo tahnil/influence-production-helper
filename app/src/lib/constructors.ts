@@ -1,3 +1,5 @@
+// src/lib/constructors.ts:
+
 import {
   Product,
   EndProduct,

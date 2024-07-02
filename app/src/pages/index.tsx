@@ -1,14 +1,12 @@
 // src/pages/index.tsx
-
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React from 'react';
+import useProducts from '../hooks/useProducts';
+import { useProductionChainStore } from '../store/useProductionChainStore';
 import ProductList from '../components/ProductList';
-import ProcessConfigurator from '../components/ProcessConfigurator';
+import ProcessConfigurator from '../components/ProcessConfigurator/ProcessConfigurator';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Product } from '../types/types';
-import { generateUniqueId } from '../lib/uniqueId';
 import {
   Form,
   FormField,
@@ -24,7 +22,6 @@ import CopyButton from '../components/CopyButton';
 
 const formSchema = z.object({
   amount: z.preprocess((val) => {
-    // Convert value to number, if possible
     if (typeof val === "string") {
       return parseFloat(val);
     }
@@ -33,10 +30,17 @@ const formSchema = z.object({
 });
 
 const HomePage: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedProcesses, setSelectedProcesses] = useState<{ [key: string]: string }>({});
-  const [productionChain, setProductionChain] = useState<any>(null);
+  const { products, loading, error } = useProducts();
+  const {
+    selectedProduct,
+    selectedProcesses,
+    productionChain,
+    loading: configuring,
+    error: configureError,
+    setSelectedProduct,
+    setSelectedProcess,
+    configureChain
+  } = useProductionChainStore();
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -46,61 +50,6 @@ const HomePage: React.FC = () => {
   });
 
   const { watch, handleSubmit, formState: { errors } } = form;
-
-  useEffect(() => {
-    axios.get('/api/products')
-      .then(response => {
-        setProducts(response.data);
-      })
-      .catch(error => {
-        console.error('Error fetching products:', error);
-      });
-  }, []);
-
-  const handleProductSelect = (product: Product) => {
-    setSelectedProduct(product);
-    setSelectedProcesses({});
-    setProductionChain(null);
-  };
-
-  const handleProcessSelect = (uniqueId: string, processId: string) => {
-    setSelectedProcesses(prev => ({
-      ...prev,
-      [uniqueId]: processId
-    }));
-  };
-
-  const handleConfigureChain = (values: any) => {
-    console.log('Form submitted');
-    console.log('Selected Product:', selectedProduct);
-    console.log('Form values:', values);
-
-    if (!selectedProduct) {
-      console.error('No product selected');
-      return;
-    }
-
-    const rootUniqueId = generateUniqueId(selectedProduct.id, 0);
-    const data = {
-      product: selectedProduct,
-      amount: values.amount,
-      selectedProcesses: {
-        ...selectedProcesses,
-        [rootUniqueId]: selectedProcesses[rootUniqueId]
-      }
-    };
-
-    console.log('Data to send:', data);
-
-    axios.post('/api/configureProductionChain', data)
-      .then(response => {
-        console.log('API response:', response.data);
-        setProductionChain(response.data);
-      })
-      .catch(error => {
-        console.error('Error configuring production chain:', error);
-      });
-  };
 
   const handleNumericInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -113,10 +62,10 @@ const HomePage: React.FC = () => {
     <div className="container mx-auto p-4">
       <div className="max-w-4xl mx-auto bg-white p-6 rounded-md shadow-md">
         <h1 className="text-2xl font-bold mb-4">Production Chain Configurator</h1>
-        <ProductList products={products} onProductSelect={handleProductSelect} />
+        <ProductList products={products} onProductSelect={setSelectedProduct} />
         {selectedProduct && (
           <Form {...form}>
-            <form onSubmit={handleSubmit(handleConfigureChain)} className="mb-8 space-y-8">
+            <form onSubmit={handleSubmit((values) => configureChain(values.amount))} className="mb-8 space-y-8">
               <FormField
                 control={form.control}
                 name="amount"
@@ -140,9 +89,12 @@ const HomePage: React.FC = () => {
                 product={selectedProduct}
                 amount={watch('amount')}
                 selectedProcesses={selectedProcesses}
-                onProcessSelect={handleProcessSelect}
+                onProcessSelect={setSelectedProcess}
               />
-              <Button type="submit">Configure Chain</Button>
+              <Button type="submit" disabled={configuring}>
+                {configuring ? 'Configuring...' : 'Configure Chain'}
+              </Button>
+              {configureError && <p className="text-red-500 mt-2">{configureError}</p>}
             </form>
           </Form>
         )}
