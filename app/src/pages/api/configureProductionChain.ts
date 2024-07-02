@@ -18,10 +18,28 @@ function calculateInputAmount(process: Process, amount: number, input: InputOutp
   if (!correspondingInput || !correspondingInput.unitsPerSR) {
     throw new Error(`Invalid process input data for productId: ${input.productId}, process: ${JSON.stringify(process)}`);
   }
+  // const output = process.outputs.find(output => output.productId === correspondingInput.productId);
+  // if (!output) {
+  //   throw new Error(`Output for productId: ${correspondingInput.productId} not found in process outputs`);
+  // }
+  // const outputUnitsPerSR = parseFloat(output.unitsPerSR);
+  // const inputUnitsPerSR = parseFloat(correspondingInput.unitsPerSR);
+  // const result = (amount * inputUnitsPerSR) / outputUnitsPerSR;
+  // console.log(`calculateInputAmount - process: ${process.id}, amount: ${amount}, input: ${input.productId}, result: ${result}`);
+  // return result;
   return (amount * parseFloat(correspondingInput.unitsPerSR)) / parseFloat(process.outputs[0].unitsPerSR);
 }
 
 function calculateOutputAmount(process: Process, amount: number, output: InputOutput): number {
+  // const primaryOutput = process.outputs.find(o => o.productId === output.productId);
+  // if (!primaryOutput) {
+  //   throw new Error(`Primary output for productId: ${output.productId} not found in process outputs`);
+  // }
+  // const outputUnitsPerSR = parseFloat(output.unitsPerSR);
+  // const primaryOutputUnitsPerSR = parseFloat(primaryOutput.unitsPerSR);
+  // const result = (amount * outputUnitsPerSR) / primaryOutputUnitsPerSR;
+  // console.log(`calculateOutputAmount - process: ${process.id}, amount: ${amount}, output: ${output.productId}, result: ${result}`);
+  // return result;
   return (amount * parseFloat(output.unitsPerSR)) / parseFloat(process.outputs[0].unitsPerSR);
 }
 
@@ -51,10 +69,12 @@ function configureProcess(
   level: number,
   parentId: string | null = null
 ): ProductionChainProduct {
+  console.log(`Configuring process for productId: ${productId}, amount: ${amount}, level: ${level}, parentId: ${parentId}`);
   const processes = findProcessesThatYieldProduct(productId);
 
   if (processes.length === 0) {
     requiredProducts.add(productId);
+    console.log(`No process found for productId: ${productId}, required amount: ${amount}`);
     return createProductionChainProduct(
       { id: productId, name: productMap.get(productId) || 'Unknown Product' },
       amount,
@@ -86,8 +106,6 @@ function configureProcess(
   const inputs = getInputsForProcess(userPreferredProcess);
 
   if (inputs.length === 0) {
-    // If there are no inputs, this is a mining process or raw material production.
-    // Ensure the amount is correctly set for the required output.
     const requiredOutput = processNode.requiredOutput.find(output => output.product.id === productId);
     if (requiredOutput) {
       requiredOutput.amount = amount;
@@ -97,6 +115,7 @@ function configureProcess(
       requiredProducts.add(input.productId);
       try {
         const inputAmount = calculateInputAmount(userPreferredProcess, amount, input);
+        console.log(`Input required for productId: ${input.productId}, amount: ${inputAmount}`);
         const inputNode = configureProcess(input.productId, inputAmount, selectedProcesses, requiredProducts, requiredProcesses, level + 1, uniqueId);
         processNode.inputs.push(createProductionChainProduct(inputNode.product, inputAmount, inputNode.process));
 
@@ -109,6 +128,7 @@ function configureProcess(
     }
   }
 
+  console.log(`Configured process node: ${JSON.stringify(processNode, null, 2)}`);
   return createProductionChainProduct(
     { id: productId, name: productMap.get(productId) || 'Unknown Product' },
     amount,
@@ -120,6 +140,7 @@ function configureProductionChain(product: Product, amount: number, selectedProc
   const productionChains = loadProductionChains();
   const requiredProducts = new Set<string>();
   const requiredProcesses = new Set<string>();
+  console.log(`Starting configuration for product: ${product.id}, amount: ${amount}`);
   const productionChain = configureProcess(product.id, amount, selectedProcesses, requiredProducts, requiredProcesses, 0, null);
 
   if (!productionChain.process) {
@@ -159,6 +180,8 @@ function configureProductionChain(product: Product, amount: number, selectedProc
       process: productionChain.process, // This is now guaranteed to be a ProductionChainProcess
     },
   };
+
+  console.log(`Completed configuration: ${JSON.stringify(productionData, null, 2)}`);
   return productionData;
 }
 
