@@ -47,7 +47,7 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
   };
 
   return (
-    <div className="mb-4" style={{ marginLeft: level * 20 }}>
+    <div className="mb-4 ml-6">
       <h3 className="text-md font-semibold mb-2">{product.name}</h3>
       <Label htmlFor="process-select">Select a process</Label>
         <Select onValueChange={handleProcessChange} defaultValue={selectedProcesses[uniqueId] || ''}>

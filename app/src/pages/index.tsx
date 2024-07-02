@@ -93,55 +93,51 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Production Chain Configurator</h1>
-      {loading ? (
-        <p>Loading products...</p>
-      ) : error ? (
-        <p>{error}</p>
-      ) : (
+      <div className="max-w-4xl mx-auto bg-white p-6 rounded-md shadow-md">
+        <h1 className="text-2xl font-bold mb-4">Production Chain Configurator</h1>
         <ProductList products={products} onProductSelect={handleProductSelect} />
-      )}
-      {selectedProduct && (
-        <Form {...form}>
-          <form onSubmit={handleSubmit(handleConfigureChain)} className="mb-8 space-y-8">
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Amount"
-                      value={field.value}
-                      onChange={handleNumericInput}
-                    />
-                  </FormControl>
-                  <FormDescription>Enter the amount</FormDescription>
-                  {errors.amount && <FormMessage>{errors.amount.message}</FormMessage>}
-                </FormItem>
-              )}
-            />
-            <ProcessConfigurator
-              product={selectedProduct}
-              amount={watch('amount')}
-              selectedProcesses={selectedProcesses}
-              onProcessSelect={handleProcessSelect}
-            />
-            <Button type="submit">Configure Chain</Button>
-          </form>
-        </Form>
-      )}
-      {productionChain && (
-        <div className="relative">
-          <h2 className="text-xl font-bold mb-4">Production Chain:</h2>
-          <CopyButton textToCopy={JSON.stringify(productionChain, null, 2)} />
-          <pre className="p-4 bg-gray-100 rounded overflow-x-auto whitespace-pre max-h-96">
-            {JSON.stringify(productionChain, null, 2)}
-          </pre>
-        </div>
-      )}
+        {selectedProduct && (
+          <Form {...form}>
+            <form onSubmit={handleSubmit(handleConfigureChain)} className="mb-8 space-y-8">
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Amount</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Amount"
+                        value={field.value}
+                        onChange={handleNumericInput}
+                      />
+                    </FormControl>
+                    <FormDescription>Enter the amount</FormDescription>
+                    {errors.amount && <FormMessage>{errors.amount.message}</FormMessage>}
+                  </FormItem>
+                )}
+              />
+              <ProcessConfigurator
+                product={selectedProduct}
+                amount={watch('amount')}
+                selectedProcesses={selectedProcesses}
+                onProcessSelect={handleProcessSelect}
+              />
+              <Button type="submit">Configure Chain</Button>
+            </form>
+          </Form>
+        )}
+        {productionChain && (
+          <div className="relative">
+            <h2 className="text-xl font-bold mb-4">Production Chain:</h2>
+            <CopyButton textToCopy={JSON.stringify(productionChain, null, 2)} />
+            <pre className="p-4 bg-gray-100 rounded overflow-x-auto whitespace-pre max-h-96">
+              {JSON.stringify(productionChain, null, 2)}
+            </pre>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
