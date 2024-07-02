@@ -59,3 +59,14 @@ export interface ProcessConfiguratorProps {
   level?: number;
   parentId?: string | null;
 }
+
+export interface ProductionChainState {
+  selectedProduct: Product | null;
+  selectedProcesses: { [key: string]: string };
+  productionChain: any;
+  loading: boolean;
+  error: string | null;
+  setSelectedProduct: (product: Product) => void;
+  setSelectedProcess: (uniqueId: string, processId: string) => void;
+  configureChain: (amount: number) => Promise<void>;
+}

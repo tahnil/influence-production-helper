@@ -1,7 +1,7 @@
 // src/pages/index.tsx
 import React from 'react';
 import useProducts from '../hooks/useProducts';
-import useProductionChain from '../hooks/useProductionChain';
+import { useProductionChainStore } from '../store/useProductionChainStore';
 import ProductList from '../components/ProductList';
 import ProcessConfigurator from '../components/ProcessConfigurator/ProcessConfigurator';
 import { useForm } from 'react-hook-form';
@@ -35,10 +35,12 @@ const HomePage: React.FC = () => {
     selectedProduct,
     selectedProcesses,
     productionChain,
-    handleProductSelect,
-    handleProcessSelect,
+    loading: configuring,
+    error: configureError,
+    setSelectedProduct,
+    setSelectedProcess,
     configureChain
-  } = useProductionChain();
+  } = useProductionChainStore();
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -60,7 +62,7 @@ const HomePage: React.FC = () => {
     <div className="container mx-auto p-4">
       <div className="max-w-4xl mx-auto bg-white p-6 rounded-md shadow-md">
         <h1 className="text-2xl font-bold mb-4">Production Chain Configurator</h1>
-        <ProductList products={products} onProductSelect={handleProductSelect} />
+        <ProductList products={products} onProductSelect={setSelectedProduct} />
         {selectedProduct && (
           <Form {...form}>
             <form onSubmit={handleSubmit((values) => configureChain(values.amount))} className="mb-8 space-y-8">
@@ -87,9 +89,12 @@ const HomePage: React.FC = () => {
                 product={selectedProduct}
                 amount={watch('amount')}
                 selectedProcesses={selectedProcesses}
-                onProcessSelect={handleProcessSelect}
+                onProcessSelect={setSelectedProcess}
               />
-              <Button type="submit">Configure Chain</Button>
+              <Button type="submit" disabled={configuring}>
+                {configuring ? 'Configuring...' : 'Configure Chain'}
+              </Button>
+              {configureError && <p className="text-red-500 mt-2">{configureError}</p>}
             </form>
           </Form>
         )}
