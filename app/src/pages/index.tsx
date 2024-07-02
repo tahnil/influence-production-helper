@@ -1,10 +1,9 @@
 // src/pages/index.tsx
 import React from 'react';
-import axios from 'axios';
 import useProducts from '../hooks/useProducts';
 import useProductionChain from '../hooks/useProductionChain';
 import ProductList from '../components/ProductList';
-import ProcessConfigurator from '../components/ProcessConfigurator';
+import ProcessConfigurator from '../components/ProcessConfigurator/ProcessConfigurator';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
