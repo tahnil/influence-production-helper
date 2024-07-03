@@ -13,16 +13,16 @@ function findProcessesThatYieldProduct(productId: string): Process[] {
   );
 }
 
-function calculateInputAmount(process: Process, amount: number, input: InputOutput): number {
+function calculateInputAmount(process: Process, amount: number, input: InputOutput, requiredProductId: string): number {
   const correspondingInput = process.inputs.find(p => p.productId === input.productId);
   if (!correspondingInput || !correspondingInput.unitsPerSR) {
     throw new Error(`Invalid process input data for productId: ${input.productId}, process: ${JSON.stringify(process)}`);
   }
 
-  // Find the correct primary output for the process that matches the required output productId
-  const primaryOutput = process.outputs.find(output => output.productId === process.outputs.find(output => output.productId === input.productId)?.productId);
+  // Find the correct primary output for the process based on the required product ID
+  const primaryOutput = process.outputs.find(output => output.productId === requiredProductId);
   if (!primaryOutput) {
-    throw new Error(`Primary output for productId: ${input.productId} not found in process outputs`);
+    throw new Error(`Primary output for productId: ${requiredProductId} not found in process outputs`);
   }
 
   const outputUnitsPerSR = parseFloat(primaryOutput.unitsPerSR);
@@ -39,11 +39,11 @@ function calculateInputAmount(process: Process, amount: number, input: InputOutp
   return result;
 }
 
-function calculateOutputAmount(process: Process, amount: number, output: InputOutput): number {
-  // Find the correct primary output for the process that matches the required output productId
-  const primaryOutput = process.outputs.find(o => o.productId === output.productId);
+function calculateOutputAmount(process: Process, amount: number, output: InputOutput, requiredProductId: string): number {
+  // Find the correct primary output for the process based on the required product ID
+  const primaryOutput = process.outputs.find(o => o.productId === requiredProductId);
   if (!primaryOutput) {
-    throw new Error(`Primary output for productId: ${output.productId} not found in process outputs`);
+    throw new Error(`Primary output for productId: ${requiredProductId} not found in process outputs`);
   }
 
   const outputUnitsPerSR = parseFloat(output.unitsPerSR);
@@ -58,16 +58,6 @@ function calculateOutputAmount(process: Process, amount: number, output: InputOu
   console.log(`Resulting Output Amount: ${result}`);
 
   return result;
-}
-
-function getOutputsForProcess(process: Process, amount: number): ProductionChainProduct[] {
-  return process.outputs.map(output => {
-    const productName = productMap.get(output.productId);
-    if (!productName) {
-      throw new Error(`Product with ID ${output.productId} not found in productMap.`);
-    }
-    return createProductionChainProduct({ id: output.productId, name: productName }, calculateOutputAmount(process, amount, output));
-  });
 }
 
 function getInputsForProcess(process: Process): InputOutput[] {
@@ -131,7 +121,7 @@ function configureProcess(
       .filter(output => output.productId !== productId)
       .map(output => createProductionChainProduct(
         { id: output.productId, name: productMap.get(output.productId) || 'Unknown Product' },
-        calculateOutputAmount(userPreferredProcess, amount, output)
+        calculateOutputAmount(userPreferredProcess, amount, output, productId)
       ))
   );
 
@@ -143,7 +133,7 @@ function configureProcess(
 
   for (const input of inputs) {
     requiredProducts.add(input.productId);
-    const inputAmount = calculateInputAmount(userPreferredProcess, amount, input);
+    const inputAmount = calculateInputAmount(userPreferredProcess, amount, input, productId);
     console.log(`\nInput required for productId: ${input.productId}, input amount: ${inputAmount}`);
     console.log(`Input Details: ${JSON.stringify(input, null, 2)}`);
     const inputNode = configureProcess(input.productId, inputAmount, selectedProcesses, requiredProducts, requiredProcesses, level + 1, uniqueId);
