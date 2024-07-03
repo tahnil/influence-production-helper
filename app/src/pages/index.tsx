@@ -18,7 +18,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import CopyButton from '../components/CopyButton';
+import AggregatedIngredientsTable from '../components/AggregatedIngredientsTable';
+import JsonOutputWithCopyButton from '../components/JsonOutputWithCopyButton';
 
 const formSchema = z.object({
   amount: z.preprocess((val) => {
@@ -100,11 +101,8 @@ const HomePage: React.FC = () => {
         )}
         {productionChain && (
           <div className="relative">
-            <h2 className="text-xl font-bold mb-4">Production Chain:</h2>
-            <CopyButton textToCopy={JSON.stringify(productionChain, null, 2)} />
-            <pre className="p-4 bg-gray-100 rounded overflow-x-auto whitespace-pre max-h-96">
-              {JSON.stringify(productionChain, null, 2)}
-            </pre>
+            <AggregatedIngredientsTable process={productionChain.productionChain.process} />
+            <JsonOutputWithCopyButton json={productionChain} />
           </div>
         )}
       </div>
