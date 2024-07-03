@@ -55,7 +55,7 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
   };
 
   return (
-    <div className="mb-4" style={{ marginLeft: level * 20 }}>
+    <div className="mb-4 ml-5">
       <h3 className="text-md font-semibold mb-2">{product.name}</h3>
       <ProcessSelector processes={processes} selectedProcess={selectedProcesses[uniqueId]} onProcessChange={handleProcessChange} />
       <ProcessInputs inputs={inputs} amount={amount} selectedProcesses={selectedProcesses} onProcessSelect={onProcessSelect} level={level + 1} parentId={uniqueId} />
