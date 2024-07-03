@@ -19,8 +19,8 @@ function calculateInputAmount(process: Process, amount: number, input: InputOutp
     throw new Error(`Invalid process input data for productId: ${input.productId}, process: ${JSON.stringify(process)}`);
   }
 
-  // Find the correct output for the given input's productId
-  const primaryOutput = process.outputs.find(output => output.productId === input.productId);
+  // Find the correct primary output for the process that matches the required output productId
+  const primaryOutput = process.outputs.find(output => output.productId === process.outputs.find(output => output.productId === input.productId)?.productId);
   if (!primaryOutput) {
     throw new Error(`Primary output for productId: ${input.productId} not found in process outputs`);
   }
@@ -40,7 +40,7 @@ function calculateInputAmount(process: Process, amount: number, input: InputOutp
 }
 
 function calculateOutputAmount(process: Process, amount: number, output: InputOutput): number {
-  // Find the correct output for the given productId
+  // Find the correct primary output for the process that matches the required output productId
   const primaryOutput = process.outputs.find(o => o.productId === output.productId);
   if (!primaryOutput) {
     throw new Error(`Primary output for productId: ${output.productId} not found in process outputs`);
@@ -100,10 +100,16 @@ function configureProcess(
   }
 
   const uniqueId = generateUniqueId(productId, level, parentId);
+  console.log(`Unique ID for productId: ${productId} at level: ${level} is ${uniqueId}`);
+  
   const selectedProcessId = selectedProcesses[uniqueId];
+  console.log(`Selected Process ID for unique ID ${uniqueId}: ${selectedProcessId}`);
+  
   const userPreferredProcess = selectedProcessId
     ? processes.find(process => process.id === selectedProcessId)
     : processes[0];
+  
+  console.log(`User Preferred Process: ${JSON.stringify(userPreferredProcess, null, 2)}`);
 
   if (!userPreferredProcess) {
     throw new Error(`Process with ID ${selectedProcessId} not found for product ${productId}`);
