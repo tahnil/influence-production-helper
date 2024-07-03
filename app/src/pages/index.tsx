@@ -1,120 +1,113 @@
 // src/pages/index.tsx
-
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React from 'react';
+import useProducts from '../hooks/useProducts';
+import { useProductionChainStore } from '../store/useProductionChainStore';
 import ProductList from '../components/ProductList';
-import ProcessConfigurator from '../components/ProcessConfigurator';
+import ProcessConfigurator from '../components/ProcessConfigurator/ProcessConfigurator';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Product } from '../types/types';
-
-// Generate a unique identifier for each product instance based on product ID and level
-const generateUniqueId = (productId: string, level: number) => `${productId}-${level}`;
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormDescription,
+  FormMessage
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import CopyButton from '../components/CopyButton';
 
 const formSchema = z.object({
-  amount: z.preprocess((val) => Number(val), z.number().min(1, { message: "Amount must be at least 1." }))
+  amount: z.preprocess((val) => {
+    if (typeof val === "string") {
+      return parseFloat(val);
+    }
+    return val;
+  }, z.number().min(1, { message: "Amount must be at least 1." }))
 });
 
 const HomePage: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedProcesses, setSelectedProcesses] = useState<{ [key: string]: string }>({});
-  const [productionChain, setProductionChain] = useState<any>(null);
+  const { products, loading, error } = useProducts();
+  const {
+    selectedProduct,
+    selectedProcesses,
+    productionChain,
+    loading: configuring,
+    error: configureError,
+    setSelectedProduct,
+    setSelectedProcess,
+    configureChain
+  } = useProductionChainStore();
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+  const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       amount: 1,
     },
   });
 
-  useEffect(() => {
-    axios.get('/api/products')
-      .then(response => {
-        setProducts(response.data);
-      })
-      .catch(error => {
-        console.error('Error fetching products:', error);
-      });
-  }, []);
+  const { watch, handleSubmit, formState: { errors } } = form;
 
-  const handleProductSelect = (product: Product) => {
-    setSelectedProduct(product);
-    setSelectedProcesses({});
-    setProductionChain(null);
-  };
-
-  const handleProcessSelect = (uniqueId: string, processId: string) => {
-    setSelectedProcesses(prev => ({
-      ...prev,
-      [uniqueId]: processId
-    }));
-  };
-
-  const handleConfigureChain = (values: any) => {
-    console.log('Form submitted');
-    console.log('Selected Product:', selectedProduct);
-    console.log('Form values:', values);
-
-    if (!selectedProduct) {
-      console.error('No product selected');
-      return;
+  const handleNumericInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (/^\d*$/.test(value)) {
+      form.setValue('amount', value === "" ? 0 : parseInt(value, 10) as number);
     }
-
-    const data = {
-      product: selectedProduct,
-      amount: values.amount,
-      selectedProcesses: {
-        ...selectedProcesses,
-        [generateUniqueId(selectedProduct.id, 0)]: selectedProcesses[generateUniqueId(selectedProduct.id, 0)] // ensure the selected process for the end product is included
-      }
-    };
-
-    console.log('Data to send:', data);
-
-    axios.post('/api/configureProductionChain', data)
-      .then(response => {
-        console.log('API response:', response.data);
-        setProductionChain(response.data);
-      })
-      .catch(error => {
-        console.error('Error configuring production chain:', error);
-      });
   };
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Production Chain Configurator</h1>
-      <ProductList products={products} onProductSelect={handleProductSelect} />
-      {selectedProduct && (
-        <form onSubmit={handleSubmit(handleConfigureChain)} className="space-y-8">
-          <div>
-            <label>Amount:</label>
-            <input
-              type="number"
-              {...register('amount')}
-              name="amount"
-              placeholder="Amount"
-              className="w-full border rounded-lg p-2 mb-2"
-            />
-            {errors.amount && <span className="text-red-500">{errors.amount.message}</span>}
+      <div className="max-w-4xl mx-auto bg-white p-6 rounded-md shadow-md">
+        <h1 className="text-2xl font-bold mb-4">Production Chain Configurator</h1>
+        <ProductList products={products} onProductSelect={setSelectedProduct} />
+        {selectedProduct && (
+          <Form {...form}>
+            <form onSubmit={handleSubmit((values) => configureChain(values.amount))} className="mb-8 space-y-8">
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Amount</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Amount"
+                        value={field.value}
+                        onChange={handleNumericInput}
+                      />
+                    </FormControl>
+                    <FormDescription>Enter the amount</FormDescription>
+                    {errors.amount && <FormMessage>{errors.amount.message}</FormMessage>}
+                  </FormItem>
+                )}
+              />
+              <ProcessConfigurator
+                product={selectedProduct}
+                amount={watch('amount')}
+                selectedProcesses={selectedProcesses}
+                onProcessSelect={setSelectedProcess}
+              />
+              <Button type="submit" disabled={configuring}>
+                {configuring ? 'Configuring...' : 'Configure Chain'}
+              </Button>
+              {configureError && <p className="text-red-500 mt-2">{configureError}</p>}
+            </form>
+          </Form>
+        )}
+        {productionChain && (
+          <div className="relative">
+            <h2 className="text-xl font-bold mb-4">Production Chain:</h2>
+            <CopyButton textToCopy={JSON.stringify(productionChain, null, 2)} />
+            <pre className="p-4 bg-gray-100 rounded overflow-x-auto whitespace-pre max-h-96">
+              {JSON.stringify(productionChain, null, 2)}
+            </pre>
           </div>
-          <ProcessConfigurator
-            product={selectedProduct}
-            amount={watch('amount')}
-            selectedProcesses={selectedProcesses}
-            onProcessSelect={handleProcessSelect}
-          />
-          <button type="submit" className="btn btn-primary">Configure Chain</button>
-        </form>
-      )}
-      {productionChain && (
-        <div>
-          <h2 className="text-xl font-bold">Production Chain:</h2>
-          <pre className="p-4 bg-gray-100 rounded">{JSON.stringify(productionChain, null, 2)}</pre>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
