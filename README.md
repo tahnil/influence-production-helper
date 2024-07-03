@@ -29,51 +29,53 @@ The Production Chain Configurator is a web application designed to help users co
 - **Zod**: A TypeScript-first schema declaration and validation library.
 
 ## Project Structure
-.
-├── README.md
-├── components
-│   ├── CopyButton.tsx
-│   ├── ProcessConfigurator
-│   │   ├── ProcessConfigurator.tsx
-│   │   ├── ProcessInputs.tsx
-│   │   └── ProcessSelector.tsx
-│   ├── ProductList.tsx
-│   ├── index.js
-│   └── ui
-│   ├── button.tsx
-│   ├── form.tsx
-│   ├── input.tsx
-│   ├── label.tsx
-│   └── select.tsx
-├── hooks
-│   └── useProducts.ts
-├── lib
-│   ├── constructors.ts
-│   ├── dataLoader.ts
-│   ├── uniqueId.ts
-│   └── utils.ts
-├── pages
-│   ├── _app.js
-│   ├── api
-│   │   ├── configureProductionChain.ts
-│   │   ├── inputs.ts
-│   │   ├── processes.ts
-│   │   └── products.ts
-│   ├── favicon.ico
-│   ├── globals.css
-│   ├── index.tsx
-│   └── layout.tsx
-├── sdk
-│   └── productionChains.json
-├── services
-│   └── apiService.ts
-├── store
-│   └── useProductionChainStore.ts
-├── styles
-├── types
-│   └── types.ts
-└── utils
-└── errorHandler.ts
+
+- **`components/`**: Contains all the reusable React components.
+  - **`CopyButton.tsx`**: A button component for copying text to the clipboard.
+  - **`ProcessConfigurator/`**: Components related to process configuration.
+    - **`ProcessConfigurator.tsx`**: Main component for configuring processes.
+    - **`ProcessInputs.tsx`**: Component for displaying and configuring process inputs.
+    - **`ProcessSelector.tsx`**: Component for selecting a process.
+  - **`ProductList.tsx`**: Component for displaying and selecting products.
+  - **`ui/`**: Common UI components.
+    - **`button.tsx`**: Button component.
+    - **`form.tsx`**: Form component.
+    - **`input.tsx`**: Input component.
+    - **`label.tsx`**: Label component.
+    - **`select.tsx`**: Select component.
+
+- **`hooks/`**: Contains custom React hooks.
+  - **`useProducts.ts`**: Hook for fetching and managing product data.
+
+- **`lib/`**: Contains utility functions and data handling logic.
+  - **`constructors.ts`**: Functions for creating data structures.
+  - **`dataLoader.ts`**: Functions for loading data.
+  - **`uniqueId.ts`**: Utility for generating unique IDs.
+  - **`utils.ts`**: General utility functions.
+
+- **`pages/`**: Contains Next.js page components and API routes.
+  - **`_app.js`**: Custom App component for initializing pages.
+  - **`api/`**: API route handlers.
+    - **`configureProductionChain.ts`**: API handler for configuring production chains.
+    - **`inputs.ts`**: API handler for fetching process inputs.
+    - **`processes.ts`**: API handler for fetching processes.
+    - **`products.ts`**: API handler for fetching products.
+  - **`index.tsx`**: Main page component.
+  - **`layout.tsx`**: Layout component for the application.
+  - **`globals.css`**: Global CSS styles.
+
+- **`services/`**: Contains services for making API calls.
+  - **`apiService.ts`**: Service for interacting with the backend API.
+
+- **`store/`**: Contains state management logic using Zustand.
+  - **`useProductionChainStore.ts`**: Zustand store for managing production chain state.
+
+- **`types/`**: Contains TypeScript type definitions.
+  - **`types.ts`**: Type definitions for the application.
+
+- **`utils/`**: Contains utility functions.
+  - **`errorHandler.ts`**: Utility for handling errors.
+  - **`logger.ts`**: Utility for logging.
 
 ## Installation
 
