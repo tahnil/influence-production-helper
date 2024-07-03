@@ -19,8 +19,8 @@ function calculateInputAmount(process: Process, amount: number, input: InputOutp
     throw new Error(`Invalid process input data for productId: ${input.productId}, process: ${JSON.stringify(process)}`);
   }
 
-  // Find the correct primary output for the process that matches the productId we are producing
-  const primaryOutput = process.outputs.find(output => output.productId === process.outputs[0].productId);
+  // Find the correct output for the given input's productId
+  const primaryOutput = process.outputs.find(output => output.productId === input.productId);
   if (!primaryOutput) {
     throw new Error(`Primary output for productId: ${input.productId} not found in process outputs`);
   }
@@ -28,14 +28,19 @@ function calculateInputAmount(process: Process, amount: number, input: InputOutp
   const outputUnitsPerSR = parseFloat(primaryOutput.unitsPerSR);
   const inputUnitsPerSR = parseFloat(correspondingInput.unitsPerSR);
   const result = (amount * inputUnitsPerSR) / outputUnitsPerSR;
-  console.log(`calculateInputAmount - process: ${process.id}, amount: ${amount}, input: ${input.productId}`);
-  console.log(`outputUnitsPerSR: ${outputUnitsPerSR}, inputUnitsPerSR: ${inputUnitsPerSR}`);
-  console.log(`Resulting input amount: ${result}`);
+
+  console.log(`\n[calculateInputAmount] Process: ${JSON.stringify(process, null, 2)}`);
+  console.log(`Input Product ID: ${input.productId}, Amount: ${amount}`);
+  console.log(`Corresponding Input: ${JSON.stringify(correspondingInput, null, 2)}`);
+  console.log(`Primary Output: ${JSON.stringify(primaryOutput, null, 2)}`);
+  console.log(`Input Units Per SR: ${inputUnitsPerSR}, Output Units Per SR: ${outputUnitsPerSR}`);
+  console.log(`Resulting Input Amount: ${result}`);
+
   return result;
 }
 
 function calculateOutputAmount(process: Process, amount: number, output: InputOutput): number {
-  // Find the correct primary output for the process that matches the productId we are producing
+  // Find the correct output for the given productId
   const primaryOutput = process.outputs.find(o => o.productId === output.productId);
   if (!primaryOutput) {
     throw new Error(`Primary output for productId: ${output.productId} not found in process outputs`);
@@ -44,9 +49,14 @@ function calculateOutputAmount(process: Process, amount: number, output: InputOu
   const outputUnitsPerSR = parseFloat(output.unitsPerSR);
   const primaryOutputUnitsPerSR = parseFloat(primaryOutput.unitsPerSR);
   const result = (amount * outputUnitsPerSR) / primaryOutputUnitsPerSR;
-  console.log(`calculateOutputAmount - process: ${process.id}, amount: ${amount}, output: ${output.productId}`);
-  console.log(`primaryOutputUnitsPerSR: ${primaryOutputUnitsPerSR}, outputUnitsPerSR: ${outputUnitsPerSR}`);
-  console.log(`Resulting output amount: ${result}`);
+
+  console.log(`\n[calculateOutputAmount] Process: ${JSON.stringify(process, null, 2)}`);
+  console.log(`Output Product ID: ${output.productId}, Amount: ${amount}`);
+  console.log(`Output: ${JSON.stringify(output, null, 2)}`);
+  console.log(`Primary Output: ${JSON.stringify(primaryOutput, null, 2)}`);
+  console.log(`Output Units Per SR: ${outputUnitsPerSR}, Primary Output Units Per SR: ${primaryOutputUnitsPerSR}`);
+  console.log(`Resulting Output Amount: ${result}`);
+
   return result;
 }
 
@@ -119,17 +129,22 @@ function configureProcess(
       ))
   );
 
+  console.log(`\n[configureProcess] Process: ${JSON.stringify(userPreferredProcess, null, 2)}`);
+  console.log(`Required Output: ${JSON.stringify(requiredOutput, null, 2)}`);
+  console.log(`Process Node: ${JSON.stringify(processNode, null, 2)}`);
+
   const inputs = getInputsForProcess(userPreferredProcess);
 
   for (const input of inputs) {
     requiredProducts.add(input.productId);
     const inputAmount = calculateInputAmount(userPreferredProcess, amount, input);
-    console.log(`Input required for productId: ${input.productId}, input amount: ${inputAmount}`);
+    console.log(`\nInput required for productId: ${input.productId}, input amount: ${inputAmount}`);
+    console.log(`Input Details: ${JSON.stringify(input, null, 2)}`);
     const inputNode = configureProcess(input.productId, inputAmount, selectedProcesses, requiredProducts, requiredProcesses, level + 1, uniqueId);
     processNode.inputs.push(createProductionChainProduct(inputNode.product, inputAmount, inputNode.process));
   }
 
-  console.log(`Configured process node: ${JSON.stringify(processNode, null, 2)}`);
+  console.log(`\nConfigured process node: ${JSON.stringify(processNode, null, 2)}`);
   return createProductionChainProduct(
     { id: productId, name: productMap.get(productId) || 'Unknown Product' },
     amount,
