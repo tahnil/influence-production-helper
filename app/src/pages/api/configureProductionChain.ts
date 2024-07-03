@@ -2,7 +2,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { loadProductionChains, productMap, processMap } from '../../lib/dataLoader';
-import { Process, Product, InputOutput, ProductionChain, ProductionChainProduct, ProductionChainProcess } from '../../types/types';
+import { Product, Process, InputOutput, ProductionChain, ProductionChainProcess, ProductionChainProduct } from '../../types/types';
 import { generateUniqueId } from '../../lib/uniqueId';
 import { createProductionChainProcess, createProductionChainProduct } from '../../lib/constructors';
 
@@ -19,18 +19,34 @@ function calculateInputAmount(process: Process, amount: number, input: InputOutp
     throw new Error(`Invalid process input data for productId: ${input.productId}, process: ${JSON.stringify(process)}`);
   }
 
-  const outputUnitsPerSR = parseFloat(process.outputs[0].unitsPerSR);
+  // Find the correct primary output for the product
+  const primaryOutput = process.outputs.find(output => output.productId === process.outputs[0].productId);
+  if (!primaryOutput) {
+    throw new Error(`Primary output for productId: ${process.outputs[0].productId} not found in process outputs`);
+  }
+
+  const outputUnitsPerSR = parseFloat(primaryOutput.unitsPerSR);
   const inputUnitsPerSR = parseFloat(correspondingInput.unitsPerSR);
   const result = (amount * inputUnitsPerSR) / outputUnitsPerSR;
-  console.log(`calculateInputAmount - process: ${process.id}, amount: ${amount}, input: ${input.productId}, result: ${result}`);
+  console.log(`calculateInputAmount - process: ${process.id}, amount: ${amount}, input: ${input.productId}`);
+  console.log(`outputUnitsPerSR: ${outputUnitsPerSR}, inputUnitsPerSR: ${inputUnitsPerSR}`);
+  console.log(`Resulting input amount: ${result}`);
   return result;
 }
 
 function calculateOutputAmount(process: Process, amount: number, output: InputOutput): number {
-  const primaryOutputUnitsPerSR = parseFloat(process.outputs[0].unitsPerSR);
+  // Find the correct primary output for the product
+  const primaryOutput = process.outputs.find(o => o.productId === process.outputs[0].productId);
+  if (!primaryOutput) {
+    throw new Error(`Primary output for productId: ${process.outputs[0].productId} not found in process outputs`);
+  }
+
   const outputUnitsPerSR = parseFloat(output.unitsPerSR);
+  const primaryOutputUnitsPerSR = parseFloat(primaryOutput.unitsPerSR);
   const result = (amount * outputUnitsPerSR) / primaryOutputUnitsPerSR;
-  console.log(`calculateOutputAmount - process: ${process.id}, amount: ${amount}, output: ${output.productId}, result: ${result}`);
+  console.log(`calculateOutputAmount - process: ${process.id}, amount: ${amount}, output: ${output.productId}`);
+  console.log(`primaryOutputUnitsPerSR: ${primaryOutputUnitsPerSR}, outputUnitsPerSR: ${outputUnitsPerSR}`);
+  console.log(`Resulting output amount: ${result}`);
   return result;
 }
 
@@ -60,7 +76,7 @@ function configureProcess(
   level: number,
   parentId: string | null = null
 ): ProductionChainProduct {
-  console.log(`Configuring process for productId: ${productId}, amount: ${amount}, level: ${level}, parentId: ${parentId}`);
+  console.log(`\nConfiguring process for productId: ${productId}, amount: ${amount}, level: ${level}, parentId: ${parentId}`);
   const processes = findProcessesThatYieldProduct(productId);
 
   if (processes.length === 0) {
@@ -79,7 +95,15 @@ function configureProcess(
     ? processes.find(process => process.id === selectedProcessId)
     : processes[0];
 
+  if (!userPreferredProcess) {
+    throw new Error(`Process with ID ${selectedProcessId} not found for product ${productId}`);
+  }
+
   requiredProcesses.add(userPreferredProcess.id);
+  const requiredOutput = userPreferredProcess.outputs.find(output => output.productId === productId);
+  if (!requiredOutput) {
+    throw new Error(`Required output for productId: ${productId} not found in process outputs`);
+  }
 
   const processNode: ProductionChainProcess = createProductionChainProcess(
     userPreferredProcess.id,
@@ -87,7 +111,12 @@ function configureProcess(
     userPreferredProcess.buildingId,
     [],
     [{ product: { id: productId, name: productMap.get(productId) || 'Unknown Product' }, amount }],
-    userPreferredProcess.outputs.filter(output => output.productId !== productId)
+    userPreferredProcess.outputs
+      .filter(output => output.productId !== productId)
+      .map(output => createProductionChainProduct(
+        { id: output.productId, name: productMap.get(output.productId) || 'Unknown Product' },
+        calculateOutputAmount(userPreferredProcess, amount, output)
+      ))
   );
 
   const inputs = getInputsForProcess(userPreferredProcess);
@@ -95,7 +124,7 @@ function configureProcess(
   for (const input of inputs) {
     requiredProducts.add(input.productId);
     const inputAmount = calculateInputAmount(userPreferredProcess, amount, input);
-    console.log(`Input required for productId: ${input.productId}, amount: ${inputAmount}`);
+    console.log(`Input required for productId: ${input.productId}, input amount: ${inputAmount}`);
     const inputNode = configureProcess(input.productId, inputAmount, selectedProcesses, requiredProducts, requiredProcesses, level + 1, uniqueId);
     processNode.inputs.push(createProductionChainProduct(inputNode.product, inputAmount, inputNode.process));
   }
