@@ -19,7 +19,7 @@ function calculateInputAmount(process: Process, amount: number, input: InputOutp
     throw new Error(`Invalid process input data for productId: ${input.productId}, process: ${JSON.stringify(process)}`);
   }
 
-  // Find the correct primary output for the product
+  // Find the primary output for the process that matches the productId we are producing
   const primaryOutput = process.outputs.find(output => output.productId === input.productId);
   if (!primaryOutput) {
     throw new Error(`Primary output for productId: ${input.productId} not found in process outputs`);
@@ -35,7 +35,7 @@ function calculateInputAmount(process: Process, amount: number, input: InputOutp
 }
 
 function calculateOutputAmount(process: Process, amount: number, output: InputOutput): number {
-  // Find the correct primary output for the product
+  // Find the primary output for the process that matches the productId we are producing
   const primaryOutput = process.outputs.find(o => o.productId === output.productId);
   if (!primaryOutput) {
     throw new Error(`Primary output for productId: ${output.productId} not found in process outputs`);
