@@ -20,9 +20,9 @@ function calculateInputAmount(process: Process, amount: number, input: InputOutp
   }
 
   // Find the correct primary output for the product
-  const primaryOutput = process.outputs.find(output => output.productId === process.outputs[0].productId);
+  const primaryOutput = process.outputs.find(output => output.productId === input.productId);
   if (!primaryOutput) {
-    throw new Error(`Primary output for productId: ${process.outputs[0].productId} not found in process outputs`);
+    throw new Error(`Primary output for productId: ${input.productId} not found in process outputs`);
   }
 
   const outputUnitsPerSR = parseFloat(primaryOutput.unitsPerSR);
@@ -36,9 +36,9 @@ function calculateInputAmount(process: Process, amount: number, input: InputOutp
 
 function calculateOutputAmount(process: Process, amount: number, output: InputOutput): number {
   // Find the correct primary output for the product
-  const primaryOutput = process.outputs.find(o => o.productId === process.outputs[0].productId);
+  const primaryOutput = process.outputs.find(o => o.productId === output.productId);
   if (!primaryOutput) {
-    throw new Error(`Primary output for productId: ${process.outputs[0].productId} not found in process outputs`);
+    throw new Error(`Primary output for productId: ${output.productId} not found in process outputs`);
   }
 
   const outputUnitsPerSR = parseFloat(output.unitsPerSR);
