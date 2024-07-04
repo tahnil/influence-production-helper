@@ -3,6 +3,7 @@ import React from 'react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table';
 import { ProductionChainProcess } from '../types/types';
 import { aggregateIngredients } from '../utils/aggregateIngredients';
+import { NumericFormat } from 'react-number-format';
 
 interface AggregatedIngredientsTableProps {
   process: ProductionChainProcess;
@@ -25,7 +26,15 @@ const AggregatedIngredientsTable: React.FC<AggregatedIngredientsTableProps> = ({
           {Object.entries(aggregated).map(([productId, { name, amount }]) => (
             <TableRow key={productId}>
               <TableCell>{name}</TableCell>
-              <TableCell className="text-right">{amount.toFixed(2)}</TableCell>
+              <TableCell className="text-right">
+                <NumericFormat
+                  value={amount}
+                  displayType={'text'}
+                  thousandSeparator=","
+                  decimalScale={2}
+                  fixedDecimalScale
+                />
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
