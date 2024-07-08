@@ -12,7 +12,9 @@
 │   └── vercel.svg
 ├── src
 │   ├── components
+│   │   ├── AggregatedIngredientsTable.tsx
 │   │   ├── CopyButton.tsx
+│   │   ├── JsonOutputWithCopyButton.tsx
 │   │   ├── ProcessConfigurator
 │   │   │   ├── ProcessConfigurator.tsx
 │   │   │   ├── ProcessInputs.tsx
@@ -23,7 +25,8 @@
 │   │       ├── form.tsx
 │   │       ├── input.tsx
 │   │       ├── label.tsx
-│   │       └── select.tsx
+│   │       ├── select.tsx
+│   │       └── table.tsx
 │   ├── hooks
 │   │   └── useProducts.ts
 │   ├── lib
@@ -57,10 +60,11 @@
 │   ├── types
 │   │   └── types.ts
 │   └── utils
+│       ├── aggregateIngredients.ts
 │       ├── errorHandler.ts
 │       └── logger.ts
 ├── tailwind.config.ts
 ├── tsconfig.json
 └── tsconfig.tsbuildinfo
 
-16 directories, 48 files
+16 directories, 52 files
