@@ -14,8 +14,17 @@ const TreeView: React.FC<TreeViewProps> = ({ treeData, productMap, processes }) 
   const treeRef = useRef<SVGSVGElement | null>(null);
 
   useEffect(() => {
-    if (!treeData) return;
+    console.log('TreeView component mounted or updated.');
+    console.log('TreeData:', treeData);
+    console.log('ProductMap:', productMap);
+    console.log('Processes:', processes);
 
+    if (!treeData) {
+      console.log('No treeData available, exiting useEffect.');
+      return;
+    }
+
+    console.log('Initializing SVG and D3 tree.');
     const svg = d3.select(treeRef.current)
       .attr('width', 960)
       .attr('height', 500)
@@ -29,6 +38,7 @@ const TreeView: React.FC<TreeViewProps> = ({ treeData, productMap, processes }) 
     root.y0 = 0;
 
     if (root.children) {
+      console.log('Collapsing root children.');
       root.children.forEach(collapse);
     }
 
@@ -36,6 +46,7 @@ const TreeView: React.FC<TreeViewProps> = ({ treeData, productMap, processes }) 
 
     function collapse(d: ExtendedHierarchyNode) {
       if (d.children) {
+        console.log('Collapsing node:', d.data.name);
         d._children = d.children;
         d._children.forEach(collapse);
         d.children = undefined;
@@ -43,6 +54,7 @@ const TreeView: React.FC<TreeViewProps> = ({ treeData, productMap, processes }) 
     }
 
     function update(source: ExtendedHierarchyNode) {
+      console.log('Updating D3 tree with source:', source.data.name);
       const treeData = treemap(root);
       const nodes = treeData.descendants();
       const links = treeData.descendants().slice(1);
@@ -140,11 +152,15 @@ const TreeView: React.FC<TreeViewProps> = ({ treeData, productMap, processes }) 
       function click(this: SVGGElement, event: MouseEvent, d: d3.HierarchyPointNode<ExtendedHierarchyNode>) {
         const node = d as unknown as ExtendedHierarchyNode;
 
+        console.log('Node clicked:', node.data.name);
+
         if (node.selectableProcesses && node.selectableProcesses.length > 1) {
+          console.log('Node has selectable processes:', node.selectableProcesses.map(p => p.name).join(', '));
           const processNames = node.selectableProcesses.map(p => p.name).join(', ');
           const selectedProcessName = prompt(`Select process for ${node.data.name}: ${processNames}`);
           const selectedProcess = node.selectableProcesses.find(p => p.name === selectedProcessName);
           if (selectedProcess) {
+            console.log('Selected process:', selectedProcess.name);
             node.selectedProcessId = selectedProcess.id;
             node.children = selectedProcess.inputs.map(input => {
               const productName = productMap.get(input.productId) || 'Unknown';
@@ -162,6 +178,8 @@ const TreeView: React.FC<TreeViewProps> = ({ treeData, productMap, processes }) 
               const childNode = d3.hierarchy(childNodeData) as d3.HierarchyNode<HierarchyNode> & ExtendedHierarchyNode;
               childNode.data = childNodeData;
               childNode.parent = node;
+            
+              console.log('Created child node:', childNode.data.name);
             
               return childNode;
             });

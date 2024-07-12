@@ -2,6 +2,7 @@
 import create from 'zustand';
 import { ProductionChain, Process, Product } from '../types/types';
 import { configureProductionChain as configureChainAPI } from '../services/apiService';
+import { fetchProcesses } from '../services/apiService';
 import { handleApiError } from '../utils/errorHandler';
 import { generateUniqueId } from '../lib/uniqueId';
 
@@ -15,13 +16,14 @@ interface ProductionChainState {
   setSelectedProduct: (product: Product) => void;
   setSelectedProcess: (uniqueId: string, processId: string) => void;
   configureChain: (amount: number) => Promise<void>;
+  fetchAndSetProcesses: (productId: string) => Promise<void>; // Add this function
 }
 
 export const useProductionChainStore = create<ProductionChainState>((set, get) => ({
   selectedProduct: null,
   selectedProcesses: {},
   productionChain: null,
-  processes: [],  // Add processes state
+  processes: [],
   loading: false,
   error: null,
   setSelectedProduct: (product) => set({
@@ -59,6 +61,16 @@ export const useProductionChainStore = create<ProductionChainState>((set, get) =
     } catch (error: unknown) {
       const errorMessage = handleApiError(error);
       set({ error: errorMessage, loading: false });
+    }
+  },
+  fetchAndSetProcesses: async (productId) => {
+    try {
+      const processes = await fetchProcesses(productId);
+      console.log('Fetched processes:', processes); // Logging fetched processes
+      set({ processes });
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      set({ error: errorMessage });
     }
   }
 }));
