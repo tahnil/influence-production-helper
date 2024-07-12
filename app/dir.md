@@ -20,6 +20,7 @@
 │   │   │   ├── ProcessInputs.tsx
 │   │   │   └── ProcessSelector.tsx
 │   │   ├── ProductList.tsx
+│   │   ├── TreeView.tsx
 │   │   └── ui
 │   │       ├── button.tsx
 │   │       ├── form.tsx
@@ -40,16 +41,19 @@
 │   │   ├── uniqueId.ts
 │   │   └── utils.ts
 │   ├── pages
-│   │   ├── _app.js
+│   │   ├── _app.tsx
 │   │   ├── api
 │   │   │   ├── configureProductionChain.ts
+│   │   │   ├── fetchProductionChains.ts
 │   │   │   ├── inputs.ts
 │   │   │   ├── processes.ts
+│   │   │   ├── productionChains.ts
 │   │   │   └── products.ts
 │   │   ├── favicon.ico
 │   │   ├── globals.css
 │   │   ├── index.tsx
-│   │   └── layout.tsx
+│   │   ├── layout.tsx
+│   │   └── tree-view.tsx
 │   ├── sdk
 │   │   └── productionChains.json
 │   ├── services
@@ -62,9 +66,10 @@
 │   └── utils
 │       ├── aggregateIngredients.ts
 │       ├── errorHandler.ts
-│       └── logger.ts
+│       ├── logger.ts
+│       └── transformToTreeData.ts
 ├── tailwind.config.ts
 ├── tsconfig.json
 └── tsconfig.tsbuildinfo
 
-16 directories, 52 files
+16 directories, 57 files

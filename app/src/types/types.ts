@@ -1,4 +1,5 @@
 // src/types/types.ts
+import * as d3 from 'd3';
 
 export interface Product {
   id: string;
@@ -83,4 +84,24 @@ export interface TreeNode {
   selectableProcesses?: Process[];
   selectedProcessId?: string;
   isExpanded?: boolean;
+}
+
+export interface HierarchyNode {
+  id: string;
+  name: string;
+  amount: number;
+  children?: HierarchyNode[];
+  _children?: HierarchyNode[];
+  selectableProcesses?: Process[];
+  selectedProcessId?: string;
+  inputs?: HierarchyNode[];
+}
+
+export interface ExtendedHierarchyNode extends d3.HierarchyNode<HierarchyNode> {
+  x0?: number;
+  y0?: number;
+  _children?: this[];
+  id: string | undefined;
+  selectableProcesses?: Process[];
+  selectedProcessId?: string;
 }
