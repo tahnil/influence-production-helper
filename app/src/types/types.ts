@@ -66,7 +66,21 @@ export interface ProductionChainState {
   productionChain: any;
   loading: boolean;
   error: string | null;
+  processes: Process[];
   setSelectedProduct: (product: Product) => void;
   setSelectedProcess: (uniqueId: string, processId: string) => void;
   configureChain: (amount: number) => Promise<void>;
+  fetchProcesses: () => Promise<void>;
+}
+
+export interface TreeNode {
+  type: string;
+  name: string;
+  amount?: number;
+  children?: TreeNode[];
+  inputs?: TreeNode[];
+  outputs?: TreeNode[];
+  selectableProcesses?: Process[];
+  selectedProcessId?: string;
+  isExpanded?: boolean;
 }

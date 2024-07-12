@@ -1,14 +1,27 @@
 // src/store/useProductionChainStore.ts
-import { create } from 'zustand';
-import { configureProductionChain } from '../services/apiService';
+import create from 'zustand';
+import { ProductionChain, Process, Product } from '../types/types';
+import { configureProductionChain as configureChainAPI } from '../services/apiService';
 import { handleApiError } from '../utils/errorHandler';
-import { ProductionChainState } from '../types/types';
 import { generateUniqueId } from '../lib/uniqueId';
+
+interface ProductionChainState {
+  selectedProduct: Product | null;
+  selectedProcesses: { [key: string]: string };
+  productionChain: ProductionChain | null;
+  processes: Process[];
+  loading: boolean;
+  error: string | null;
+  setSelectedProduct: (product: Product) => void;
+  setSelectedProcess: (uniqueId: string, processId: string) => void;
+  configureChain: (amount: number) => Promise<void>;
+}
 
 export const useProductionChainStore = create<ProductionChainState>((set, get) => ({
   selectedProduct: null,
   selectedProcesses: {},
   productionChain: null,
+  processes: [],  // Add processes state
   loading: false,
   error: null,
   setSelectedProduct: (product) => set({
@@ -41,7 +54,7 @@ export const useProductionChainStore = create<ProductionChainState>((set, get) =
 
     set({ loading: true, error: null });
     try {
-      const productionChain = await configureProductionChain(data);
+      const productionChain = await configureChainAPI(data);
       set({ productionChain, loading: false });
     } catch (error: unknown) {
       const errorMessage = handleApiError(error);
