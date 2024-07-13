@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Collapsible Tree with Node Configuration</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .node circle {
+            fill: #999;
+            stroke: #000;
+            stroke-width: 1.5px;
+        }
+
+        .node text {
+            font: 12px sans-serif;
+        }
+
+        .link {
+            fill: none;
+            stroke: #555;
+            stroke-width: 1.5px;
+        }
+
+        .input-box {
+            font: 12px sans-serif;
+            fill: white;
+            stroke: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="tree-container"></div>
+
+    <script>
+        // Sample tree data
+        const treeData = {
+            name: "Root",
+            children: [
+                { name: "Child 1" },
+                { name: "Child 2", children: [{ name: "Grandchild 1" }, { name: "Grandchild 2" }] }
+            ]
+        };
+
+        const width = 960;
+        const height = 500;
+        let i = 0;  // Variable for generating unique IDs
+
+        const treeLayout = d3.tree().size([height, width - 160]);
+
+        let root = d3.hierarchy(treeData, d => d.children || d._children);
+        treeLayout(root);
+
+        const svg = d3.select("#tree-container")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .append("g")
+            .attr("transform", "translate(80,0)");
+
+        // Initial tree creation
+        const node = svg.selectAll(".node")
+            .data(root.descendants())
+            .enter()
+            .append("g")
+            .attr("class", "node")
+            .attr("transform", d => `translate(${d.y},${d.x})`);
+
+        node.append("circle")
+            .attr("r", 10)
+            .on("click", (event, d) => {
+                event.stopPropagation();
+                toggleChildren(d);
+                update(d);
+            });
+
+        node.append("text")
+            .attr("dy", -20)
+            .attr("x", d => d.children || d._children ? -8 : 8)
+            .style("text-anchor", d => d.children || d._children ? "end" : "start")
+            .text(d => d.data.name);
+
+        node.append("foreignObject")
+            .attr("width", 200)
+            .attr("height", 100)
+            .attr("x", 10)
+            .attr("y", -30)
+            .append("xhtml:div")
+            .html(d => `
+                <div>
+                    <input type="text" value="${d.data.name}" onchange="updateNodeName(event, '${d.data.name}')" />
+                    <br>
+                    <input type="text" id="new-branch-${d.data.name}" placeholder="New branch name" />
+                    <button onclick="addBranch('${d.data.name}')">Add Branch</button>
+                </div>
+            `);
+
+        function removeCyclicReferences(obj) {
+            const seen = new WeakSet();
+            return JSON.parse(JSON.stringify(obj, function(key, value) {
+                if (typeof value === "object" && value !== null) {
+                    if (seen.has(value)) {
+                        return;
+                    }
+                    seen.add(value);
+                }
+                return value;
+            }));
+        }
+
+        function update(source) {
+            console.log('Updating tree layout...');
+            console.log('Current tree data:', JSON.stringify(removeCyclicReferences(treeData)));
+
+            root = d3.hierarchy(treeData, d => d.children || d._children);
+            treeLayout(root);
+
+            const links = svg.selectAll(".link")
+                .data(root.links(), d => d.target.id);
+
+            links.enter().append("path")
+                .attr("class", "link")
+                .merge(links)
+                .attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x));
+
+            links.exit().remove();
+
+            const nodes = svg.selectAll(".node")
+                .data(root.descendants(), d => d.id || (d.id = ++i));
+
+            const nodeEnter = nodes.enter().append("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${d.y},${d.x})`);
+
+            nodeEnter.append("circle")
+                .attr("r", 10)
+                .on("click", (event, d) => {
+                    event.stopPropagation();
+                    console.log('Node clicked:', d.data.name);
+                    toggleChildren(d);
+                    update(d);
+                });
+
+            nodeEnter.append("text")
+                .attr("dy", -20)
+                .attr("x", d => d.children || d._children ? -8 : 8)
+                .style("text-anchor", d => d.children || d._children ? "end" : "start")
+                .text(d => d.data.name);
+
+            nodeEnter.append("foreignObject")
+                .attr("width", 200)
+                .attr("height", 100)
+                .attr("x", 10)
+                .attr("y", -30)
+                .append("xhtml:div")
+                .html(d => `
+                    <div>
+                        <input type="text" value="${d.data.name}" onchange="updateNodeName(event, '${d.data.name}')" />
+                        <br>
+                        <input type="text" id="new-branch-${d.data.name}" placeholder="New branch name" />
+                        <button onclick="addBranch('${d.data.name}')">Add Branch</button>
+                    </div>
+                `);
+
+            nodes.merge(nodeEnter).attr("transform", d => `translate(${d.y},${d.x})`);
+
+            nodes.exit().remove();
+
+            console.log('Tree updated');
+        }
+
+        function toggleChildren(d) {
+            if (d.children) {
+                console.log('Hiding visible children:', JSON.stringify(removeCyclicReferences(d.children)));
+                d._children = d.children;
+                d.children = null;
+            } else {
+                console.log('Unhiding invisible children:', JSON.stringify(removeCyclicReferences(d._children)));
+                d.children = d._children;
+                d._children = null;
+            }
+            console.log('Toggled children for node:', d.data.name, 'New children:', JSON.stringify(removeCyclicReferences(d.children)), 'Hidden children:', JSON.stringify(removeCyclicReferences(d._children)));
+        }
+
+        function updateNodeName(event, name) {
+            const newName = event.target.value;
+            console.log(`Updating node name from ${name} to ${newName}`);
+            const node = root.descendants().find(d => d.data.name === name);
+            if (node) {
+                node.data.name = newName;
+                console.log('Node name updated:', JSON.stringify(removeCyclicReferences(node)));
+                update(root);
+            }
+        }
+
+        function addBranch(parentName) {
+            console.log('Adding branch to parent:', parentName);
+            const parentNode = root.descendants().find(d => d.data.name === parentName);
+            const newBranchName = document.getElementById(`new-branch-${parentName}`).value;
+            console.log('New branch name:', newBranchName);
+            if (parentNode && newBranchName) {
+                if (!parentNode.data.children) {
+                    parentNode.data.children = [];
+                }
+                parentNode.data.children.push({ name: newBranchName });
+                console.log('New branch added:', JSON.stringify(removeCyclicReferences(treeData)));
+                update(root);
+            }
+        }
+
+        // Initial update
+        update(root);
+
+        // Expose functions to the global scope
+        window.addBranch = addBranch;
+        window.updateNodeName = updateNodeName;
+    </script>
+</body>
+</html>
