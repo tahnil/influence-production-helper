@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Collapsible Tree with Node Configuration</title>
@@ -38,10 +39,13 @@
         }
     </style>
 </head>
+
 <body>
     <div id="tree-container"></div>
 
     <script>
+        const duration = 750;
+        
         // Sample tree data
         let treeData = {
             name: "Root",
@@ -51,7 +55,7 @@
             ]
         };
 
-        var margin = {top: 20, right: 90, bottom: 30, left: 90},
+        var margin = { top: 20, right: 90, bottom: 30, left: 90 },
             width = window.innerWidth - margin.left - margin.right,
             height = window.innerHeight - margin.top - margin.bottom;
 
@@ -64,14 +68,14 @@
 
         const svg = d3.select("#tree-container")
             .append("svg")
-                .attr("width", width + margin.right + margin.left)
-                .attr("height", height + margin.top + margin.bottom)
-                .call(d3.zoom().on("zoom", function (event) {
-                    svg.attr("transform", event.transform)
-                }))
+            .attr("width", width + margin.right + margin.left)
+            .attr("height", height + margin.top + margin.bottom)
+            .call(d3.zoom().on("zoom", function (event) {
+                svg.attr("transform", event.transform)
+            }))
             .append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-;
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        ;
 
         // Initial tree rendering
         update(root);
@@ -96,12 +100,14 @@
             const nodes = svg.selectAll(".node")
                 .data(root.descendants(), d => d.id || (d.id = ++i));
 
+            // Enter any new nodes at the parent's previous position.
             const nodeEnter = nodes.enter().append("g")
                 .attr("class", "node")
-                .attr("transform", d => `translate(${d.y},${d.x})`);
+                .attr("transform", d => `translate(${source.y0},${source.x0})`);
 
             nodeEnter.append("circle")
-                .attr("r", 10)
+                .attr("r", 1e-6)
+                .style("fill", d => d._children ? "lightsteelblue" : "#444")
                 .on("click", (event, d) => {
                     event.stopPropagation();
                     console.log('Node clicked:', d.data.name);
@@ -130,22 +136,72 @@
                     </div>
                 `);
 
-            const nodeUpdate = nodes.merge(nodeEnter);
-            nodeUpdate.attr("transform", d => `translate(${d.y},${d.x})`)
-                      .style("display", d => d.data.name ? null : "none");
+            // UPDATE
+            const nodeUpdate = nodeEnter.merge(nodes);
 
-            nodes.exit().remove();
+            // Transition to the proper position for the node
+            nodeUpdate.transition()
+                .duration(duration)
+                .attr("transform", d => `translate(${d.y},${d.x})`);
+
+            // Update the node attributes and style
+            nodeUpdate.select("circle")
+                .attr("r", 10)
+                .style("fill", d => d._children ? "lightsteelblue" : "#333");
+
+            // Remove any exiting nodes
+            const nodeExit = nodes.exit().transition()
+                .duration(duration)
+                .attr("transform", d => `translate(${source.y},${source.x})`)
+                .remove();
+
+            nodeExit.select("circle")
+                .attr("r", 1e-6);
+
+            nodeExit.select("text")
+                .style("fill-opacity", 1e-6);
+
             console.log('Tree updated');
 
+            // Update the links...
             const links = svg.selectAll(".link")
                 .data(root.links(), d => d.target.id);
 
-            links.enter().append("path")
+            // Enter any new links at the parent's previous position.
+            const linkEnter = links.enter().insert("path", "g")
                 .attr("class", "link")
-                .merge(links)
-                .attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x));
+                .attr("d", d => {
+                    const o = { x: source.x0, y: source.y0 };
+                    return diagonal(o, o);
+                });
 
-            links.exit().remove();
+            // Transition links to their new position.
+            const linkUpdate = linkEnter.merge(links);
+
+            linkUpdate.transition()
+                .duration(duration)
+                .attr("d", d => diagonal(d, d.parent));
+
+            const linkExit = links.exit().transition()
+                .duration(duration)
+                .attr("d", d => {
+                    const o = { x: source.x, y: source.y };
+                    return diagonal(o, o);
+                })
+                .remove();
+
+            // Store the old positions for transition.
+            nodes.each(function (d) {
+                d.x0 = d.x;
+                d.y0 = d.y;
+            });
+        }
+
+        function diagonal(s, d) {
+            return `M ${s.y} ${s.x}
+            C ${(s.y + d.y) / 2} ${s.x},
+              ${(s.y + d.y) / 2} ${d.x},
+              ${d.y} ${d.x}`;
         }
 
         function toggleChildren(d) {
@@ -166,12 +222,12 @@
             const node = findNode(treeData, name);
             if (node) {
                 if (children !== undefined) {
-                node.children = children ? children.map(c => ({ name: c.data.name, children: c.children ? [] : null })) : null;
+                    node.children = children ? children.map(c => ({ name: c.data.name, children: c.children ? [] : null })) : null;
                 }
                 if (_children !== undefined) {
-                node._children = _children ? _children.map(c => ({ name: c.data.name, children: c.children ? [] : null })) : null;
+                    node._children = _children ? _children.map(c => ({ name: c.data.name, children: c.children ? [] : null })) : null;
+                }
             }
-        }
         }
 
         function findNode(data, name) {
@@ -217,4 +273,5 @@
         window.updateNodeName = updateNodeName;
     </script>
 </body>
+
 </html>
