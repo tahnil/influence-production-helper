@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         treeLayout(root);
 
         const nodes = root.descendants(),
-              links = root.descendants().slice(1);
+            links = root.descendants().slice(1);
 
         // Normalize for fixed-depth
         nodes.forEach(d => d.y = d.depth * 180);
@@ -57,7 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         nodeEnter.append("circle")
             .attr("r", 1e-6)
-            .style("fill", d => d._children ? "lightsteelblue" : "#444")            .on("click", (event, d) => {
+            .style("fill", d => d._children ? "lightsteelblue" : "#444")
+            .on("click", (event, d) => {
                 event.stopPropagation();
                 toggleChildren(d);
                 update(d);
@@ -195,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
             update(root);
         }
     }
-
+    
     window.addBranch = addBranch;
     window.updateNodeName = updateNodeName;
 });
