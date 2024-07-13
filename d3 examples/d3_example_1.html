@@ -149,9 +149,13 @@
         function updateTreeData(name, children, _children) {
             const node = findNode(treeData, name);
             if (node) {
+                if (children !== undefined) {
                 node.children = children ? children.map(c => ({ name: c.data.name, children: c.children ? [] : null })) : null;
+                }
+                if (_children !== undefined) {
                 node._children = _children ? _children.map(c => ({ name: c.data.name, children: c.children ? [] : null })) : null;
             }
+        }
         }
 
         function findNode(data, name) {
@@ -187,7 +191,6 @@
                     parentNode.data.children = [];
                 }
                 parentNode.data.children.push({ name: newBranchName });
-                updateTreeData(parentNode.data.name, parentNode.children, parentNode._children);
                 console.log('New branch added:', treeData);
                 update(root);
             }
