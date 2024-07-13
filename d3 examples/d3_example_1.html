@@ -42,8 +42,6 @@
     <div id="tree-container"></div>
 
     <script>
-        const duration = 750; // Define the duration for transitions
-
         // Sample tree data
         let treeData = {
             name: "Root",
@@ -110,7 +108,7 @@
                 });
 
             nodeEnter.append("circle")
-                .attr("r", 1e-6)
+                .attr("r", 10)
                 .style("fill", d => d._children ? "lightsteelblue" : "#444")
                 .on("click", (event, d) => {
                     event.stopPropagation();
@@ -142,9 +140,8 @@
             // UPDATE
             const nodeUpdate = nodeEnter.merge(nodes);
 
-            // Transition to the proper position for the node
-            nodeUpdate.transition()
-                .duration(duration)
+            // Set the proper position for the node
+            nodeUpdate
                 .attr("transform", d => {
                     console.log(`Update node ${d.data.name}: (${d.y}, ${d.x})`);
                     return `translate(${d.y},${d.x})`;
@@ -156,8 +153,7 @@
                 .style("fill", d => d._children ? "lightsteelblue" : "#333");
 
             // Remove any exiting nodes
-            const nodeExit = nodes.exit().transition()
-                .duration(duration)
+            const nodeExit = nodes.exit()
                 .attr("transform", d => {
                     const x = source.x || 0;
                     const y = source.y || 0;
@@ -167,10 +163,10 @@
                 .remove();
 
             nodeExit.select("circle")
-                .attr("r", 1e-6);
+                .attr("r", 10);
 
             nodeExit.select("text")
-                .style("fill-opacity", 1e-6);
+                .style("fill-opacity", 1);
 
             console.log('Tree updated');
 
@@ -187,18 +183,16 @@
                     return diagonal(o, o);
                 });
 
-            // Transition links to their new position.
+            // Set links to their new position.
             const linkUpdate = linkEnter.merge(links);
 
-            linkUpdate.transition()
-                .duration(duration)
+            linkUpdate
                 .attr("d", d => {
                     console.log(`Update link: source (${d.source.y}, ${d.source.x}), target (${d.target.y}, ${d.target.x})`);
                     return diagonal(d.source, d.target);
                 });
 
-            const linkExit = links.exit().transition()
-                .duration(duration)
+            const linkExit = links.exit()
                 .attr("d", d => {
                     const o = { x: source.x || 0, y: source.y || 0 };
                     console.log(`Exit link: (${o.x}, ${o.y})`);
@@ -206,7 +200,7 @@
                 })
                 .remove();
 
-            // Store the old positions for transition.
+            // Store the old positions.
             root.each(function (d) {
                 console.log(`Store node ${d.data.name}: (${d.x}, ${d.y})`);
                 d.x0 = d.x;
