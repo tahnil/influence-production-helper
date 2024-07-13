@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function update(source) {
+        console.log(source);
         const nodeStates = {};
         root.each(d => { nodeStates[d.data.id] = d._children; });
 
