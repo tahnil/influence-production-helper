@@ -58,8 +58,8 @@
         let i = 0;  // Variable for generating unique IDs
 
         const treeLayout = d3.tree().size([height, width]);
-
         let root = d3.hierarchy(treeData);
+
         treeLayout(root);
 
         const svg = d3.select("#tree-container")
@@ -160,6 +160,7 @@
             }
             console.log('Toggled children for node:', d.data.name, 'New children:', d.children, 'Hidden children:', d._children);
             updateTreeData(d.data.name, d.children, d._children);
+            update();
         }
 
         function updateTreeData(name, children, _children) {
