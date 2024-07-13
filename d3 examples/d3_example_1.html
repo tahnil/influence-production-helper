@@ -33,7 +33,7 @@
 
     <script>
         // Sample tree data
-        const treeData = {
+        let treeData = {
             name: "Root",
             children: [
                 { name: "Child 1" },
@@ -47,7 +47,7 @@
 
         const treeLayout = d3.tree().size([height, width - 160]);
 
-        const root = d3.hierarchy(treeData);
+        let root = d3.hierarchy(treeData);
         treeLayout(root);
 
         const svg = d3.select("#tree-container")
@@ -63,7 +63,19 @@
         function update(source) {
             console.log('Updating tree layout...');
             console.log('Current tree data:', treeData);
+            // Preserve the state of _children before reinitializing the hierarchy
+            const nodeStates = {};
+            root.each(d => {
+                nodeStates[d.data.name] = d._children;
+            });
+
+            root = d3.hierarchy(treeData);
+            root.each(d => {
+                d._children = nodeStates[d.data.name];
+            });
+
             treeLayout(root);
+
             const nodes = svg.selectAll(".node")
                 .data(root.descendants(), d => d.id || (d.id = ++i));
 
@@ -106,8 +118,8 @@
                       .style("display", d => d.data.name ? null : "none");
 
             nodes.exit().remove();
-
             console.log('Tree updated');
+
             const links = svg.selectAll(".link")
                 .data(root.links(), d => d.target.id);
 
