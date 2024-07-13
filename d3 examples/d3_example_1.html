@@ -47,7 +47,7 @@
 
         const treeLayout = d3.tree().size([height, width - 160]);
 
-        let root = d3.hierarchy(treeData, d => d.children || d._children);
+        const root = d3.hierarchy(treeData);
         treeLayout(root);
 
         const svg = d3.select("#tree-container")
@@ -63,20 +63,7 @@
         function update(source) {
             console.log('Updating tree layout...');
             console.log('Current tree data:', treeData);
-
-            root = d3.hierarchy(treeData, d => d.children || d._children);
             treeLayout(root);
-
-            const links = svg.selectAll(".link")
-                .data(root.links(), d => d.target.id);
-
-            links.enter().append("path")
-                .attr("class", "link")
-                .merge(links)
-                .attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x));
-
-            links.exit().remove();
-
             const nodes = svg.selectAll(".node")
                 .data(root.descendants(), d => d.id || (d.id = ++i));
 
@@ -114,11 +101,22 @@
                     </div>
                 `);
 
-            nodes.merge(nodeEnter).attr("transform", d => `translate(${d.y},${d.x})`);
+            const nodeUpdate = nodes.merge(nodeEnter);
+            nodeUpdate.attr("transform", d => `translate(${d.y},${d.x})`)
+                      .style("display", d => d.data.name ? null : "none");
 
             nodes.exit().remove();
 
             console.log('Tree updated');
+            const links = svg.selectAll(".link")
+                .data(root.links(), d => d.target.id);
+
+            links.enter().append("path")
+                .attr("class", "link")
+                .merge(links)
+                .attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x));
+
+            links.exit().remove();
         }
 
         function toggleChildren(d) {
@@ -132,25 +130,6 @@
                 d._children = null;
             }
             console.log('Toggled children for node:', d.data.name, 'New children:', d.children, 'Hidden children:', d._children);
-
-            // Propagate changes back to the original treeData
-            propagateChanges(treeData, d.data.name, d.children, d._children);
-        }
-
-        function propagateChanges(treeData, nodeName, children, _children) {
-            function updateNode(node) {
-                if (node.name === nodeName) {
-                    node.children = children;
-                    node._children = _children;
-                }
-                if (node.children) {
-                    node.children.forEach(updateNode);
-                }
-                if (node._children) {
-                    node._children.forEach(updateNode);
-                }
-            }
-            updateNode(treeData);
         }
 
         function updateNodeName(event, name) {
@@ -160,7 +139,7 @@
             if (node) {
                 node.data.name = newName;
                 console.log('Node name updated:', node);
-                update(root);
+                update(node);
             }
         }
 
