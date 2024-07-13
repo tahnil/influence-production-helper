@@ -57,59 +57,12 @@
             .append("g")
             .attr("transform", "translate(80,0)");
 
-        // Initial tree creation
-        const node = svg.selectAll(".node")
-            .data(root.descendants())
-            .enter()
-            .append("g")
-            .attr("class", "node")
-            .attr("transform", d => `translate(${d.y},${d.x})`);
-
-        node.append("circle")
-            .attr("r", 10)
-            .on("click", (event, d) => {
-                event.stopPropagation();
-                toggleChildren(d);
-                update(d);
-            });
-
-        node.append("text")
-            .attr("dy", -20)
-            .attr("x", d => d.children || d._children ? -8 : 8)
-            .style("text-anchor", d => d.children || d._children ? "end" : "start")
-            .text(d => d.data.name);
-
-        node.append("foreignObject")
-            .attr("width", 200)
-            .attr("height", 100)
-            .attr("x", 10)
-            .attr("y", -30)
-            .append("xhtml:div")
-            .html(d => `
-                <div>
-                    <input type="text" value="${d.data.name}" onchange="updateNodeName(event, '${d.data.name}')" />
-                    <br>
-                    <input type="text" id="new-branch-${d.data.name}" placeholder="New branch name" />
-                    <button onclick="addBranch('${d.data.name}')">Add Branch</button>
-                </div>
-            `);
-
-        function removeCyclicReferences(obj) {
-            const seen = new WeakSet();
-            return JSON.parse(JSON.stringify(obj, function(key, value) {
-                if (typeof value === "object" && value !== null) {
-                    if (seen.has(value)) {
-                        return;
-                    }
-                    seen.add(value);
-                }
-                return value;
-            }));
-        }
+        // Initial tree rendering
+        update(root);
 
         function update(source) {
             console.log('Updating tree layout...');
-            console.log('Current tree data:', JSON.stringify(removeCyclicReferences(treeData)));
+            console.log('Current tree data:', treeData);
 
             root = d3.hierarchy(treeData, d => d.children || d._children);
             treeLayout(root);
@@ -170,15 +123,34 @@
 
         function toggleChildren(d) {
             if (d.children) {
-                console.log('Hiding visible children:', JSON.stringify(removeCyclicReferences(d.children)));
+                console.log('Hiding visible children:', d.children);
                 d._children = d.children;
                 d.children = null;
             } else {
-                console.log('Unhiding invisible children:', JSON.stringify(removeCyclicReferences(d._children)));
+                console.log('Unhiding invisible children:', d._children);
                 d.children = d._children;
                 d._children = null;
             }
-            console.log('Toggled children for node:', d.data.name, 'New children:', JSON.stringify(removeCyclicReferences(d.children)), 'Hidden children:', JSON.stringify(removeCyclicReferences(d._children)));
+            console.log('Toggled children for node:', d.data.name, 'New children:', d.children, 'Hidden children:', d._children);
+
+            // Propagate changes back to the original treeData
+            propagateChanges(treeData, d.data.name, d.children, d._children);
+        }
+
+        function propagateChanges(treeData, nodeName, children, _children) {
+            function updateNode(node) {
+                if (node.name === nodeName) {
+                    node.children = children;
+                    node._children = _children;
+                }
+                if (node.children) {
+                    node.children.forEach(updateNode);
+                }
+                if (node._children) {
+                    node._children.forEach(updateNode);
+                }
+            }
+            updateNode(treeData);
         }
 
         function updateNodeName(event, name) {
@@ -187,7 +159,7 @@
             const node = root.descendants().find(d => d.data.name === name);
             if (node) {
                 node.data.name = newName;
-                console.log('Node name updated:', JSON.stringify(removeCyclicReferences(node)));
+                console.log('Node name updated:', node);
                 update(root);
             }
         }
@@ -202,13 +174,10 @@
                     parentNode.data.children = [];
                 }
                 parentNode.data.children.push({ name: newBranchName });
-                console.log('New branch added:', JSON.stringify(removeCyclicReferences(treeData)));
+                console.log('New branch added:', treeData);
                 update(root);
             }
         }
-
-        // Initial update
-        update(root);
 
         // Expose functions to the global scope
         window.addBranch = addBranch;
