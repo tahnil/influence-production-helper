@@ -170,7 +170,7 @@
             const linkEnter = links.enter().insert("path", "g")
                 .attr("class", "link")
                 .attr("d", d => {
-                    const o = { x: source.x0, y: source.y0 };
+                    const o = { x: source.y0, y: source.x0 };
                     return diagonal(o, o);
                 });
 
@@ -190,17 +190,18 @@
                 .remove();
 
             // Store the old positions for transition.
-            nodes.each(function (d) {
+            root.each(function (d) {
                 d.x0 = d.x;
                 d.y0 = d.y;
             });
         }
 
         function diagonal(s, d) {
+            if (!d) return ""; // Safeguard against undefined `d`
             return `M ${s.y} ${s.x}
-            C ${(s.y + d.y) / 2} ${s.x},
-              ${(s.y + d.y) / 2} ${d.x},
-              ${d.y} ${d.x}`;
+                    C ${(s.y + d.y) / 2} ${s.x},
+                      ${(s.y + d.y) / 2} ${d.x},
+                      ${d.y} ${d.x}`;
         }
 
         function toggleChildren(d) {
