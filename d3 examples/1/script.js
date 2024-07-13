@@ -1,9 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     const treeData = {
+        id: "root",
         name: "Root",
         children: [
-            { name: "Child 1" },
-            { name: "Child 2", children: [{ name: "Grandchild 1" }, { name: "Grandchild 2" }] }
+            { id: "child1", name: "Child 1" },
+            { id: "child2", name: "Child 2", children: [{ id: "grandchild1", name: "Grandchild 1" }, { id: "grandchild2", name: "Grandchild 2" }] }
         ]
     };
 
@@ -69,10 +70,10 @@ document.addEventListener('DOMContentLoaded', () => {
             .append("xhtml:div")
             .html(d => `
                 <div>
-                    <input type="text" value="${d.data.name}" onchange="updateNodeName(event, '${d.data.name}')" />
+                    <input type="text" value="${d.data.name}" onchange="updateNodeName(event, '${d.data.id}')" />
                     <br>
-                    <input type="text" id="new-branch-${d.data.name}" placeholder="New branch name" />
-                    <button onclick="addBranch('${d.data.name}')">Add Branch</button>
+                    <input type="text" id="new-branch-${d.data.id}" placeholder="New branch name" />
+                    <button onclick="addBranch('${d.data.id}')">Add Branch</button>
                 </div>
             `);
 
@@ -124,41 +125,41 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTreeData(d.data.name, d.children, d._children);
     }
 
-    function updateTreeData(name, children, _children) {
-        const node = findNode(treeData, name);
+    function updateTreeData(id, children, _children) {
+        const node = findNode(treeData, id);
         if (node) {
-            if (children !== undefined) node.children = children ? children.map(c => ({ name: c.data.name, children: c.children ? [] : null })) : null;
-            if (_children !== undefined) node._children = _children ? _children.map(c => ({ name: c.data.name, children: c.children ? [] : null })) : null;
+            if (children !== undefined) node.children = children ? children.map(c => ({ id: c.data.id, name: c.data.name, children: c.children ? [] : null })) : null;
+            if (_children !== undefined) node._children = _children ? _children.map(c => ({ id: c.data.id, name: c.data.name, children: c.children ? [] : null })) : null;
         }
     }
 
-    function findNode(data, name) {
-        if (data.name === name) return data;
+    function findNode(data, id) {
+        if (data.id === id) return data;
         if (data.children) {
             for (const child of data.children) {
-                const result = findNode(child, name);
+                const result = findNode(child, id);
                 if (result) return result;
             }
         }
         return null;
     }
 
-    function updateNodeName(event, name) {
+    function updateNodeName(event, id) {
         const newName = event.target.value;
-        const node = root.descendants().find(d => d.data.name === name);
+        const node = root.descendants().find(d => d.data.id === id);
         if (node) {
             node.data.name = newName;
-            updateTreeData(newName, node.children, node._children);
+            updateTreeData(id, node.children, node._children);
             update(node);
         }
     }
 
-    function addBranch(parentName) {
-        const parentNode = root.descendants().find(d => d.data.name === parentName);
-        const newBranchName = document.getElementById(`new-branch-${parentName}`).value;
+    function addBranch(parentId) {
+        const parentNode = root.descendants().find(d => d.data.id === parentId);
+        const newBranchName = document.getElementById(`new-branch-${parentId}`).value;
         if (parentNode && newBranchName) {
             if (!parentNode.data.children) parentNode.data.children = [];
-            parentNode.data.children.push({ name: newBranchName });
+            parentNode.data.children.push({ id: `node-${++i}`, name: newBranchName });
             update(root);
         }
     }
