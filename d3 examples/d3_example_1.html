@@ -103,8 +103,10 @@
             const nodeEnter = nodes.enter().append("g")
                 .attr("class", "node")
                 .attr("transform", d => {
-                    console.log(`Enter node ${d.data.name}: (${source.y0}, ${source.x0})`);
-                    return `translate(${source.y0},${source.x0})`;
+                    const x = source.x0 || 0;
+                    const y = source.y0 || 0;
+                    console.log(`Enter node ${d.data.name}: (${x}, ${y})`);
+                    return `translate(${y},${x})`;
                 });
 
             nodeEnter.append("circle")
@@ -157,8 +159,10 @@
             const nodeExit = nodes.exit().transition()
                 .duration(duration)
                 .attr("transform", d => {
-                    console.log(`Exit node ${d.data.name}: (${source.y}, ${source.x})`);
-                    return `translate(${source.y},${source.x})`;
+                    const x = source.x || 0;
+                    const y = source.y || 0;
+                    console.log(`Exit node ${d.data.name}: (${x}, ${y})`);
+                    return `translate(${y},${x})`;
                 })
                 .remove();
 
@@ -178,7 +182,7 @@
             const linkEnter = links.enter().insert("path", "g")
                 .attr("class", "link")
                 .attr("d", d => {
-                    const o = { x: source.x0, y: source.y0 };
+                    const o = { x: source.x0 || 0, y: source.y0 || 0 };
                     console.log(`Enter link: (${o.x}, ${o.y})`);
                     return diagonal(o, o);
                 });
@@ -190,13 +194,13 @@
                 .duration(duration)
                 .attr("d", d => {
                     console.log(`Update link: source (${d.source.y}, ${d.source.x}), target (${d.target.y}, ${d.target.x})`);
-                    return diagonal(d, d.parent);
+                    return diagonal(d.source, d.target);
                 });
 
             const linkExit = links.exit().transition()
                 .duration(duration)
                 .attr("d", d => {
-                    const o = { x: source.x, y: source.y };
+                    const o = { x: source.x || 0, y: source.y || 0 };
                     console.log(`Exit link: (${o.x}, ${o.y})`);
                     return diagonal(o, o);
                 })
