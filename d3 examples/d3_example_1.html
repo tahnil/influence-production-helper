@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <title>Collapsible Tree with Node Configuration</title>
@@ -39,13 +38,12 @@
         }
     </style>
 </head>
-
 <body>
     <div id="tree-container"></div>
 
     <script>
-        const duration = 750;
-        
+        const duration = 750; // Define the duration for transitions
+
         // Sample tree data
         let treeData = {
             name: "Root",
@@ -63,6 +61,8 @@
 
         const treeLayout = d3.tree().size([height, width]);
         let root = d3.hierarchy(treeData);
+        root.x0 = height / 2;
+        root.y0 = 0;
 
         treeLayout(root);
 
@@ -71,11 +71,10 @@
             .attr("width", width + margin.right + margin.left)
             .attr("height", height + margin.top + margin.bottom)
             .call(d3.zoom().on("zoom", function (event) {
-                svg.attr("transform", event.transform)
+                svg.attr("transform", event.transform);
             }))
             .append("g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-        ;
 
         // Initial tree rendering
         update(root);
@@ -273,5 +272,4 @@
         window.updateNodeName = updateNodeName;
     </script>
 </body>
-
 </html>
