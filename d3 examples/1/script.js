@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (_children !== undefined) node._children = _children ? _children.map(c => ({ id: c.data.id, name: c.data.name, children: c.children ? [] : null })) : null;
         }
     }
-
+        
     function findNode(data, id) {
         if (data.id === id) return data;
         if (data.children) {
@@ -191,12 +191,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const parentNode = root.descendants().find(d => d.data.id === parentId);
         const newBranchName = document.getElementById(`new-branch-${parentId}`).value;
         if (parentNode && newBranchName) {
-            if (!parentNode.data.children) parentNode.data.children = [];
-            parentNode.data.children.push({ id: `node-${++i}`, name: newBranchName });
+            const newNode = { id: `node-${++i}`, name: newBranchName };
+            if (parentNode._children) {
+                if (!parentNode._children) parentNode._children = [];
+                parentNode._children.push(newNode);
+            } else {
+                if (!parentNode.data.children) parentNode.data.children = [];
+                parentNode.data.children.push(newNode);
+            }
             update(root);
         }
     }
-    
+
     window.addBranch = addBranch;
     window.updateNodeName = updateNodeName;
 });
