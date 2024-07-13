@@ -26,6 +26,16 @@
             fill: white;
             stroke: none;
         }
+
+        svg {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #tree-container {
+            width: 100vw;
+            height: 100vh;
+        }
     </style>
 </head>
 <body>
@@ -41,21 +51,28 @@
             ]
         };
 
-        const width = 960;
-        const height = 500;
+        var margin = {top: 20, right: 90, bottom: 30, left: 90},
+            width = window.innerWidth - margin.left - margin.right,
+            height = window.innerHeight - margin.top - margin.bottom;
+
         let i = 0;  // Variable for generating unique IDs
 
-        const treeLayout = d3.tree().size([height, width - 160]);
+        const treeLayout = d3.tree().size([height, width]);
 
         let root = d3.hierarchy(treeData);
         treeLayout(root);
 
         const svg = d3.select("#tree-container")
             .append("svg")
-            .attr("width", width)
-            .attr("height", height)
+                .attr("width", width + margin.right + margin.left)
+                .attr("height", height + margin.top + margin.bottom)
+                // .attr("viewBox", "0 0 500 500")
+                .call(d3.zoom().on("zoom", function (event) {
+                    svg.attr("transform", event.transform)
+                }))
             .append("g")
-            .attr("transform", "translate(80,0)");
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+;
 
         // Initial tree rendering
         update(root);
@@ -102,8 +119,8 @@
             nodeEnter.append("foreignObject")
                 .attr("width", 200)
                 .attr("height", 100)
-                .attr("x", 10)
-                .attr("y", -30)
+                .attr("x", -50)
+                .attr("y", 30)
                 .append("xhtml:div")
                 .html(d => `
                     <div>
