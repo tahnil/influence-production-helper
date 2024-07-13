@@ -102,7 +102,10 @@
             // Enter any new nodes at the parent's previous position.
             const nodeEnter = nodes.enter().append("g")
                 .attr("class", "node")
-                .attr("transform", d => `translate(${source.y0},${source.x0})`);
+                .attr("transform", d => {
+                    console.log(`Enter node ${d.data.name}: (${source.y0}, ${source.x0})`);
+                    return `translate(${source.y0},${source.x0})`;
+                });
 
             nodeEnter.append("circle")
                 .attr("r", 1e-6)
@@ -125,9 +128,8 @@
                 .attr("height", 100)
                 .attr("x", -50)
                 .attr("y", 30)
-                .append("xhtml:div")
                 .html(d => `
-                    <div>
+                    <div xmlns="http://www.w3.org/1999/xhtml">
                         <input type="text" value="${d.data.name}" onchange="updateNodeName(event, '${d.data.name}')" />
                         <br>
                         <input type="text" id="new-branch-${d.data.name}" placeholder="New branch name" />
@@ -141,7 +143,10 @@
             // Transition to the proper position for the node
             nodeUpdate.transition()
                 .duration(duration)
-                .attr("transform", d => `translate(${d.y},${d.x})`);
+                .attr("transform", d => {
+                    console.log(`Update node ${d.data.name}: (${d.y}, ${d.x})`);
+                    return `translate(${d.y},${d.x})`;
+                });
 
             // Update the node attributes and style
             nodeUpdate.select("circle")
@@ -151,7 +156,10 @@
             // Remove any exiting nodes
             const nodeExit = nodes.exit().transition()
                 .duration(duration)
-                .attr("transform", d => `translate(${source.y},${source.x})`)
+                .attr("transform", d => {
+                    console.log(`Exit node ${d.data.name}: (${source.y}, ${source.x})`);
+                    return `translate(${source.y},${source.x})`;
+                })
                 .remove();
 
             nodeExit.select("circle")
@@ -170,7 +178,8 @@
             const linkEnter = links.enter().insert("path", "g")
                 .attr("class", "link")
                 .attr("d", d => {
-                    const o = { x: source.y0, y: source.x0 };
+                    const o = { x: source.x0, y: source.y0 };
+                    console.log(`Enter link: (${o.x}, ${o.y})`);
                     return diagonal(o, o);
                 });
 
@@ -179,18 +188,23 @@
 
             linkUpdate.transition()
                 .duration(duration)
-                .attr("d", d => diagonal(d, d.parent));
+                .attr("d", d => {
+                    console.log(`Update link: source (${d.source.y}, ${d.source.x}), target (${d.target.y}, ${d.target.x})`);
+                    return diagonal(d, d.parent);
+                });
 
             const linkExit = links.exit().transition()
                 .duration(duration)
                 .attr("d", d => {
                     const o = { x: source.x, y: source.y };
+                    console.log(`Exit link: (${o.x}, ${o.y})`);
                     return diagonal(o, o);
                 })
                 .remove();
 
             // Store the old positions for transition.
             root.each(function (d) {
+                console.log(`Store node ${d.data.name}: (${d.x}, ${d.y})`);
                 d.x0 = d.x;
                 d.y0 = d.y;
             });
@@ -198,6 +212,7 @@
 
         function diagonal(s, d) {
             if (!d) return ""; // Safeguard against undefined `d`
+            console.log(`Diagonal path: source (${s.y}, ${s.x}), target (${d.y}, ${d.x})`);
             return `M ${s.y} ${s.x}
                     C ${(s.y + d.y) / 2} ${s.x},
                       ${(s.y + d.y) / 2} ${d.x},
