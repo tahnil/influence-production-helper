@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const height = window.innerHeight - margin.top - margin.bottom;
 
     let i = 0;  // Variable for generating unique IDs
+    const duration = 750;
 
     const treeLayout = d3.tree().size([height, width]);
     let root = d3.hierarchy(treeData);
@@ -29,27 +30,47 @@ document.addEventListener('DOMContentLoaded', () => {
         .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
+    root.children.forEach(collapse);
+
     update(root);
+
+    function collapse(d) {
+        if (d.children) {
+            d._children = d.children;
+            d._children.forEach(collapse);
+            d.children = null;
+        }
+    }
 
     function update(source) {
         const nodeStates = {};
-        root.each(d => { nodeStates[d.data.name] = d._children; });
+        root.each(d => { nodeStates[d.data.id] = d._children; });
 
         root = d3.hierarchy(treeData);
-        root.each(d => { d._children = nodeStates[d.data.name]; });
+        root.each(d => { d._children = nodeStates[d.data.id]; });
 
         treeLayout(root);
 
-        const nodes = svg.selectAll(".node")
-            .data(root.descendants(), d => d.id || (d.id = ++i));
+        const nodes = root.descendants(),
+              links = root.descendants().slice(1);
 
-        const nodeEnter = nodes.enter().append("g")
+        // Normalize for fixed-depth
+        nodes.forEach(d => d.y = d.depth * 180);
+
+        const node = svg.selectAll(".node")
+            .data(nodes, d => d.id || (d.id = ++i));
+
+        const nodeEnter = node.enter().append("g")
             .attr("class", "node")
             .attr("transform", d => `translate(${source.y0},${source.x0})`);
 
         nodeEnter.append("circle")
-            .attr("r", 10)
-            .style("fill", d => d._children ? "lightsteelblue" : "#444")
+            .attr("r", 1e-6)
+            .style("fill", d => d._children ? "lightsteelblue" : "#444")            .on("click", (event, d) => {
+                event.stopPropagation();
+                toggleChildren(d);
+                update(d);
+            })
             .on("click", (event, d) => {
                 event.stopPropagation();
                 toggleChildren(d);
@@ -77,34 +98,54 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `);
 
-        const nodeUpdate = nodeEnter.merge(nodes);
+        const nodeUpdate = nodeEnter.merge(node);
 
-        nodeUpdate.transition().duration(750).attr("transform", d => `translate(${d.y},${d.x})`);
+        nodeUpdate.transition()
+            .duration(duration)
+            .attr("transform", d => `translate(${d.y},${d.x})`);
 
-        nodeUpdate.select("circle").style("fill", d => d._children ? "lightsteelblue" : "#333");
+        nodeUpdate.select("circle").attr("r", 10)
+            .style("fill", d => d._children ? "lightsteelblue" : "#333");
 
-        const nodeExit = nodes.exit().transition().duration(750)
+        const nodeExit = node.exit().transition()
+            .duration(duration)
             .attr("transform", d => `translate(${source.y},${source.x})`)
             .remove();
 
-        nodeExit.select("circle").attr("r", 1e-6);
-        nodeExit.select("text").style("fill-opacity", 1e-6);
+        nodeExit.select("circle")
+            .attr("r", 1e-6);
 
-        const links = svg.selectAll(".link").data(root.links(), d => d.target.id);
+        nodeExit.select("text")
+            .style("fill-opacity", 1e-6);
 
-        const linkEnter = links.enter().insert("path", "g")
+        const link = svg.selectAll(".link")
+            .data(links, d => d.id);
+
+        const linkEnter = link.enter().insert("path", "g")
             .attr("class", "link")
-            .attr("d", d => diagonal({ x: source.x0, y: source.y0 }, { x: source.x0, y: source.y0 }));
+            .attr("d", d => {
+                const o = { x: source.x0, y: source.y0 };
+                return diagonal(o, o);
+            });
 
-        const linkUpdate = linkEnter.merge(links);
+        const linkUpdate = linkEnter.merge(link);
 
-        linkUpdate.transition().duration(750).attr("d", d => diagonal(d.source, d.target));
+        linkUpdate.transition()
+            .duration(duration)
+            .attr("d", d => diagonal(d, d.parent));
 
-        links.exit().transition().duration(750)
-            .attr("d", d => diagonal({ x: source.x, y: source.y }, { x: source.x, y: source.y }))
+        link.exit().transition()
+            .duration(duration)
+            .attr("d", d => {
+                const o = { x: source.x, y: source.y };
+                return diagonal(o, o);
+            })
             .remove();
 
-        root.each(d => { d.x0 = d.x; d.y0 = d.y; });
+        nodes.forEach(d => {
+            d.x0 = d.x;
+            d.y0 = d.y;
+        });
     }
 
     function diagonal(s, d) {
@@ -122,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
             d.children = d._children;
             d._children = null;
         }
-        updateTreeData(d.data.name, d.children, d._children);
+        updateTreeData(d.data.id, d.children, d._children);
     }
 
     function updateTreeData(id, children, _children) {
