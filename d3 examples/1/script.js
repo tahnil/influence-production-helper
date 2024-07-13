@@ -30,17 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    root.children.forEach(collapse);
-
     update(root);
-
-    function collapse(d) {
-        if (d.children) {
-            d._children = d.children;
-            d._children.forEach(collapse);
-            d.children = null;
-        }
-    }
 
     function update(source) {
         console.log(source);
