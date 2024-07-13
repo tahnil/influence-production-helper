@@ -66,8 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
             .attr("height", 100)
             .attr("x", -50)
             .attr("y", 30)
+            .append("xhtml:div")
             .html(d => `
-                <div xmlns="http://www.w3.org/1999/xhtml">
+                <div>
                     <input type="text" value="${d.data.name}" onchange="updateNodeName(event, '${d.data.name}')" />
                     <br>
                     <input type="text" id="new-branch-${d.data.name}" placeholder="New branch name" />
@@ -77,11 +78,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const nodeUpdate = nodeEnter.merge(nodes);
 
-        nodeUpdate.attr("transform", d => `translate(${d.y},${d.x})`);
+        nodeUpdate.transition().duration(750).attr("transform", d => `translate(${d.y},${d.x})`);
 
         nodeUpdate.select("circle").style("fill", d => d._children ? "lightsteelblue" : "#333");
 
-        const nodeExit = nodes.exit().attr("transform", d => `translate(${source.y},${source.x})`).remove();
+        const nodeExit = nodes.exit().transition().duration(750)
+            .attr("transform", d => `translate(${source.y},${source.x})`)
+            .remove();
+
+        nodeExit.select("circle").attr("r", 1e-6);
+        nodeExit.select("text").style("fill-opacity", 1e-6);
 
         const links = svg.selectAll(".link").data(root.links(), d => d.target.id);
 
@@ -91,9 +97,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const linkUpdate = linkEnter.merge(links);
 
-        linkUpdate.attr("d", d => diagonal(d.source, d.target));
+        linkUpdate.transition().duration(750).attr("d", d => diagonal(d.source, d.target));
 
-        links.exit().attr("d", d => diagonal({ x: source.x, y: source.y }, { x: source.x, y: source.y })).remove();
+        links.exit().transition().duration(750)
+            .attr("d", d => diagonal({ x: source.x, y: source.y }, { x: source.x, y: source.y }))
+            .remove();
 
         root.each(d => { d.x0 = d.x; d.y0 = d.y; });
     }
