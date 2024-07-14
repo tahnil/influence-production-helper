@@ -49,7 +49,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // for handling transitions and animations from the point of interaction.
         console.log("Activated update function with source: ",source);
         console.log("And this is the full root object: ",root);
-        const nodeStates = {};
+
+        // Rebuild the hierarchy using the modified tree data
+        console.log("Rebuilding hierarchy using modified tree data: ",treeData);
+        root = d3.hierarchy(treeData, d => d.children || d._children);
 
         // Update: Adjusts the layout to reflect changes due to interactions like 
         // expanding/collapsing nodes or adding new data.
@@ -176,15 +179,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function toggleChildren(d) {
         if (d.children) {
-            console.log("Toggle visible children to invisible. d.children: ",d.children);
+            console.log("Toggle visible children to invisible. d.children: ", d.children);
+            console.log("Toggle visible children to invisible. d.data.children: ", d.data.children);
+            d.data._children = d.children;  // Reflect change in the original data
+            d.data.children = null;          // Reflect change in the original data
             d._children = d.children;
             d.children = null;
         } else {
-            console.log("Toggle invisible children to visible. d_children: ",d._children);
+            console.log("Toggle invisible children to visible. d._children: ", d._children);
+            console.log("Toggle visible children to invisible. d.data._children: ", d.data._children);
+            d.data.children = d._children;  // Reflect change in the original data
+            d.data._children = null;         // Reflect change in the original data
             d.children = d._children;
             d._children = null;
         }
-        // update(d);
     }
 
     function findNode(data, id) {
