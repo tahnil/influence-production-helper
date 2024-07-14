@@ -83,14 +83,17 @@ function update(source) {
         .attr('x', -50)
         .attr('y', 30)
         .append('xhtml:div')
-        .html(function(d) {`
-            <div>
-                <input type="text" value="${d.data.name}" onchange="updateNodeName(event, '${d.data.id}')" />
-                <br>
-                <input type="text" id="new-branch-${d.data.id}" placeholder="New branch name" />
-                <button onclick="addBranch('${d.data.id}')">Add Branch</button>
-            </div>
-        `});
+        .html(function(d) {
+            console.log("Content of d", d);
+            return `
+                <div>
+                    <input type="text" value="${d.data.name}" onchange="updateNodeName(event, '${d.data.id}')" />
+                    <br>
+                    <input type="text" id="new-branch-${d.data.id}" placeholder="New branch name" />
+                    <button onclick="addBranch('${d.data.id}')">Add Branch</button>
+                </div>
+            `
+        });
 
     const nodeUpdate = nodeEnter.merge(node);
     
@@ -118,6 +121,7 @@ function update(source) {
     nodeExit.select('text')
         .style('fill-opacity', 1e-6);
 
+    // ************** Links Section **************
     const link = svg.selectAll('path.link')
         .data(links, function(d) { return d.id; });
 
