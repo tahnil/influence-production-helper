@@ -158,17 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const linkUpdate = linkEnter.merge(link);
 
-        // linkUpdate.transition()
-        //     .duration(duration)
-        //     .attr("d", d => {
-        //         console.log("Updating link for node:", d);
-        //         if (!d.parent) {
-        //             console.log("Node has no parent, skipping diagonal:", d);
-        //             return ''; // Skip rendering if there's no parent
-        //         }
-        //         return diagonal(d, d.parent)
-        //     });
-
         linkUpdate.transition()
             .duration(duration)
             .attr("d", d => {
