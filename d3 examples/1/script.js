@@ -88,17 +88,27 @@ function update(source) {
             // event.stopPropagation();
 
             // Logic to add a new child
+            var newNodeData = { name: `New Node ${d.data.children ? d.data.children.length + 1 : 1}` };
             var newNode = {
-                data: { name: `New Node ${d.children ? d.children.length + 1 : 1}` },
-                height: 0,
+                data: newNodeData,
                 depth: d.depth + 1,
+                height: 0,
                 parent: d,
                 x: d.x,
-                y: d.y + 100,  // Example shift
-                id: Date.now()  // Unique id for new nodes, assuming no two nodes are added within the same millisecond
+                y: d.y + 100,
+                id: Date.now()
             };
-            if (!d.children) d.children = [];
+
+            if (!d.children) {
+                d.children = [];
+            }
+            if (!d.data.children) {
+                d.data.children = [];
+            }
+
             d.children.push(newNode);
+            d.data.children.push(newNodeData);  // Synchronize the data with the visual structure
+
             update(root);
         });
 
