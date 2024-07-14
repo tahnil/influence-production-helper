@@ -120,16 +120,9 @@ document.addEventListener('DOMContentLoaded', () => {
             `);
 
          const nodeUpdate = nodeEnter.merge(node)
-        // const nodeUpdate = svg.selectAll(".node")
-        //    .data(nodes, d => d.id)
             .transition()
             .duration(750)
             .attr("transform", d => `translate(${d.y},${d.x})`);
-
-
-        // nodeUpdate.transition()
-        //     .duration(duration)
-        //     .attr("transform", d => `translate(${d.y},${d.x})`);
 
         nodeUpdate.select("circle").attr("r", 10)
             .style("fill", d => d._children ? "lightsteelblue" : "#333");
@@ -148,11 +141,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const link = svg.selectAll(".link")
             .data(links, d => d.id);
 
+        // the following function has been debugged, don't touch it
         const linkEnter = link.enter().insert("path", "g")
             .attr("class", "link")
             .attr("d", d => {
                 const o = { x: source.x0, y: source.y0 };
-                console.log("Coordinates for linkEnter: ",o);
+                // console.log("Coordinates for linkEnter: ",o);
                 return diagonal(o, o);
             });
 
