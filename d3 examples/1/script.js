@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         treeLayout(root);
 
         // The rest of the function handles the D3 enter-update-exit pattern for rendering
-        const nodes = root.descendants();
+        const nodes = root.descendants().filter(d => d.children || !d._children);
         // let links = root.descendants().slice(1);
         let links = root.links();
             console.log("Nodes before update:", nodes.map(d => ({
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Normalize for fixed-depth
         nodes.forEach(d => d.y = d.depth * 180);
 
-        const node = svg.selectAll(".ode")
+        const node = svg.selectAll(".node")
             .data(nodes, d => {
                 console.log("node: ",d);
                 console.log("node d.data.id: ",d.data.id);
