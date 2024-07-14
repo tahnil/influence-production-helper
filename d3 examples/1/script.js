@@ -40,28 +40,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // Passing the root object, which is the hierarchical representation of treeData, 
     // to the update function. This object, created using d3.hierarchy(treeData), 
     // organizes initial data into a structure suitable for D3 to manipulate and visualize as a tree
+    console.log("Initial update of root object: ",root);
     update(root);
 
     function update(source) {
         // source: This parameter in the update function represents the specific node that 
         // triggered the update—usually due to an interaction such as a click. It is useful 
         // for handling transitions and animations from the point of interaction.
-        console.log(source);
+        console.log("Activated update function with source: ",source);
+        console.log("And this is the full root object: ",root);
         const nodeStates = {};
 
         // Capture the current expanded/collapsed state of all nodes using the root
         root.each(d => { nodeStates[d.data.id] = d._children; });
 
         // Rebuild the hierarchy from the original data if needed
-        root = d3.hierarchy(treeData, d => d.children);
+        console.log("Rebuilding hierarchy from original data: ",treeData);
+        root = d3.hierarchy(treeData, d => d.children || d._children);
         // root = d3.hierarchy(treeData);
 
         // Reapply the node states to maintain the expanded/collapsed states of the nodes
         root.each(d => {
-            if (nodeStates[d.data.id] !== undefined) {  // If there was a state stored
-                d._children = nodeStates[d.data.id];    // Reapply that state
+            if (nodeStates[d.data.id] !== undefined) {
+                if (d.children) {
+                    d._children = d.children;    // Move children to _children (collapsing)
+                    d.children = null;
+                } else if (d._children) {
+                    d.children = d._children;    // Move _children to children (expanding)
+                    d._children = null;
+                }
             }
         });
+        console.log("Reapplied node states: ",root);
 
         // Update: Adjusts the layout to reflect changes due to interactions like 
         // expanding/collapsing nodes or adding new data.
@@ -188,13 +198,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function toggleChildren(d) {
         if (d.children) {
+            console.log("Toggle visible children to invisible. d.children: ",d.children);
             d._children = d.children;
             d.children = null;
         } else {
+            console.log("Toggle invisible children to visible. d_children: ",d._children);
             d.children = d._children;
             d._children = null;
         }
-        update(d);
+        // update(d);
     }
 
     function findNode(data, id) {
