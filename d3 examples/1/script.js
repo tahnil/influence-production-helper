@@ -152,10 +152,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const linkUpdate = linkEnter.merge(link);
 
+        // the following function has been debugged, don't touch it
         linkUpdate.transition()
             .duration(duration)
             .attr("d", d => {
-                console.log("Updating link for node:", d);
+                // console.log("Updating link for node:", d);
                 return diagonal(d.source, d.target);
             });
 
