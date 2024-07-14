@@ -62,11 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 event.stopPropagation();
                 toggleChildren(d);
                 update(d);
-            })
-            .on("click", (event, d) => {
-                event.stopPropagation();
-                toggleChildren(d);
-                update(d);
             });
 
         nodeEnter.append("text")
@@ -155,17 +150,9 @@ document.addEventListener('DOMContentLoaded', () => {
             d.children = d._children;
             d._children = null;
         }
-        updateTreeData(d.data.id, d.children, d._children);
+        update(d);
     }
-
-    function updateTreeData(id, children, _children) {
-        const node = findNode(treeData, id);
-        if (node) {
-            if (children !== undefined) node.children = children ? children.map(c => ({ id: c.data.id, name: c.data.name, children: c.children ? [] : null })) : null;
-            if (_children !== undefined) node._children = _children ? _children.map(c => ({ id: c.data.id, name: c.data.name, children: c.children ? [] : null })) : null;
-        }
-    }
-        
+            
     function findNode(data, id) {
         if (data.id === id) return data;
         if (data.children) {
