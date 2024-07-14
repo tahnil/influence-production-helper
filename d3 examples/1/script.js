@@ -60,9 +60,9 @@ document.addEventListener('DOMContentLoaded', () => {
         treeLayout(root);
 
         // The rest of the function handles the D3 enter-update-exit pattern for rendering
-        const nodes = root.descendants(),
-            // links = root.descendants().slice(1);
-            links = root.links();
+        const nodes = root.descendants();
+        // let links = root.descendants().slice(1);
+        let links = root.links();
             console.log("Nodes before update:", nodes.map(d => ({
                 id: d.data.id, // Assuming IDs are stored in d.data.id based on previous discussions
                 name: d.data.name,
@@ -76,12 +76,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Normalize for fixed-depth
         nodes.forEach(d => d.y = d.depth * 180);
 
-        const node = svg.selectAll(".node")
+        const node = svg.selectAll(".ode")
             .data(nodes, d => {
-                // console.log("node: ",d);
-                // console.log("node d.data.id: ",d.data.id);
+                console.log("node: ",d);
+                console.log("node d.data.id: ",d.data.id);
                 const nodeId = d.data.id || (d.data.id = `node-${++i}`);
-                // console.log("nodeId: ",nodeId);
+                console.log("nodeId: ",nodeId);
                 return nodeId;
             });
 
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .style("fill", d => d._children ? "lightsteelblue" : "#444")
             .on("click", (event, d) => {
                 if (!d) return;
-                event.stopPropagation();
+                // event.stopPropagation();
                 if (d.children) {
                     console.log("Toggle visible children to invisible. d.children: ", d.children);
                     console.log("Toggle visible children to invisible. d.data.children: ", d.data.children);
