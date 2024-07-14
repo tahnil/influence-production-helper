@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // root: This variable should ideally hold the entire hierarchy of the tree and maintain the 
     // structure throughout the lifecycle of the visualization. It should be used to compute layouts 
     // and render the visual representation of the tree.
-    let root = d3.hierarchy(treeData);
+    let root = d3.hierarchy(treeData, function(d) { return d.children; });
     root.x0 = height / 2;
     root.y0 = 0;
 
@@ -78,10 +78,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const node = svg.selectAll(".node")
             .data(nodes, d => {
-                console.log("node: ",d);
-                console.log("node d.data.id: ",d.data.id);
+                // console.log("node: ",d);
+                // console.log("node d.data.id: ",d.data.id);
                 const nodeId = d.data.id || (d.data.id = `node-${++i}`);
-                console.log("nodeId: ",nodeId);
+                // console.log("nodeId: ",nodeId);
                 return nodeId;
             });
 
@@ -101,7 +101,21 @@ document.addEventListener('DOMContentLoaded', () => {
             .on("click", (event, d) => {
                 if (!d) return;
                 event.stopPropagation();
-                toggleChildren(d);
+                if (d.children) {
+                    console.log("Toggle visible children to invisible. d.children: ", d.children);
+                    console.log("Toggle visible children to invisible. d.data.children: ", d.data.children);
+                    d.data._children = d.children;  // Reflect change in the original data
+                    d.data.children = null;          // Reflect change in the original data
+                    d._children = d.children;  // Move children to _children (collapse)
+                    d.children = null;
+                } else {
+                    console.log("Toggle invisible children to visible. d._children: ", d._children);
+                    console.log("Toggle visible children to invisible. d.data._children: ", d.data._children);
+                    d.data.children = d._children;  // Reflect change in the original data
+                    d.data._children = null;         // Reflect change in the original data
+                    d.children = d._children;  // Move _children to children (expand)
+                    d._children = null;
+                }
                 update(d);
             });
 
@@ -198,23 +212,23 @@ document.addEventListener('DOMContentLoaded', () => {
                   ${d.y} ${d.x}`;
     }
 
-    function toggleChildren(d) {
-        if (d.children) {
-            console.log("Toggle visible children to invisible. d.children: ", d.children);
-            console.log("Toggle visible children to invisible. d.data.children: ", d.data.children);
-            d.data._children = d.children;  // Reflect change in the original data
-            d.data.children = null;          // Reflect change in the original data
-            d._children = d.children;
-            d.children = null;
-        } else {
-            console.log("Toggle invisible children to visible. d._children: ", d._children);
-            console.log("Toggle visible children to invisible. d.data._children: ", d.data._children);
-            d.data.children = d._children;  // Reflect change in the original data
-            d.data._children = null;         // Reflect change in the original data
-            d.children = d._children;
-            d._children = null;
-        }
-    }
+    // function toggleChildren(d) {
+    //     if (d.children) {
+    //         console.log("Toggle visible children to invisible. d.children: ", d.children);
+    //         console.log("Toggle visible children to invisible. d.data.children: ", d.data.children);
+    //         d.data._children = d.children;  // Reflect change in the original data
+    //         d.data.children = null;          // Reflect change in the original data
+    //         d._children = d.children;
+    //         d.children = null;
+    //     } else {
+    //         console.log("Toggle invisible children to visible. d._children: ", d._children);
+    //         console.log("Toggle visible children to invisible. d.data._children: ", d.data._children);
+    //         d.data.children = d._children;  // Reflect change in the original data
+    //         d.data._children = null;         // Reflect change in the original data
+    //         d.children = d._children;
+    //         d._children = null;
+    //     }
+    // }
 
     // function toggleChildren(d) {
     //     if (d.children) {
