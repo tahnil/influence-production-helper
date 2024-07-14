@@ -75,7 +75,10 @@ function update(source) {
         .attr('dy', '.35em')
         .attr('x', function (d) { return d.children || d._children ? -13 : 13; })
         .attr('text-anchor', function (d) { return d.children || d._children ? 'end' : 'start'; })
-        .text(function (d) { return d.data.name; });
+        .text(function (d) { 
+            console.log("This is d: ",d);
+            return d.data.name; 
+        });
 
     nodeEnter.append('text')
         .attr("x", 20)  // Position the add button/icon right of the node
@@ -91,23 +94,33 @@ function update(source) {
             var newNodeData = { name: `New Node ${d.data.children ? d.data.children.length + 1 : 1}` };
             var newNode = {
                 data: newNodeData,
-                depth: d.depth + 1,
                 height: 0,
-                parent: d,
-                x: d.x,
-                y: d.y + 100,
-                id: Date.now()
+                depth: d.depth + 1,
+                parent: d
             };
 
-            if (!d.children) {
-                d.children = [];
+            // Decide where to add the new node based on the visibility of current children
+            if (d.children && d.children.length > 0) {
+                // If children are visible
+                d.children.push(newNode);
+                if (d.data.children) {
+                    d.data.children.push(newNodeData);  // Also update the data structure
+                } else {
+                    d.data.children = [newNodeData];  // If it doesn't exist, create and add
+                }
+            } else if (d._children) {
+                // If children are currently hidden
+                d._children.push(newNode);
+                if (d.data.children) {
+                    d.data.children.push(newNodeData);  // Also update the data structure
+                } else {
+                    d.data.children = [newNodeData];  // If it doesn't exist, create and add
+                }
+            } else {
+                // If no children arrays exist, create them as visible by default
+                d.children = [newNode];
+                d.data.children = [newNodeData];
             }
-            if (!d.data.children) {
-                d.data.children = [];
-            }
-
-            d.children.push(newNode);
-            d.data.children.push(newNodeData);  // Synchronize the data with the visual structure
 
             update(root);
         });
