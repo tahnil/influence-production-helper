@@ -45,6 +45,46 @@ function collapse(d) {
     }
 }
 
+function addNewNode(event, d) {
+    // Prevent the collapse/expand event
+    event.stopPropagation();
+
+    // Construct new node data
+    var newNodeData = { name: `New Node ${d.data.children ? d.data.children.length + 1 : 1}` };
+    var newNode = {
+        data: newNodeData,
+        height: 0,
+        depth: d.depth + 1,
+        parent: d
+    };
+
+    // Decide where to add the new node based on the visibility of current children
+    if (d.children && d.children.length > 0) {
+        // If children are visible
+        d.children.push(newNode);
+        if (d.data.children) {
+            d.data.children.push(newNodeData);  // Also update the data structure
+        } else {
+            d.data.children = [newNodeData];  // If it doesn't exist, create and add
+        }
+    } else if (d._children) {
+        // If children are currently hidden
+        d._children.push(newNode);
+        if (d.data.children) {
+            d.data.children.push(newNodeData);  // Also update the data structure
+        } else {
+            d.data.children = [newNodeData];  // If it doesn't exist, create and add
+        }
+    } else {
+        // If no children arrays exist, create them as visible by default
+        d.children = [newNode];
+        d.data.children = [newNodeData];
+    }
+
+    // Update the tree to reflect the new node
+    update(d);
+}
+
 function update(source) {
     const treeData = treemap(root);
     const nodes = treeData.descendants(),
@@ -75,9 +115,9 @@ function update(source) {
         .attr('dy', '.35em')
         .attr('x', function (d) { return d.children || d._children ? -13 : 13; })
         .attr('text-anchor', function (d) { return d.children || d._children ? 'end' : 'start'; })
-        .text(function (d) { 
-            console.log("This is d: ",d);
-            return d.data.name; 
+        .text(function (d) {
+            console.log("This is d: ", d);
+            return d.data.name;
         });
 
     nodeEnter.append('text')
@@ -87,42 +127,7 @@ function update(source) {
         .style("cursor", "pointer")
         .on('click', (event, d) => {
             console.log("Add new node, here's the object: ", d);
-            // Prevent the collapse/expand event
-            event.stopPropagation();
-
-            // Logic to add a new child
-            var newNodeData = { name: `New Node ${d.data.children ? d.data.children.length + 1 : 1}` };
-            var newNode = {
-                data: newNodeData,
-                height: 0,
-                depth: d.depth + 1,
-                parent: d
-            };
-
-            // Decide where to add the new node based on the visibility of current children
-            if (d.children && d.children.length > 0) {
-                // If children are visible
-                d.children.push(newNode);
-                if (d.data.children) {
-                    d.data.children.push(newNodeData);  // Also update the data structure
-                } else {
-                    d.data.children = [newNodeData];  // If it doesn't exist, create and add
-                }
-            } else if (d._children) {
-                // If children are currently hidden
-                d._children.push(newNode);
-                if (d.data.children) {
-                    d.data.children.push(newNodeData);  // Also update the data structure
-                } else {
-                    d.data.children = [newNodeData];  // If it doesn't exist, create and add
-                }
-            } else {
-                // If no children arrays exist, create them as visible by default
-                d.children = [newNode];
-                d.data.children = [newNodeData];
-            }
-
-            update(d);
+            addNewNode(event, d);
         });
 
     const nodeUpdate = nodeEnter.merge(node);
