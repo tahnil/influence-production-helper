@@ -51,28 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("And this is the full root object: ",root);
         const nodeStates = {};
 
-        // Capture the current expanded/collapsed state of all nodes using the root
-        root.each(d => { nodeStates[d.data.id] = d._children; });
-
-        // Rebuild the hierarchy from the original data if needed
-        console.log("Rebuilding hierarchy from original data: ",treeData);
-        root = d3.hierarchy(treeData, d => d.children || d._children);
-        // root = d3.hierarchy(treeData);
-
-        // Reapply the node states to maintain the expanded/collapsed states of the nodes
-        root.each(d => {
-            if (nodeStates[d.data.id] !== undefined) {
-                if (d.children) {
-                    d._children = d.children;    // Move children to _children (collapsing)
-                    d.children = null;
-                } else if (d._children) {
-                    d.children = d._children;    // Move _children to children (expanding)
-                    d._children = null;
-                }
-            }
-        });
-        console.log("Reapplied node states: ",root);
-
         // Update: Adjusts the layout to reflect changes due to interactions like 
         // expanding/collapsing nodes or adding new data.
         // Reapply the tree layout to reflect any data changes
