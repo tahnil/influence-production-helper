@@ -1,3 +1,29 @@
+window.addBranch = function addBranch(parentId) {
+    const parentNode = root.descendants().find(d => d.data.id === parentId);
+    const newBranchName = document.getElementById(`new-branch-${parentId}`).value;
+    if (parentNode && newBranchName) {
+        const newNode = { id: `node-${++i}`, name: newBranchName };
+        if (parentNode._children) {
+            if (!parentNode._children) parentNode._children = [];
+            parentNode._children.push(newNode);
+        } else {
+            if (!parentNode.data.children) parentNode.data.children = [];
+            parentNode.data.children.push(newNode);
+        }
+        update(root);
+    }
+}
+
+window.updateNodeName = function updateNodeName(event, id) {
+    const newName = event.target.value;
+    const node = root.descendants().find(d => d.data.id === id);
+    if (node) {
+        node.data.name = newName;
+        updateTreeData(id, node.children, node._children);
+        update(node);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const treeData = {
         id: "root",
@@ -112,10 +138,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // const nodeUpdate = nodeEnter.merge(node);
         const nodeUpdate = svg.selectAll(".node")
-        .data(nodes, d => d.id)
-        .transition()
-        .duration(750)
-        .attr("transform", d => `translate(${d.y},${d.x})`);
+            .data(nodes, d => d.id)
+            .transition()
+            .duration(750)
+            .attr("transform", d => `translate(${d.y},${d.x})`);
 
 
         nodeUpdate.transition()
@@ -195,16 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
 
-    function updateNodeName(event, id) {
-        const newName = event.target.value;
-        const node = root.descendants().find(d => d.data.id === id);
-        if (node) {
-            node.data.name = newName;
-            updateTreeData(id, node.children, node._children);
-            update(node);
-        }
-    }
-
     function updateTreeData(id, children, _children) {
         const node = findNode(treeData, id);
         if (node) {
@@ -217,22 +233,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function addBranch(parentId) {
-        const parentNode = root.descendants().find(d => d.data.id === parentId);
-        const newBranchName = document.getElementById(`new-branch-${parentId}`).value;
-        if (parentNode && newBranchName) {
-            const newNode = { id: `node-${++i}`, name: newBranchName };
-            if (parentNode._children) {
-                if (!parentNode._children) parentNode._children = [];
-                parentNode._children.push(newNode);
-            } else {
-                if (!parentNode.data.children) parentNode.data.children = [];
-                parentNode.data.children.push(newNode);
-            }
-            update(root);
-        }
-    }
-
-    window.addBranch = addBranch;
-    window.updateNodeName = updateNodeName;
 });
