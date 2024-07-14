@@ -1,30 +1,7 @@
-window.addBranch = function addBranch(parentId) {
-    const parentNode = root.descendants().find(d => d.data.id === parentId);
-    const newBranchName = document.getElementById(`new-branch-${parentId}`).value;
-    if (parentNode && newBranchName) {
-        const newNode = { id: `node-${++i}`, name: newBranchName };
-        if (parentNode._children) {
-            if (!parentNode._children) parentNode._children = [];
-            parentNode._children.push(newNode);
-        } else {
-            if (!parentNode.data.children) parentNode.data.children = [];
-            parentNode.data.children.push(newNode);
-        }
-        update(root);
-    }
-}
-
-window.updateNodeName = function updateNodeName(event, id) {
-    const newName = event.target.value;
-    const node = root.descendants().find(d => d.data.id === id);
-    if (node) {
-        node.data.name = newName;
-        updateTreeData(id, node.children, node._children);
-        update(node);
-    }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
+    window.addBranch = addBranch;
+    window.updateNodeName = updateNodeName;
+
     const treeData = {
         id: "root",
         name: "Root",
@@ -58,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .attr("height", height + margin.top + margin.bottom)
         .call(d3.zoom().on("zoom", event => svg.attr("transform", event.transform)))
         .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+        .attr("transform", `translate(${margin.left},${margin.top})`); // check if translate should be in quotes!
 
     // Passing the root object, which is the hierarchical representation of treeData, 
     // to the update function. This object, created using d3.hierarchy(treeData), 
@@ -104,7 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const nodeEnter = node.enter().append("g")
             .attr("class", "node")
-            .attr("transform", d => `translate(${source.y0},${source.x0})`);
+            .attr("transform", d => {
+                if (d.x === undefined || d.y === undefined) {
+                    console.log("nodeEnter 'g': d.x === undefined || d.y === undefined");
+                    return "";
+                }
+                return `translate(${source.y0},${source.x0})`;
+            });
 
         nodeEnter.append("circle")
             .attr("r", 1e-6)
@@ -136,17 +119,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `);
 
-        // const nodeUpdate = nodeEnter.merge(node);
-        const nodeUpdate = svg.selectAll(".node")
-            .data(nodes, d => d.id)
+         const nodeUpdate = nodeEnter.merge(node)
+        // const nodeUpdate = svg.selectAll(".node")
+        //    .data(nodes, d => d.id)
             .transition()
             .duration(750)
             .attr("transform", d => `translate(${d.y},${d.x})`);
 
 
-        nodeUpdate.transition()
-            .duration(duration)
-            .attr("transform", d => `translate(${d.y},${d.x})`);
+        // nodeUpdate.transition()
+        //     .duration(duration)
+        //     .attr("transform", d => `translate(${d.y},${d.x})`);
 
         nodeUpdate.select("circle").attr("r", 10)
             .style("fill", d => d._children ? "lightsteelblue" : "#333");
@@ -169,6 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .attr("class", "link")
             .attr("d", d => {
                 const o = { x: source.x0, y: source.y0 };
+                console.log("Coordinates for linkEnter: ",o);
                 return diagonal(o, o);
             });
 
@@ -176,7 +160,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         linkUpdate.transition()
             .duration(duration)
-            .attr("d", d => diagonal(d, d.parent));
+            .attr("d", d => {
+                console.log("Updating link for node:", d);
+                if (!d.parent) {
+                    console.log("Node has no parent, skipping diagonal:", d);
+                    return ''; // Skip rendering if there's no parent
+                }
+                return diagonal(d, d.parent)
+            });
 
         link.exit().transition()
             .duration(duration)
@@ -193,6 +184,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function diagonal(s, d) {
+        if (!s || !d) 
+            {
+                console.log('Function diagonal: s or d is null');
+                return '';
+            };
         return `M ${s.y} ${s.x}
                 C ${(s.y + d.y) / 2} ${s.x},
                   ${(s.y + d.y) / 2} ${d.x},
@@ -233,4 +229,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function updateNodeName(event, id) {
+        const newName = event.target.value;
+        const node = root.descendants().find(d => d.data.id === id);
+        if (node) {
+            node.data.name = newName;
+            updateTreeData(id, node.children, node._children);
+            update(node);
+        }
+    }
+
+    function addBranch(parentId) {
+        const parentNode = root.descendants().find(d => d.data.id === parentId);
+        const newBranchName = document.getElementById(`new-branch-${parentId}`).value;
+        if (parentNode && newBranchName) {
+            if (!parentNode.data.children) parentNode.data.children = [];
+            parentNode.data.children.push({ id: `node-${++i}`, name: newBranchName });
+            update(root);
+        }
+    }
 });
