@@ -88,7 +88,7 @@ function update(source) {
         .on('click', (event, d) => {
             console.log("Add new node, here's the object: ", d);
             // Prevent the collapse/expand event
-            // event.stopPropagation();
+            event.stopPropagation();
 
             // Logic to add a new child
             var newNodeData = { name: `New Node ${d.data.children ? d.data.children.length + 1 : 1}` };
@@ -122,7 +122,7 @@ function update(source) {
                 d.data.children = [newNodeData];
             }
 
-            update(root);
+            update(d);
         });
 
     const nodeUpdate = nodeEnter.merge(node);
@@ -199,4 +199,5 @@ function update(source) {
         }
         update(d);
     }
+    console.log("This is the current tree after an update: ", treeData);
 }
