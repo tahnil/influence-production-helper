@@ -63,12 +63,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const nodes = root.descendants(),
             // links = root.descendants().slice(1);
             links = root.links();
-
+            console.log("Nodes before update:", nodes.map(d => ({
+                id: d.data.id, // Assuming IDs are stored in d.data.id based on previous discussions
+                name: d.data.name,
+                children: d.children ? d.children.length : 'No children',
+                _children: d._children ? d._children.length : 'No _children',
+                depth: d.depth,
+                x: d.x,
+                y: d.y
+            })));
+            
         // Normalize for fixed-depth
         nodes.forEach(d => d.y = d.depth * 180);
 
         const node = svg.selectAll(".node")
-            .data(nodes, d => d.id || (d.id = ++i));
+            .data(nodes, d => {
+                console.log("node: ",d);
+                console.log("node d.data.id: ",d.data.id);
+                const nodeId = d.data.id || (d.data.id = `node-${++i}`);
+                console.log("nodeId: ",nodeId);
+                return nodeId;
+            });
 
         const nodeEnter = node.enter().append("g")
             .attr("class", "node")
@@ -81,9 +96,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
         nodeEnter.append("circle")
-            .attr("r", 1e-6)
+            .attr("r", d => d ? 1e-6 : 0)
             .style("fill", d => d._children ? "lightsteelblue" : "#444")
             .on("click", (event, d) => {
+                if (!d) return;
                 event.stopPropagation();
                 toggleChildren(d);
                 update(d);
@@ -130,7 +146,12 @@ document.addEventListener('DOMContentLoaded', () => {
             .style("fill-opacity", 1e-6);
 
         const link = svg.selectAll(".link")
-            .data(links, d => d.id);
+            .data(links, d => {
+                const linkId = `${d.source.data.id}-${d.target.data.id}`;
+                // console.log("link: ",d);
+                // console.log("linkId: ",linkId);
+                return linkId;
+            });
 
         // the following function has been debugged, don't touch it
         const linkEnter = link.enter().insert("path", "g")
@@ -194,6 +215,18 @@ document.addEventListener('DOMContentLoaded', () => {
             d._children = null;
         }
     }
+
+    // function toggleChildren(d) {
+    //     if (d.children) {
+    //         console.log("Collapsing node", d.data.name);
+    //         d._children = d.children;  // Keep children data intact
+    //         d.children = null;
+    //     } else {
+    //         console.log("Expanding node", d.data.name);
+    //         d.children = d._children;  // Restore children from _children
+    //         d._children = null;
+    //     }
+    // }    
 
     function findNode(data, id) {
         if (data.id === id) return data;
