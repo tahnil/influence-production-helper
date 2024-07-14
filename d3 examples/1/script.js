@@ -16,10 +16,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const duration = 750;
 
     const treeLayout = d3.tree().size([height, width]);
+    // root: This variable should ideally hold the entire hierarchy of the tree and maintain the 
+    // structure throughout the lifecycle of the visualization. It should be used to compute layouts 
+    // and render the visual representation of the tree.
     let root = d3.hierarchy(treeData);
     root.x0 = height / 2;
     root.y0 = 0;
 
+    // Initialization: Sets up the initial correct layout before any interaction.
     treeLayout(root);
 
     const svg = d3.select("#tree-container")
@@ -30,20 +34,41 @@ document.addEventListener('DOMContentLoaded', () => {
         .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
+    // Passing the root object, which is the hierarchical representation of treeData, 
+    // to the update function. This object, created using d3.hierarchy(treeData), 
+    // organizes initial data into a structure suitable for D3 to manipulate and visualize as a tree
     update(root);
 
     function update(source) {
+        // source: This parameter in the update function represents the specific node that 
+        // triggered the update—usually due to an interaction such as a click. It is useful 
+        // for handling transitions and animations from the point of interaction.
         console.log(source);
         const nodeStates = {};
+
+        // Capture the current expanded/collapsed state of all nodes using the root
         root.each(d => { nodeStates[d.data.id] = d._children; });
 
-        root = d3.hierarchy(treeData);
-        root.each(d => { d._children = nodeStates[d.data.id]; });
+        // Rebuild the hierarchy from the original data if needed
+        root = d3.hierarchy(treeData, d => d.children);
+        // root = d3.hierarchy(treeData);
 
+        // Reapply the node states to maintain the expanded/collapsed states of the nodes
+        root.each(d => {
+            if (nodeStates[d.data.id] !== undefined) {  // If there was a state stored
+                d._children = nodeStates[d.data.id];    // Reapply that state
+            }
+        });
+
+        // Update: Adjusts the layout to reflect changes due to interactions like 
+        // expanding/collapsing nodes or adding new data.
+        // Reapply the tree layout to reflect any data changes
         treeLayout(root);
 
+        // The rest of the function handles the D3 enter-update-exit pattern for rendering
         const nodes = root.descendants(),
-            links = root.descendants().slice(1);
+            // links = root.descendants().slice(1);
+            links = root.links();
 
         // Normalize for fixed-depth
         nodes.forEach(d => d.y = d.depth * 180);
@@ -85,7 +110,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `);
 
-        const nodeUpdate = nodeEnter.merge(node);
+        // const nodeUpdate = nodeEnter.merge(node);
+        const nodeUpdate = svg.selectAll(".node")
+        .data(nodes, d => d.id)
+        .transition()
+        .duration(750)
+        .attr("transform", d => `translate(${d.y},${d.x})`);
+
 
         nodeUpdate.transition()
             .duration(duration)
@@ -152,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         update(d);
     }
-            
+
     function findNode(data, id) {
         if (data.id === id) return data;
         if (data.children) {
@@ -171,6 +202,18 @@ document.addEventListener('DOMContentLoaded', () => {
             node.data.name = newName;
             updateTreeData(id, node.children, node._children);
             update(node);
+        }
+    }
+
+    function updateTreeData(id, children, _children) {
+        const node = findNode(treeData, id);
+        if (node) {
+            if (children !== undefined) {
+                node.children = children ? children.map(c => ({ id: c.data.id, children: c.children ? [] : null })) : null;
+            }
+            if (_children !== undefined) {
+                node._children = _children ? _children.map(c => ({ id: c.data.id, children: c.children ? [] : null })) : null;
+            }
         }
     }
 
