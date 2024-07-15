@@ -1,16 +1,19 @@
 // src/pages/api/products.ts
-
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { loadProductionChains } from '../../lib/dataLoader';
+import { getAllProducts } from '../../lib/products';
+import { ApiError } from '../../types/types';
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    console.log('Loading production chains');
-    const productionChains = loadProductionChains();
-    console.log('Production chains loaded', productionChains.products);
-    res.status(200).json(productionChains.products);
+    const products = await getAllProducts();
+    res.status(200).json(products);
   } catch (error) {
-    console.error('Error loading production chains:', error);
-    res.status(500).json({ error: 'Failed to load products' });
+    const apiError = error as ApiError;
+    console.error('Error loading products:', apiError.message);
+    res.status(apiError.status || 500).json({ 
+      error: 'Failed to load products', 
+      message: apiError.message,
+      code: apiError.code
+    });
   }
 }

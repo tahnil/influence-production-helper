@@ -1,17 +1,23 @@
 // src/types/types.ts
 
+export interface ApiError {
+  message: string;
+  status?: number;
+  code?: string;
+}
+
 export interface Product {
-  id: string;
+  category: string;
+  id: number;
+  massKilogramsPerUnit: number;
   name: string;
+  quantized: boolean;
+  type: string;
+  volumeLitersPerUnit: number;
 }
 
 export interface EndProduct extends Product {
   amount: number;
-}
-
-export interface InputOutput {
-  productId: string;
-  unitsPerSR: string;
 }
 
 export interface Process {
@@ -21,6 +27,12 @@ export interface Process {
   inputs: InputOutput[];
   outputs: InputOutput[];
 }
+
+export interface InputOutput {
+  productId: string;
+  unitsPerSR: string;
+}
+
 
 export interface ProductionChainProduct {
   product: Product;
