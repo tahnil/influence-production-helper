@@ -1,9 +1,34 @@
 // src/types/types.ts
 import * as d3 from 'd3';
 
+export interface ApiError {
+  message: string;
+  status?: number;
+  code?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
+  type: string;
+  massKilogramsPerUnit: string;
+  volumeLitersPerUnit: string;
+  category: string;
+  quantized: boolean;
+}
+
+export interface SpectralType {
+  id: number;
+  name: string;
+  processes: string[];
+}
+
+export interface Process {
+  id: string;
+  name: string;
+  inputs: InputOutput[];
+  outputs: InputOutput[];
+  buildingId: string;
 }
 
 export interface EndProduct extends Product {
@@ -15,13 +40,6 @@ export interface InputOutput {
   unitsPerSR: string;
 }
 
-export interface Process {
-  id: string;
-  name: string;
-  buildingId: string;
-  inputs: InputOutput[];
-  outputs: InputOutput[];
-}
 
 export interface ProductionChainProduct {
   product: Product;
@@ -45,6 +63,7 @@ export interface ProductionChain {
   productionChain: {
     process: ProductionChainProcess;
   };
+  spectralTypes: SpectralType[];
 }
 
 export interface Input {
