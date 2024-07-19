@@ -1,8 +1,8 @@
-// src/components/ProcessConfigurator/ProcessConfigurator.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Process, Product, Input } from '../../types/types';
 import { generateUniqueId } from '../../lib/uniqueId';
-import { fetchProcesses, fetchInputs } from '../../services/apiService';
+import useProcesses from '../../hooks/useProcesses';
+import useProcessInputs from '../../hooks/useProcessInputs';
 import ProcessSelector from './ProcessSelector';
 import ProcessInputs from './ProcessInputs';
 
@@ -16,39 +16,21 @@ interface ProcessConfiguratorProps {
 }
 
 const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amount, selectedProcesses, onProcessSelect, level = 0, parentId = null }) => {
-  const [processes, setProcesses] = useState<Process[]>([]);
-  const [inputs, setInputs] = useState<Input[]>([]);
   const uniqueId = generateUniqueId(product.id, level, parentId);
+  const { processes, loading: processesLoading, error: processesError } = useProcesses(product.id);
+  const { inputs, loading: inputsLoading, error: inputsError } = useProcessInputs(selectedProcesses[uniqueId] || '');
 
   useEffect(() => {
-    const loadProcesses = async () => {
-      try {
-        const processesData = await fetchProcesses(product.id);
-        setProcesses(processesData);
-      } catch (error) {
-        console.error('Error fetching processes:', error);
-      }
-    };
-
-    loadProcesses();
-  }, [product.id]);
+    if (processesError) {
+      console.error('Error fetching processes:', processesError);
+    }
+  }, [processesError]);
 
   useEffect(() => {
-    const loadInputs = async () => {
-      if (selectedProcesses[uniqueId]) {
-        try {
-          const inputsData = await fetchInputs(selectedProcesses[uniqueId]);
-          setInputs(inputsData);
-        } catch (error) {
-          console.error('Error fetching inputs:', error);
-        }
-      } else {
-        setInputs([]);
-      }
-    };
-
-    loadInputs();
-  }, [uniqueId, selectedProcesses]);
+    if (inputsError) {
+      console.error('Error fetching inputs:', inputsError);
+    }
+  }, [inputsError]);
 
   const handleProcessChange = (value: string) => {
     onProcessSelect(uniqueId, value);
@@ -57,8 +39,21 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
   return (
     <div className="mb-4 ml-5">
       <h3 className="text-md font-semibold mb-2">{product.name}</h3>
-      <ProcessSelector processes={processes} selectedProcess={selectedProcesses[uniqueId]} onProcessChange={handleProcessChange} />
-      <ProcessInputs inputs={inputs} amount={amount} selectedProcesses={selectedProcesses} onProcessSelect={onProcessSelect} level={level + 1} parentId={uniqueId} />
+      {processesLoading ? (
+        <p>Loading processes...</p>
+      ) : processesError ? (
+        <p className="text-red-500">Failed to load processes.</p>
+      ) : (
+        <div>
+          <p>Processes: {JSON.stringify(processes)}</p> {/* Add this line */}
+          <ProcessSelector
+            processes={processes}
+            selectedProcess={selectedProcesses[uniqueId]}
+            onProcessChange={handleProcessChange}
+          />
+        </div>
+      )}
+      {/* Rest of the component */}
     </div>
   );
 };

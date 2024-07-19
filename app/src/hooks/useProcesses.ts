@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Process } from '../types/types';
 
 const useProcesses = (id?: string) => {
-  const [processes, setProcesses] = useState<Process[] | null>(null);
+  const [processes, setProcesses] = useState<Process[]>([]); // Initialize as an empty array
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -12,7 +12,7 @@ const useProcesses = (id?: string) => {
       try {
         setLoading(true);
         const response = await axios.get(id ? `/api/processes?id=${id}` : '/api/processes');
-        setProcesses(response.data);
+        setProcesses(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         setError('Failed to fetch processes');
       } finally {

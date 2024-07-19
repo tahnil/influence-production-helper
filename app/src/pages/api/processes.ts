@@ -2,12 +2,10 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { fetchProcessById, fetchAllProcesses, fetchProcessesByProductId } from '../../lib/processUtils';
-import { loadProductionChains } from '../../lib/dataLoader';
 import { ApiError } from '../../types/types';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    // Check if there's an ID query parameter
     const { id, outputProductId } = req.query;
     
     if (outputProductId) {
@@ -18,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (processes.length === 0) {
         return res.status(404).json({ error: 'No processes found for the given product ID as output' });
       }
-      return res.status(200).json(processes);
+      return res.status(200).json(processes);  // Return array of processes
     }
     
     if (id) {
@@ -29,12 +27,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!process) {
         return res.status(404).json({ error: 'Process not found' });
       }
-      return res.status(200).json(process);
+      return res.status(200).json([process]);  // Return array containing a single process
     }
 
     // If no ID is provided, fetch all processes
     const processes = await fetchAllProcesses();
-    return res.status(200).json(processes);
+    return res.status(200).json(processes);  // Return array of processes
   } catch (error) {
     const apiError = error as ApiError;
     console.error('Error loading processes:', apiError.message);

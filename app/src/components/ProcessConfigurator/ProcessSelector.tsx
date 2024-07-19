@@ -17,6 +17,10 @@ interface ProcessSelectorProps {
 }
 
 const ProcessSelector: React.FC<ProcessSelectorProps> = ({ processes, selectedProcess, onProcessChange }) => {
+  if (!Array.isArray(processes)) {
+    return <p>No processes available</p>;
+  }
+
   return (
     <div>
       <Label htmlFor="process-select">Select a process</Label>
@@ -33,5 +37,4 @@ const ProcessSelector: React.FC<ProcessSelectorProps> = ({ processes, selectedPr
     </div>
   );
 };
-
 export default ProcessSelector;
