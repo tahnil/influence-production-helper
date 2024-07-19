@@ -7,25 +7,31 @@ export interface ApiError {
 }
 
 export interface Product {
-  category: string;
-  id: number;
-  massKilogramsPerUnit: number;
+  id: string;
   name: string;
-  quantized: boolean;
   type: string;
-  volumeLitersPerUnit: number;
+  massKilogramsPerUnit: string;
+  volumeLitersPerUnit: string;
+  category: string;
+  quantized: boolean;
 }
 
-export interface EndProduct extends Product {
-  amount: number;
+export interface SpectralType {
+  id: number;
+  name: string;
+  processes: string[];
 }
 
 export interface Process {
   id: string;
   name: string;
-  buildingId: string;
   inputs: InputOutput[];
   outputs: InputOutput[];
+  buildingId: string;
+}
+
+export interface EndProduct extends Product {
+  amount: number;
 }
 
 export interface InputOutput {
@@ -56,6 +62,7 @@ export interface ProductionChain {
   productionChain: {
     process: ProductionChainProcess;
   };
+  spectralTypes: SpectralType[];
 }
 
 export interface Input {
