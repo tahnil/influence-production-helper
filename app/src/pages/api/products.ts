@@ -1,48 +1,33 @@
-// src/pages/api/products.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getProductById, getProcessesByProductId, getSpectralTypesByProcesses } from '../../lib/dataLoader';
+import { fetchProductById, fetchAllProducts } from '../../lib/productUtils';
 import { ApiError } from '../../types/types';
-
-const getProductWithSpectralTypes = (productId: string) => {
-  const product = getProductById(productId);
-  if (!product) {
-    throw new Error('Product not found');
-  }
-
-  // Fetch processes that produce this product
-  const processes = getProcessesByProductId(productId);
-  const processIds = processes.map(process => process.id);
-
-  // Fetch spectral types that support the processes
-  const spectralTypes = getSpectralTypesByProcesses(processIds);
-
-  return {
-    ...product,
-    spectralTypes: spectralTypes.map(st => ({
-      id: st.id,
-      name: st.name
-    }))
-  };
-};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const { productId } = req.query as { productId?: string };
+    // Check if there's an ID query parameter
+    const { id } = req.query;
     
-    if (!productId) {
-      throw new Error('Product ID is required');
+    if (id) {
+      // Fetch a single product by ID
+      const productId = Array.isArray(id) ? id[0] : id;
+      const product = await fetchProductById(productId);
+
+      if (!product) {
+        return res.status(404).json({ error: 'Product not found' });
+      }
+      return res.status(200).json(product);
     }
 
-    const product = getProductWithSpectralTypes(productId);
-
-    res.status(200).json(product);
+    // If no ID is provided, fetch all products
+    const products = await fetchAllProducts();
+    return res.status(200).json(products);
   } catch (error) {
     const apiError = error as ApiError;
-    console.error('Error loading product:', apiError.message);
-    res.status(apiError.status || 500).json({ 
-      error: 'Failed to load product', 
+    console.error('Error loading products:', apiError.message);
+    res.status(apiError.status || 500).json({
+      error: 'Failed to load products',
       message: apiError.message,
-      code: apiError.code
+      code: apiError.code,
     });
   }
 }

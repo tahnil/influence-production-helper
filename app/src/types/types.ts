@@ -17,8 +17,13 @@ export interface Product {
   quantized: boolean;
 }
 
+// Define a new type for the enriched product
+export interface ProductWithSpectralTypes extends Product {
+  spectralTypes?: { id: string; name: string }[];
+}
+
 export interface SpectralType {
-  id: number;
+  id: string;
   name: string;
   processes: string[];
 }
