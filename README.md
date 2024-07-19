@@ -44,9 +44,6 @@ The Production Chain Configurator is a web application designed to help users co
     - **`label.tsx`**: Label component.
     - **`select.tsx`**: Select component.
 
-- **`hooks/`**: Contains custom React hooks.
-  - **`useProducts.ts`**: Hook for fetching and managing product data.
-
 - **`lib/`**: Contains utility functions and data handling logic.
   - **`constructors.ts`**: Functions for creating data structures.
   - **`dataLoader.ts`**: Functions for loading data.
