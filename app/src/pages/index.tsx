@@ -1,7 +1,7 @@
 // src/pages/index.tsx
 
 import React from 'react';
-import useProducts from '../hooks/useProducts'; // Use the client-side hook
+import useProducts from '../hooks/useProducts';
 import { useProductionChainStore } from '../store/useProductionChainStore';
 import ProductList from '../components/ProductList';
 import ProcessConfigurator from '../components/ProcessConfigurator/ProcessConfigurator';
