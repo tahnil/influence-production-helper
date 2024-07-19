@@ -1,24 +1,47 @@
 // src/pages/api/processes.ts
 
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { fetchProcessById, fetchAllProcesses, fetchProcessesByProductId } from '../../lib/processUtils';
 import { loadProductionChains } from '../../lib/dataLoader';
+import { ApiError } from '../../types/types';
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { productId } = req.query;
-
-  if (!productId || typeof productId !== 'string') {
-    res.status(400).json({ error: 'Invalid product ID' });
-    return;
-  }
-
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const productionChains = loadProductionChains();
-    const processes = productionChains.processes.filter(process =>
-      process.outputs.some(output => output.productId === productId)
-    );
+    // Check if there's an ID query parameter
+    const { id, outputProductId } = req.query;
+    
+    if (outputProductId) {
+      // Fetch processes that yield the specified product ID as output
+      const productId = Array.isArray(outputProductId) ? outputProductId[0] : outputProductId;
+      const processes = await fetchProcessesByProductId(productId);
 
-    res.status(200).json(processes);
+      if (processes.length === 0) {
+        return res.status(404).json({ error: 'No processes found for the given product ID as output' });
+      }
+      return res.status(200).json(processes);
+    }
+    
+    if (id) {
+      // Fetch a single process by ID
+      const processId = Array.isArray(id) ? id[0] : id;
+      const process = await fetchProcessById(processId);
+
+      if (!process) {
+        return res.status(404).json({ error: 'Process not found' });
+      }
+      return res.status(200).json(process);
+    }
+
+    // If no ID is provided, fetch all processes
+    const processes = await fetchAllProcesses();
+    return res.status(200).json(processes);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to load processes' });
+    const apiError = error as ApiError;
+    console.error('Error loading processes:', apiError.message);
+    res.status(apiError.status || 500).json({
+      error: 'Failed to load processes',
+      message: apiError.message,
+      code: apiError.code,
+    });
   }
 }
