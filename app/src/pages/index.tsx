@@ -1,5 +1,7 @@
 // src/pages/index.tsx
-import React, { useEffect, useState } from 'react';
+
+import React from 'react';
+import useProducts from '../hooks/useProducts'; // Use the client-side hook
 import { useProductionChainStore } from '../store/useProductionChainStore';
 import ProductList from '../components/ProductList';
 import ProcessConfigurator from '../components/ProcessConfigurator/ProcessConfigurator';
@@ -20,8 +22,6 @@ import { Button } from '@/components/ui/button';
 import AggregatedIngredientsTable from '../components/AggregatedIngredientsTable';
 import JsonOutputWithCopyButton from '../components/JsonOutputWithCopyButton';
 import { NumericFormat } from 'react-number-format';
-import axios from 'axios';
-import { Product, ProductWithSpectralTypes } from '../types/types';
 
 const formSchema = z.object({
   amount: z.preprocess((val) => {
@@ -33,9 +33,7 @@ const formSchema = z.object({
 });
 
 const HomePage: React.FC = () => {
-  const [products, setProducts] = useState<ProductWithSpectralTypes[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { products, loading, error } = useProducts();
   const {
     selectedProduct,
     selectedProcesses,
@@ -57,22 +55,6 @@ const HomePage: React.FC = () => {
   const { watch, handleSubmit, formState: { errors }, control } = form;
   const watchedAmount = watch('amount')?.toString() || '0';
   const amountValue = parseFloat(watchedAmount.replace(/,/g, ''));
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await axios.get<ProductWithSpectralTypes[]>('/api/products');
-        setProducts(response.data);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        setError('Failed to load products');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
 
   return (
     <div className="container mx-auto p-4">

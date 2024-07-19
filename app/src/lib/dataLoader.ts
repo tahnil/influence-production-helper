@@ -1,8 +1,8 @@
-// src/lib/dataLoader.ts:
+// src/lib/dataLoader.ts
 
 import path from 'path';
 import fs from 'fs';
-import { ProductionChain } from '../types/types';
+import { ProductionChain, Product, SpectralType, Process } from '../types/types';
 
 const productionChainsPath = path.resolve(process.cwd(), 'src/sdk/productionChains.json');
 
@@ -19,8 +19,18 @@ export const loadProductionChains = (): ProductionChain => {
       throw new Error('Failed to load production chains data');
     }
   }
+
   if (!productionChains) {
     throw new Error('Production chains data is not available');
   }
+  
   return productionChains;
 };
+
+// Export utility functions that use server-side only functionality
+export const getAllProducts = async () => {
+  const productionChains = loadProductionChains();
+  return productionChains.products;
+};
+
+// Other functions...

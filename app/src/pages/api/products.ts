@@ -1,3 +1,5 @@
+// src/pages/api/products.ts
+
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { fetchProductById, fetchAllProducts } from '../../lib/productUtils';
 import { ApiError } from '../../types/types';
@@ -6,7 +8,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // Check if there's an ID query parameter
     const { id } = req.query;
-    
+
     if (id) {
       // Fetch a single product by ID
       const productId = Array.isArray(id) ? id[0] : id;
