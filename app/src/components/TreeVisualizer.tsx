@@ -59,7 +59,6 @@ const TreeVisualizer: React.FC = () => {
 
             const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
                 .on('zoom', (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
-                    console.log('Zoom event:', event);
                     g.attr('transform', event.transform as any);
                 });
 
@@ -77,14 +76,6 @@ const TreeVisualizer: React.FC = () => {
             root.children?.forEach(collapse);
 
             update(root);
-
-            function collapse(d: ExtendedD3HierarchyNode): void {
-                if (d.children) {
-                    d._children = d.children;
-                    d._children.forEach(collapse);
-                    d.children = null;
-                }
-            }
 
             function addNewNode(event: React.MouseEvent, d: ExtendedD3HierarchyNode): void {
                 event.stopPropagation();
@@ -170,7 +161,7 @@ const TreeVisualizer: React.FC = () => {
                 nodeExit.select('circle').attr('r', 1e-6);
                 nodeExit.select('text').style('fill-opacity', 1e-6);
 
-                const link = svg.selectAll<SVGPathElement, ExtendedD3HierarchyNode>('path.link')
+                const link = g.selectAll<SVGPathElement, ExtendedD3HierarchyNode>('path.link')
                     .data(links, d => d.id);
 
                 const linkEnter = link.enter().insert('path', 'g')
@@ -216,6 +207,14 @@ const TreeVisualizer: React.FC = () => {
                     }
                     update(d);
                 }
+            }
+        }
+
+        function collapse(d: ExtendedD3HierarchyNode): void {
+            if (d.children) {
+                d._children = d.children;
+                d._children.forEach(collapse);
+                d.children = null;
             }
         }
     }, []);
