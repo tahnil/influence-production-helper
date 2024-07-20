@@ -23,7 +23,6 @@ The Production Chain Configurator is a web application designed to help users co
 - **Next.js**: A React framework for server-side rendering and generating static websites.
 - **TypeScript**: A statically typed superset of JavaScript.
 - **Tailwind CSS**: A utility-first CSS framework.
-- **Zustand**: A small, fast, and scalable barebones state-management solution.
 - **Axios**: A promise-based HTTP client for the browser and Node.js.
 - **React Hook Form**: A performant, flexible, and extensible form library for React.
 - **Zod**: A TypeScript-first schema declaration and validation library.
@@ -44,25 +43,30 @@ The Production Chain Configurator is a web application designed to help users co
     - **`label.tsx`**: Label component.
     - **`select.tsx`**: Select component.
 
+- **`hooks/`**: Contains custom React hooks for data fetching.
+  - **`useConfigureProductionChain.ts`**: Hook for configuring the production chain.
+  - **`useInputsByProcessId.ts`**: Hook for fetching inputs by process ID.
+  - **`useProcessesByProductId.ts`**: Hook for fetching processes by product ID.
+  - **`useProducts.ts`**: Hook for fetching products.
+
 - **`lib/`**: Contains utility functions and data handling logic.
+  - **`calculationHelpers.ts`**: Functions for calculating input and output amounts.
   - **`constructors.ts`**: Functions for creating data structures.
   - **`dataLoader.ts`**: Functions for loading data.
+  - **`inputHelpers.ts`**: Functions for handling process inputs.
+  - **`processUtils.ts`**: Functions for handling processes.
   - **`uniqueId.ts`**: Utility for generating unique IDs.
   - **`utils.ts`**: General utility functions.
 
 - **`pages/`**: Contains Next.js page components and API routes.
-  - **`_app.js`**: Custom App component for initializing pages.
+  - **`_app.tsx`**: Custom App component for initializing pages.
   - **`api/`**: API route handlers.
     - **`configureProductionChain.ts`**: API handler for configuring production chains.
-    - **`inputs.ts`**: API handler for fetching process inputs.
     - **`processes.ts`**: API handler for fetching processes.
     - **`products.ts`**: API handler for fetching products.
   - **`index.tsx`**: Main page component.
   - **`layout.tsx`**: Layout component for the application.
   - **`globals.css`**: Global CSS styles.
-
-- **`services/`**: Contains services for making API calls.
-  - **`apiService.ts`**: Service for interacting with the backend API.
 
 - **`store/`**: Contains state management logic using Zustand.
   - **`useProductionChainStore.ts`**: Zustand store for managing production chain state.
