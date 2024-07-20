@@ -31,9 +31,9 @@ interface ExtendedD3HierarchyNode extends d3.HierarchyPointNode<TreeNode> {
 const TreeVisualizer: React.FC = () => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const updateRef = useRef<(source: ExtendedD3HierarchyNode) => void>();
+    const iRef = useRef(0); // useRef to keep track of i across re-renders
 
     const margin: Margin = { top: 20, right: 90, bottom: 30, left: 90 };
-    let i = 0;
 
     const collapse = useCallback((d: ExtendedD3HierarchyNode): void => {
         if (d.children) {
@@ -43,7 +43,7 @@ const TreeVisualizer: React.FC = () => {
         }
     }, []);
 
-    const addNewNode = useCallback((event: React.MouseEvent, d: ExtendedD3HierarchyNode, i: number): void => {
+    const addNewNode = useCallback((event: React.MouseEvent, d: ExtendedD3HierarchyNode): void => {
         event.stopPropagation();
 
         const newNodeData: TreeNode = { name: `New Node ${d.data.children ? d.data.children.length + 1 : 1}` };
@@ -52,7 +52,7 @@ const TreeVisualizer: React.FC = () => {
             height: 0,
             depth: d.depth + 1,
             parent: d,
-            _id: ++i, // Assign a unique id to the new node
+            _id: ++iRef.current, // Assign a unique id to the new node
             x0: 0,
             y0: 0
         } as ExtendedD3HierarchyNode;
@@ -132,7 +132,7 @@ const TreeVisualizer: React.FC = () => {
             .attr('y', 3)
             .text('+')
             .style('cursor', 'pointer')
-            .on('click', (event, d) => addNewNode(event, d, i));
+            .on('click', (event, d) => addNewNode(event, d));
 
         const nodeUpdate = nodeEnter.merge(node);
 
@@ -227,7 +227,7 @@ const TreeVisualizer: React.FC = () => {
             root.y0 = 0;
 
             root.each((d: ExtendedD3HierarchyNode) => {
-                d._id = ++i;
+                d._id = ++iRef.current;
             });
 
             root.children?.forEach(collapse);
