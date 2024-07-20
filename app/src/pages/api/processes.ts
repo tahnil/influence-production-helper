@@ -1,12 +1,18 @@
 // src/pages/api/processes.ts
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { fetchProcessById, fetchAllProcesses, fetchProcessesByProductId } from '../../lib/processUtils';
+import { fetchProcessById, fetchAllProcesses, fetchProcessesByProductId, fetchInputsByProcessId } from '../../lib/processUtils';
 import { ApiError } from '../../types/types';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const { id, outputProductId } = req.query;
+    const { id, outputProductId, processId } = req.query;
+
+    if (processId) {
+      // Handle fetching inputs for a given processId
+      const inputs = await fetchInputsByProcessId(Array.isArray(processId) ? processId[0] : processId);
+      return res.status(200).json(inputs);
+    }
     
     if (outputProductId) {
       // Fetch processes that yield the specified product ID as output

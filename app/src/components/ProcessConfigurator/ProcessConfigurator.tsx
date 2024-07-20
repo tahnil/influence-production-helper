@@ -1,10 +1,10 @@
+// components/ProcessConfigurator.tsx
 import React, { useEffect } from 'react';
-import { Process, Product, Input } from '../../types/types';
+import { Process, Product } from '../../types/types';
 import { generateUniqueId } from '../../lib/uniqueId';
-import useProcesses from '../../hooks/useProcesses';
+import useProcessesByProductId from '../../hooks/useProcessesByProductId'; // Import the correct hook
 import useProcessInputs from '../../hooks/useProcessInputs';
 import ProcessSelector from './ProcessSelector';
-import ProcessInputs from './ProcessInputs';
 
 interface ProcessConfiguratorProps {
   product: Product;
@@ -17,7 +17,10 @@ interface ProcessConfiguratorProps {
 
 const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amount, selectedProcesses, onProcessSelect, level = 0, parentId = null }) => {
   const uniqueId = generateUniqueId(product.id, level, parentId);
-  const { processes, loading: processesLoading, error: processesError } = useProcesses(product.id);
+  const outputProductId = product.id; // Use product ID as outputProductId
+
+  // Use the hook to fetch processes based on outputProductId
+  const { processes, loading: processesLoading, error: processesError } = useProcessesByProductId(outputProductId);
   const { inputs, loading: inputsLoading, error: inputsError } = useProcessInputs(selectedProcesses[uniqueId] || '');
 
   useEffect(() => {
@@ -45,7 +48,7 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
         <p className="text-red-500">Failed to load processes.</p>
       ) : (
         <div>
-          <p>Processes: {JSON.stringify(processes)}</p> {/* Add this line */}
+          <p>Processes: {processes.length > 0 ? processes.map(process => process.name).join(', ') : 'No processes available'}</p>
           <ProcessSelector
             processes={processes}
             selectedProcess={selectedProcesses[uniqueId]}
@@ -53,7 +56,19 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
           />
         </div>
       )}
-      {/* Rest of the component */}
+      {/* Optional: display inputs if necessary */}
+      {inputsLoading && <p>Loading inputs...</p>}
+      {inputsError && <p className="text-red-500">Failed to load inputs.</p>}
+      {inputs && inputs.length > 0 && (
+        <div>
+          <h4 className="text-md font-semibold mb-2">Inputs:</h4>
+          <ul>
+            {inputs.map(input => (
+              <li key={input.id}>{input.name}: {input.quantity}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

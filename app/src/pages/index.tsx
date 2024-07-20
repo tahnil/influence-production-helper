@@ -1,8 +1,9 @@
 // src/pages/index.tsx
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import useProducts from '../hooks/useProducts';
-import { useProductionChainStore } from '../store/useProductionChainStore';
+import useProcessesByProductId from '../hooks/useProcessesByProductId';
+import useConfigureProductionChain from '../hooks/useConfigureProductionChain';
 import ProductList from '../components/ProductList';
 import ProcessConfigurator from '../components/ProcessConfigurator/ProcessConfigurator';
 import { useForm, Controller } from 'react-hook-form';
@@ -22,6 +23,8 @@ import { Button } from '@/components/ui/button';
 import AggregatedIngredientsTable from '../components/AggregatedIngredientsTable';
 import JsonOutputWithCopyButton from '../components/JsonOutputWithCopyButton';
 import { NumericFormat } from 'react-number-format';
+import { Process, Product } from '@/types/types';
+import { generateUniqueId } from '@/lib/uniqueId';
 
 const formSchema = z.object({
   amount: z.preprocess((val) => {
@@ -33,17 +36,13 @@ const formSchema = z.object({
 });
 
 const HomePage: React.FC = () => {
-  const { products, loading, error } = useProducts();
-  const {
-    selectedProduct,
-    selectedProcesses,
-    productionChain,
-    loading: configuring,
-    error: configureError,
-    setSelectedProduct,
-    setSelectedProcess,
-    configureChain
-  } = useProductionChainStore();
+  const { products, loading: productsLoading, error: productsError } = useProducts();
+  const { configureChain, productionChain, loading: configuring, error: configureError } = useConfigureProductionChain();
+  
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProcesses, setSelectedProcesses] = useState<{ [key: string]: string }>({});
+
+  const { processes, loading: processesLoading, error: processesError } = useProcessesByProductId(selectedProduct?.id || '');
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -56,18 +55,46 @@ const HomePage: React.FC = () => {
   const watchedAmount = watch('amount')?.toString() || '0';
   const amountValue = parseFloat(watchedAmount.replace(/,/g, ''));
 
+  // This effect will be handled by useProcessesByProductId
+  useEffect(() => {
+    if (selectedProduct) {
+      // Just a placeholder to show that processes are being fetched
+      console.log('Fetching processes for product:', selectedProduct.id);
+    }
+  }, [selectedProduct]);
+
+  const handleProcessSelect = (uniqueId: string, processId: string) => {
+    setSelectedProcesses(prev => ({
+      ...prev,
+      [uniqueId]: processId
+    }));
+  };
+
   return (
     <div className="container mx-auto p-4">
       <div className="max-w-4xl mx-auto bg-white p-6 rounded-md shadow-md">
         <h1 className="text-2xl font-bold mb-4">Production Chain Configurator</h1>
-        {loading && <p>Loading products...</p>}
-        {error && <p className="text-red-500">{error}</p>}
-        {!loading && !error && (
+        {productsLoading && <p>Loading products...</p>}
+        {productsError && <p className="text-red-500">{productsError}</p>}
+        {!productsLoading && !productsError && (
           <ProductList products={products} onProductSelect={setSelectedProduct} />
         )}
         {selectedProduct && (
           <Form {...form}>
-            <form onSubmit={handleSubmit((values) => configureChain(values.amount))} className="mb-8 space-y-8">
+            <form onSubmit={handleSubmit(async (values) => {
+              try {
+                await configureChain({
+                  product: selectedProduct,
+                  amount: values.amount,
+                  selectedProcesses: {
+                    ...selectedProcesses,
+                    [generateUniqueId(selectedProduct.id, 0)]: selectedProcesses[generateUniqueId(selectedProduct.id, 0)]
+                  }
+                });
+              } catch (error) {
+                console.error("Failed to configure chain:", error);
+              }
+            })} className="mb-8 space-y-8">
               <FormField
                 control={control}
                 name="amount"
@@ -101,7 +128,7 @@ const HomePage: React.FC = () => {
                 product={selectedProduct}
                 amount={amountValue}
                 selectedProcesses={selectedProcesses}
-                onProcessSelect={setSelectedProcess}
+                onProcessSelect={handleProcessSelect}
               />
               <Button type="submit" disabled={configuring}>
                 {configuring ? 'Configuring...' : 'Configure Chain'}

@@ -1,20 +1,22 @@
-// src/hooks/useProcessInputs.ts
+// src/hooks/useInputsByProcessId.ts
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Input } from '../types/types';
 
-const useProcessInputs = (processId: string) => {
+const useInputsByProcessId = (processId?: string) => {
   const [inputs, setInputs] = useState<Input[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchInputs = async () => {
+    const fetchInputsByProcessId = async () => {
+      if (!processId) return;
+
       try {
         setLoading(true);
-        const response = await axios.get(`/api/processes?processId=${processId}`);
-        setInputs(response.data);
+        const response = await axios.get(`/api/processes`, { params: { processId } });
+        setInputs(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         setError('Failed to fetch inputs');
       } finally {
@@ -22,14 +24,10 @@ const useProcessInputs = (processId: string) => {
       }
     };
 
-    if (processId) {
-      fetchInputs();
-    } else {
-      setInputs([]);
-    }
+    fetchInputsByProcessId();
   }, [processId]);
 
   return { inputs, loading, error };
 };
 
-export default useProcessInputs;
+export default useInputsByProcessId;

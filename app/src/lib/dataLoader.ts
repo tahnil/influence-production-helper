@@ -26,11 +26,3 @@ export const loadProductionChains = (): ProductionChain => {
   
   return productionChains;
 };
-
-// Export utility functions that use server-side only functionality
-export const getAllProducts = async () => {
-  const productionChains = loadProductionChains();
-  return productionChains.products;
-};
-
-// Other functions...
