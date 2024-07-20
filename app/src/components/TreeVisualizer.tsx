@@ -27,7 +27,7 @@ interface ExtendedD3HierarchyNode extends d3.HierarchyPointNode<TreeNode> {
 }
 
 const TreeVisualizer: React.FC = () => {
-    const containerRef = useRef<SVGSVGElement | null>(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         const treeData: TreeData = {
@@ -52,12 +52,17 @@ const TreeVisualizer: React.FC = () => {
         if (!container.empty()) {
             const svg = container.append('svg')
                 .attr('width', width + margin.right + margin.left)
-                .attr('height', height + margin.top + margin.bottom)
-                .call(d3.zoom<SVGSVGElement, unknown>().on('zoom', (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
-                    g.attr('transform', event.transform as any);
-                }))
-                .append('g')
+                .attr('height', height + margin.top + margin.bottom);
+
+            const g = svg.append('g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
+
+            const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
+                .on('zoom', (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+                    g.attr('transform', event.transform as any);
+                });
+
+            svg.call(zoomBehavior);
 
             let i = 0;
             const duration = 750;
@@ -171,20 +176,23 @@ const TreeVisualizer: React.FC = () => {
                     .attr('class', 'link')
                     .attr('d', d => {
                         const o = { x: source.x0, y: source.y0 };
-                        return diagonal(o, o);
-                    });
+                        return straightLine(o, o);
+                    })
+                    .style('fill', 'none')
+                    .style('stroke', 'steelblue')  // Set your desired color here
+                    .style('stroke-width', '2px');
 
                 const linkUpdate = linkEnter.merge(link);
 
                 linkUpdate.transition()
                     .duration(duration)
-                    .attr('d', d => diagonal(d, d.parent as ExtendedD3HierarchyNode));
+                    .attr('d', d => straightLine(d, d.parent as ExtendedD3HierarchyNode));
 
                 const linkExit = link.exit().transition()
                     .duration(duration)
                     .attr('d', d => {
                         const o = { x: source.x, y: source.y };
-                        return diagonal(o, o);
+                        return straightLine(o, o);
                     })
                     .remove();
 
@@ -193,11 +201,8 @@ const TreeVisualizer: React.FC = () => {
                     d.y0 = d.y;
                 });
 
-                function diagonal(s: ExtendedD3HierarchyNode, d: ExtendedD3HierarchyNode): string {
-                    return `M ${s.y} ${s.x}
-                    C ${(s.y + d.y) / 2} ${s.x},
-                      ${(s.y + d.y) / 2} ${d.x},
-                      ${d.y} ${d.x}`;
+                function straightLine(s: ExtendedD3HierarchyNode, d: ExtendedD3HierarchyNode): string {
+                    return `M ${s.y} ${s.x} L ${d.y} ${d.x}`;
                 }
 
                 function click(event: React.MouseEvent, d: ExtendedD3HierarchyNode): void {
