@@ -8,7 +8,7 @@ import { fetchProductById } from './productUtils';
 const productionChains = loadProductionChains();
 
 // Helper functions
-const getProcessById = (id: string): Process | undefined => {
+export const getProcessById = (id: string): Process | undefined => {
   return productionChains.processes.find(process => process.id === id);
 };
 

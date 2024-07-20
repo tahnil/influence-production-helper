@@ -1,68 +1,54 @@
 // src/lib/configureProcess.ts
-import { findProcessesThatYieldProduct } from './processHelpers';
-import { calculateInputAmount, calculateOutputAmount } from './calculationHelpers';
+import { ProductionChainProcess, ProductionChainProduct, Product } from '../types/types';
 import { getInputsForProcess } from './inputHelpers';
-import { generateUniqueId } from './uniqueId';
-import { createProductionChainProcess, createProductionChainProduct } from './constructors';
-import { Product, ProductionChainProduct, ProductionChainProcess } from '../types/types';
-import { logInfo, logError } from '../utils/logger';
-import { productMap } from './dataLoader';
+import { getProcessById } from './processUtils'; // Ensure this function is implemented correctly
+import { calculateInputAmount } from './calculationHelpers';
 
-export const configureProcess = (
+// Function to create ProductionChainProduct
+const createProductionChainProduct = (product: Product, amount: number, process?: ProductionChainProcess | null): ProductionChainProduct => {
+  return {
+    product,
+    amount,
+    process,
+  };
+};
+
+// Recursive function to configure the process
+const configureProcess = (
   productId: string,
   amount: number,
   selectedProcesses: { [key: string]: string },
   requiredProducts: Set<string>,
   requiredProcesses: Set<string>,
   level: number,
-  parentId: string | null = null
-): ProductionChainProduct => {
-  logInfo('Configuring process', { productId, amount, level, parentId });
-  const processes = findProcessesThatYieldProduct(productId);
+  parentId: string | null
+): ProductionChainProcess => {
+  console.log(`Configuring process for productId ${productId} at level ${level}`);
+  const userPreferredProcessId = selectedProcesses[`${productId}-${level}`];
 
-  if (processes.length === 0) {
-    requiredProducts.add(productId);
-    logInfo('No process found', { productId, amount });
-    return createProductionChainProduct(
-      { id: productId, name: productMap.get(productId) || 'Unknown Product' },
-      amount,
-      undefined
-    );
+  if (!userPreferredProcessId) {
+    console.error(`No selected process for productId ${productId} at level ${level}`);
+    throw new Error(`No selected process for productId ${productId} at level ${level}`);
   }
 
-  const uniqueId = generateUniqueId(productId, level, parentId);
-  logInfo('Generated unique ID', { productId, level, uniqueId });
-
-  const selectedProcessId = selectedProcesses[uniqueId];
-  const userPreferredProcess = selectedProcessId
-    ? processes.find(process => process.id === selectedProcessId)
-    : processes[0];
+  const userPreferredProcess = getProcessById(userPreferredProcessId);
 
   if (!userPreferredProcess) {
-    logError('Process not found', { selectedProcessId, productId });
-    throw new Error(`Process with ID ${selectedProcessId} not found for product ${productId}`);
+    console.error(`Process with id ${userPreferredProcessId} not found`);
+    throw new Error(`Process with id ${userPreferredProcessId} not found`);
   }
 
-  requiredProcesses.add(userPreferredProcess.id);
-  const requiredOutput = userPreferredProcess.outputs.find(output => output.productId === productId);
-  if (!requiredOutput) {
-    logError('Required output not found', { productId, outputs: userPreferredProcess.outputs });
-    throw new Error(`Required output for productId: ${productId} not found in process outputs`);
-  }
+  console.log(`Using process ${userPreferredProcess.name} for productId ${productId} at level ${level}`);
 
-  const processNode: ProductionChainProcess = createProductionChainProcess(
-    userPreferredProcess.id,
-    userPreferredProcess.name,
-    userPreferredProcess.buildingId,
-    [],
-    [{ product: { id: productId, name: productMap.get(productId) || 'Unknown Product' }, amount }],
-    userPreferredProcess.outputs
-      .filter(output => output.productId !== productId)
-      .map(output => createProductionChainProduct(
-        { id: output.productId, name: productMap.get(output.productId) || 'Unknown Product' },
-        calculateOutputAmount(userPreferredProcess, amount, output, productId)
-      ))
-  );
+  const uniqueId = `${productId}-${level}-${parentId}`;
+  const processNode: ProductionChainProcess = {
+    id: userPreferredProcess.id,
+    name: userPreferredProcess.name,
+    buildingId: userPreferredProcess.buildingId,
+    inputs: [],
+    requiredOutput: [],
+    otherOutput: [],
+  };
 
   const inputs = getInputsForProcess(userPreferredProcess);
   for (const input of inputs) {
@@ -72,10 +58,38 @@ export const configureProcess = (
     processNode.inputs.push(createProductionChainProduct(inputNode.product, inputAmount, inputNode.process));
   }
 
-  logInfo('Configured process node', processNode);
-  return createProductionChainProduct(
-    { id: productId, name: productMap.get(productId) || 'Unknown Product' },
-    amount,
-    processNode
-  );
+  requiredProcesses.add(userPreferredProcess.id);
+
+  return processNode;
 };
+
+// Exporting the configureProcess function for use
+export const configureProductionChain = (data: any) => {
+  const { product, amount, selectedProcesses } = data;
+  const requiredProducts = new Set<string>();
+  const requiredProcesses = new Set<string>();
+
+  const rootProcessNode = configureProcess(
+    product.id,
+    amount,
+    selectedProcesses,
+    requiredProducts,
+    requiredProcesses,
+    0,
+    null
+  );
+
+  return {
+    endProduct: {
+      ...product,
+      amount,
+    },
+    productionChain: {
+      process: rootProcessNode,
+    },
+    requiredProducts: Array.from(requiredProducts),
+    requiredProcesses: Array.from(requiredProcesses),
+  };
+};
+
+export { configureProcess };
