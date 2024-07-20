@@ -68,7 +68,7 @@ export interface ProductionChain {
   productionChain: {
     process: ProductionChainProcess;
   };
-  spectralTypes: SpectralType[];
+  spectralTypes?: SpectralType[];
 }
 
 export interface Input {
