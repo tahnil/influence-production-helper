@@ -50,18 +50,14 @@ const TreeVisualizer: React.FC = () => {
 
         const container = d3.select(containerRef.current);
         if (!container.empty()) {
-            const svg = container
+            const svg = container.append('svg')
                 .attr('width', width + margin.right + margin.left)
                 .attr('height', height + margin.top + margin.bottom)
-                .on('zoom', (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
-                    container.select('g').attr('transform', event.transform as any);
-                })
+                .call(d3.zoom<SVGSVGElement, unknown>().on('zoom', (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+                    g.attr('transform', event.transform as any);
+                }))
                 .append('g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
-
-            const zoomBehavior = d3.zoom<SVGSVGElement, unknown>();
-            svg.call(zoomBehavior);
-
 
             let i = 0;
             const duration = 750;
@@ -219,9 +215,7 @@ const TreeVisualizer: React.FC = () => {
     }, []);
 
     return (
-        <div id="tree-container">
-            <svg ref={containerRef}></svg>
-        </div>
+        <div id="tree-container" ref={containerRef}></div>
     );
 };
 
