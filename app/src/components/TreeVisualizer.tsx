@@ -24,38 +24,39 @@ interface Margin {
 interface ExtendedD3HierarchyNode extends d3.HierarchyPointNode<TreeNode> {
     x0: number;
     y0: number;
+    _children?: this[];
 }
 
 const TreeVisualizer: React.FC = () => {
     const containerRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
-    const treeData: TreeData = {
-        name: 'Top Level',
-        children: [
-            {
-                name: 'Level 2: A',
-                children: [
-                    { name: 'Son of A' },
-                    { name: 'Daughter of A' }
-                ]
-            },
-            { name: 'Level 2: B' }
-        ]
-    };
+        const treeData: TreeData = {
+            name: 'Top Level',
+            children: [
+                {
+                    name: 'Level 2: A',
+                    children: [
+                        { name: 'Son of A' },
+                        { name: 'Daughter of A' }
+                    ]
+                },
+                { name: 'Level 2: B' }
+            ]
+        };
 
-    const margin: Margin = { top: 20, right: 90, bottom: 30, left: 90 };
-    const width = window.innerWidth - margin.left - margin.right;
-    const height = window.innerHeight - margin.top - margin.bottom;
-    const duration = 750;
-    const treemap = d3.tree<TreeNode>().size([height, width]);
-    let i = 0;
+        const margin: Margin = { top: 20, right: 90, bottom: 30, left: 90 };
+        const width = window.innerWidth - margin.left - margin.right;
+        const height = window.innerHeight - margin.top - margin.bottom;
+        const duration = 750;
+        const treemap = d3.tree<TreeNode>().size([height, width]);
+        let i = 0;
 
         function collapse(d: ExtendedD3HierarchyNode): void {
             if (d.children) {
                 d._children = d.children;
                 d._children.forEach(collapse);
-                d.children = null;
+                d.children = undefined;
             }
         }
 
@@ -196,22 +197,22 @@ const TreeVisualizer: React.FC = () => {
                     d.x0 = d.x;
                     d.y0 = d.y;
                 });
-    }
+            }
 
-                function straightLine(s: ExtendedD3HierarchyNode, d: ExtendedD3HierarchyNode): string {
-                    return `M ${s.y} ${s.x} L ${d.y} ${d.x}`;
-                }
+            function straightLine(s: ExtendedD3HierarchyNode, d: ExtendedD3HierarchyNode): string {
+                return `M ${s.y} ${s.x} L ${d.y} ${d.x}`;
+            }
 
             function click(event: React.MouseEvent, d: ExtendedD3HierarchyNode): void {
-                    if (d.children) {
-                        d._children = d.children;
-                        d.children = null;
-                    } else {
-                        d.children = d._children;
-                        d._children = null;
-                    }
-                update(d);
+                if (d.children) {
+                    d._children = d.children;
+                    d.children = undefined;
+                } else {
+                    d.children = d._children;
+                    d._children = undefined;
                 }
+                update(d);
+            }
 
             update(root);
         }
