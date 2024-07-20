@@ -1,5 +1,3 @@
-// src/components/TreeVisualizer.tsx
-
 import React, { useRef, useEffect, useCallback } from 'react';
 import * as d3 from 'd3';
 
@@ -43,7 +41,7 @@ const TreeVisualizer: React.FC = () => {
         }
     }, []);
 
-    const addNewNode = useCallback((event: React.MouseEvent, d: ExtendedD3HierarchyNode): void => {
+    const addNewNode = useCallback((event: React.MouseEvent, d: ExtendedD3HierarchyNode, root: ExtendedD3HierarchyNode): void => {
         event.stopPropagation();
 
         const newNodeData: TreeNode = { name: `New Node ${d.data.children ? d.data.children.length + 1 : 1}` };
@@ -76,14 +74,15 @@ const TreeVisualizer: React.FC = () => {
             d.data.children = [newNodeData];
         }
 
-        updateRef.current?.(d);
+        console.log("Added new node:", newNode);
+        updateRef.current?.(root);
     }, []);
-    
+
     const straightLine = useCallback((s: ExtendedD3HierarchyNode, d: ExtendedD3HierarchyNode): string => {
         return `M ${s.y} ${s.x} L ${d.y} ${d.x}`;
     }, []);
 
-    const click = useCallback((event: React.MouseEvent, d: ExtendedD3HierarchyNode): void => {
+    const click = useCallback((event: React.MouseEvent, d: ExtendedD3HierarchyNode, root: ExtendedD3HierarchyNode): void => {
         if (d.children) {
             d._children = d.children;
             d.children = undefined; // Use undefined instead of null
@@ -91,10 +90,11 @@ const TreeVisualizer: React.FC = () => {
             d.children = d._children;
             d._children = undefined;
         }
-        updateRef.current?.(d);
+        console.log("Node clicked:", d);
+        updateRef.current?.(root);
     }, []);
 
-    const update = useCallback((source: ExtendedD3HierarchyNode): void => {
+    const update = useCallback((root: ExtendedD3HierarchyNode): void => {
         const container = d3.select(containerRef.current);
         const svg = container.select('svg');
         const g = svg.select('g');
@@ -103,23 +103,27 @@ const TreeVisualizer: React.FC = () => {
         const height = window.innerHeight - margin.top - margin.bottom;
 
         const treemap = d3.tree<TreeNode>().size([height, width]);
-        const treeData = treemap(source);
+        const treeData = treemap(root);
         const nodes = treeData.descendants() as ExtendedD3HierarchyNode[];
         const links = treeData.descendants().slice(1) as ExtendedD3HierarchyNode[];
         nodes.forEach(d => d.y = d.depth * 180);
+
+        console.log("Updating tree:");
+        console.log("Nodes:", nodes);
+        console.log("Links:", links);
 
         const node = g.selectAll<SVGGElement, ExtendedD3HierarchyNode>('g.node')
             .data(nodes, d => d._id);
 
         const nodeEnter = node.enter().append('g')
             .attr('class', 'node')
-            .attr('transform', d => `translate(${source.y0},${source.x0})`);
+            .attr('transform', d => `translate(${root.y0},${root.x0})`);
 
         nodeEnter.append('circle')
             .attr('class', 'node')
             .attr('r', 1e-6)
             .style('fill', d => d._children ? 'lightsteelblue' : '#fff')
-            .on('click', (event, d) => click(event, d));
+            .on('click', (event, d) => click(event, d, root));
 
         nodeEnter.append('text')
             .attr('dy', '.35em')
@@ -132,7 +136,7 @@ const TreeVisualizer: React.FC = () => {
             .attr('y', 3)
             .text('+')
             .style('cursor', 'pointer')
-            .on('click', (event, d) => addNewNode(event, d));
+            .on('click', (event, d) => addNewNode(event, d, root));
 
         const nodeUpdate = nodeEnter.merge(node);
 
@@ -147,7 +151,7 @@ const TreeVisualizer: React.FC = () => {
 
         const nodeExit = node.exit().transition()
             .duration(750)
-            .attr('transform', d => `translate(${source.y},${source.x})`)
+            .attr('transform', d => `translate(${root.y},${root.x})`)
             .remove();
 
         nodeExit.select('circle').attr('r', 1e-6);
@@ -159,7 +163,7 @@ const TreeVisualizer: React.FC = () => {
         const linkEnter = link.enter().insert('path', 'g')
             .attr('class', 'link')
             .attr('d', d => {
-                const o = { x: source.x, y: source.y, x0: source.x0, y0: source.y0, _id: source._id, data: source.data, depth: source.depth, height: source.height, parent: source.parent } as ExtendedD3HierarchyNode;
+                const o = { x: root.x, y: root.y, x0: root.x0, y0: root.y0, _id: root._id, data: root.data, depth: root.depth, height: root.height, parent: root.parent } as ExtendedD3HierarchyNode;
                 return straightLine(o, o);
             })
             .style('fill', 'none')
@@ -175,7 +179,7 @@ const TreeVisualizer: React.FC = () => {
         const linkExit = link.exit().transition()
             .duration(750)
             .attr('d', d => {
-                const o = { x: source.x, y: source.y, x0: source.x0, y0: source.y0, _id: source._id, data: source.data, depth: source.depth, height: source.height, parent: source.parent } as ExtendedD3HierarchyNode;
+                const o = { x: root.x, y: root.y, x0: root.x0, y0: root.y0, _id: root._id, data: root.data, depth: root.depth, height: root.height, parent: root.parent } as ExtendedD3HierarchyNode;
                 return straightLine(o, o);
             })
             .remove();
