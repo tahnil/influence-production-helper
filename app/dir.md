@@ -11,6 +11,9 @@
 │   ├── next.svg
 │   └── vercel.svg
 ├── src
+│   ├── assets
+│   │   └── images
+│   │       └── product_icon
 │   ├── components
 │   │   ├── AggregatedIngredientsTable.tsx
 │   │   ├── CopyButton.tsx
@@ -29,6 +32,9 @@
 │   │       ├── select.tsx
 │   │       └── table.tsx
 │   ├── hooks
+│   │   ├── useConfigureProductionChain.ts
+│   │   ├── useInputsByProcessId.ts
+│   │   ├── useProcessesByProductId.ts
 │   │   └── useProducts.ts
 │   ├── lib
 │   │   ├── calculationHelpers.ts
@@ -38,6 +44,8 @@
 │   │   ├── dataLoader.ts
 │   │   ├── inputHelpers.ts
 │   │   ├── processHelpers.ts
+│   │   ├── processUtils.ts
+│   │   ├── productUtils.ts
 │   │   ├── uniqueId.ts
 │   │   └── utils.ts
 │   ├── pages
@@ -72,4 +80,4 @@
 ├── tsconfig.json
 └── tsconfig.tsbuildinfo
 
-16 directories, 57 files
+19 directories, 62 files
