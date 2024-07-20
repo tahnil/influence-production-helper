@@ -167,7 +167,7 @@ const TreeVisualizer: React.FC = () => {
         const linkEnter = link.enter().insert('path', 'g')
             .attr('class', 'link')
             .attr('d', d => {
-                const o = { x: source.x, y: source.y, x0: source.x0, y0: source.y0, _id: source._id, data: source.data, depth: source.depth, height: source.height, parent: source.parent } as ExtendedD3HierarchyNode;
+                const o = { x: source.x0, y: source.y0, x0: source.x0, y0: source.y0, _id: source._id, data: source.data, depth: source.depth, height: source.height, parent: source.parent } as ExtendedD3HierarchyNode;
                 return straightLine(o, o);
             })
             .style('fill', 'none')
