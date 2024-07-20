@@ -59,6 +59,7 @@ const TreeVisualizer: React.FC = () => {
 
             const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
                 .on('zoom', (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+                    console.log('Zoom event:', event);
                     g.attr('transform', event.transform as any);
                 });
 
@@ -124,7 +125,7 @@ const TreeVisualizer: React.FC = () => {
                 const links = treeData.descendants().slice(1) as ExtendedD3HierarchyNode[];
                 nodes.forEach(d => d.y = d.depth * 180);
 
-                const node = svg.selectAll<SVGGElement, ExtendedD3HierarchyNode>('g.node')
+                const node = g.selectAll<SVGGElement, ExtendedD3HierarchyNode>('g.node')
                     .data(nodes, d => d.id || (d.id = ++i));
 
                 const nodeEnter = node.enter().append('g')
