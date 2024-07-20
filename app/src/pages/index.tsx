@@ -1,8 +1,6 @@
 // src/pages/index.tsx
-
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import useProducts from '../hooks/useProducts';
-import useProcessesByProductId from '../hooks/useProcessesByProductId';
 import useConfigureProductionChain from '../hooks/useConfigureProductionChain';
 import ProductList from '../components/ProductList';
 import ProcessConfigurator from '../components/ProcessConfigurator/ProcessConfigurator';
@@ -23,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import AggregatedIngredientsTable from '../components/AggregatedIngredientsTable';
 import JsonOutputWithCopyButton from '../components/JsonOutputWithCopyButton';
 import { NumericFormat } from 'react-number-format';
-import { Process, Product } from '@/types/types';
+import { Product } from '@/types/types';
 import { generateUniqueId } from '@/lib/uniqueId';
 
 const formSchema = z.object({
@@ -42,8 +40,6 @@ const HomePage: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedProcesses, setSelectedProcesses] = useState<{ [key: string]: string }>({});
 
-  const { processes, loading: processesLoading, error: processesError } = useProcessesByProductId(selectedProduct?.id || '');
-
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -54,14 +50,6 @@ const HomePage: React.FC = () => {
   const { watch, handleSubmit, formState: { errors }, control } = form;
   const watchedAmount = watch('amount')?.toString() || '0';
   const amountValue = parseFloat(watchedAmount.replace(/,/g, ''));
-
-  // This effect will be handled by useProcessesByProductId
-  useEffect(() => {
-    if (selectedProduct) {
-      // Just a placeholder to show that processes are being fetched
-      console.log('Fetching processes for product:', selectedProduct.id);
-    }
-  }, [selectedProduct]);
 
   const handleProcessSelect = (uniqueId: string, processId: string) => {
     setSelectedProcesses(prev => ({
@@ -128,7 +116,7 @@ const HomePage: React.FC = () => {
                 product={selectedProduct}
                 amount={amountValue}
                 selectedProcesses={selectedProcesses}
-                onProcessSelect={handleProcessSelect}
+                onProcessSelect={handleProcessSelect} // Updated prop
               />
               <Button type="submit" disabled={configuring}>
                 {configuring ? 'Configuring...' : 'Configure Chain'}

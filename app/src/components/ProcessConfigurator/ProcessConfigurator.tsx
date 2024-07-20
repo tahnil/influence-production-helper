@@ -1,9 +1,9 @@
 // components/ProcessConfigurator.tsx
-import React, { useEffect } from 'react';
-import { Process, Product } from '../../types/types';
+import React, { useEffect, useState } from 'react';
+import { Process, Product, Input } from '../../types/types';
 import { generateUniqueId } from '../../lib/uniqueId';
-import useProcessesByProductId from '../../hooks/useProcessesByProductId'; // Import the correct hook
-import useProcessInputs from '../../hooks/useProcessInputs';
+import useProcessesByProductId from '../../hooks/useProcessesByProductId';
+import useInputsByProcessId from '../../hooks/useInputsByProcessId';
 import ProcessSelector from './ProcessSelector';
 
 interface ProcessConfiguratorProps {
@@ -17,23 +17,30 @@ interface ProcessConfiguratorProps {
 
 const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amount, selectedProcesses, onProcessSelect, level = 0, parentId = null }) => {
   const uniqueId = generateUniqueId(product.id, level, parentId);
-  const outputProductId = product.id; // Use product ID as outputProductId
+  const outputProductId = product.id;
 
-  // Use the hook to fetch processes based on outputProductId
+  // Use the existing hooks
   const { processes, loading: processesLoading, error: processesError } = useProcessesByProductId(outputProductId);
-  const { inputs, loading: inputsLoading, error: inputsError } = useProcessInputs(selectedProcesses[uniqueId] || '');
+  const { inputs, loading: inputsLoading, error: inputsError } = useInputsByProcessId(selectedProcesses[uniqueId]);
+
+  // State to manage intermediate products
+  const [intermediateProducts, setIntermediateProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    if (inputsError) {
+      console.error('Error fetching inputs:', inputsError);
+    } else if (!inputsLoading && inputs.length > 0) {
+      // Extract products from inputs and fetch processes for each
+      const newIntermediateProducts = inputs.map(input => input.product);
+      setIntermediateProducts(newIntermediateProducts);
+    }
+  }, [inputs, inputsLoading, inputsError]);
 
   useEffect(() => {
     if (processesError) {
       console.error('Error fetching processes:', processesError);
     }
   }, [processesError]);
-
-  useEffect(() => {
-    if (inputsError) {
-      console.error('Error fetching inputs:', inputsError);
-    }
-  }, [inputsError]);
 
   const handleProcessChange = (value: string) => {
     onProcessSelect(uniqueId, value);
@@ -48,7 +55,6 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
         <p className="text-red-500">Failed to load processes.</p>
       ) : (
         <div>
-          <p>Processes: {processes.length > 0 ? processes.map(process => process.name).join(', ') : 'No processes available'}</p>
           <ProcessSelector
             processes={processes}
             selectedProcess={selectedProcesses[uniqueId]}
@@ -56,18 +62,22 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
           />
         </div>
       )}
-      {/* Optional: display inputs if necessary */}
-      {inputsLoading && <p>Loading inputs...</p>}
-      {inputsError && <p className="text-red-500">Failed to load inputs.</p>}
-      {inputs && inputs.length > 0 && (
-        <div>
-          <h4 className="text-md font-semibold mb-2">Inputs:</h4>
-          <ul>
-            {inputs.map(input => (
-              <li key={input.id}>{input.name}: {input.quantity}</li>
-            ))}
-          </ul>
-        </div>
+      {inputsLoading ? (
+        <p>Loading inputs...</p>
+      ) : inputsError ? (
+        <p className="text-red-500">Failed to load inputs.</p>
+      ) : (
+        intermediateProducts.map((product, index) => (
+          <ProcessConfigurator
+            key={index}
+            product={product}
+            amount={amount}
+            selectedProcesses={selectedProcesses}
+            onProcessSelect={onProcessSelect}
+            level={level + 1}
+            parentId={uniqueId}
+          />
+        ))
       )}
     </div>
   );
