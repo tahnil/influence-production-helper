@@ -10,11 +10,11 @@ export interface ApiError {
 export interface Product {
   id: string;
   name: string;
-  type: string;
-  massKilogramsPerUnit: string;
-  volumeLitersPerUnit: string;
-  category: string;
-  quantized: boolean;
+  type?: string;
+  massKilogramsPerUnit?: string;
+  volumeLitersPerUnit?: string;
+  category?: string;
+  quantized?: boolean;
 }
 
 // Define a new type for the enriched product

@@ -26,3 +26,11 @@ export const loadProductionChains = (): ProductionChain => {
   
   return productionChains;
 };
+
+export const productMap = new Map(
+  loadProductionChains().products.map(product => [product.id, product.name])
+);
+
+export const processMap = new Map(
+  loadProductionChains().processes.map(process => [process.id, process])
+);
