@@ -1,66 +1,74 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-
-interface LocalProduct {
-    id: string;
-    name: string;
-    massKilogramsPerUnit?: number;
-    volumeLitersPerUnit?: number;
-    amount?: number;
-}
-
-interface LocalInput {
-    product: LocalProduct;
-    amount: number;
-    process?: LocalProcess;
-}
-
-interface LocalProcess {
-    id: string;
-    name: string;
-    buildingId: string;
-    inputs: LocalInput[];
-    requiredOutput: { product: LocalProduct; amount: number }[];
-    otherOutput: { product: LocalProduct; amount: number }[];
-    mAdalianHoursPerSR?: number;
-    SR?: number;
-}
-
-interface LocalProductionChain {
-    endProduct: LocalProduct;
-    process: LocalProcess;
-}
-
-interface LocalTreeNode {
-    name: string;
-    type: 'product' | 'process';
-    massKilogramsPerUnit?: number;
-    volumeLitersPerUnit?: number;
-    amount?: number;
-    totalWeight?: number;
-    totalVolume?: number;
-    buildingId?: string;
-    mAdalianHoursPerSR?: number;
-    SR?: number;
-    children?: LocalTreeNode[];
-}
+import { InfluenceProduct, InfluenceProcess } from '../../types/influenceTypes';
+import { ProductionChainProduct, ProductionChainProcess } from '../../types/productionChainTypes';
+import { D3TreeNode, ProductNode, ProcessNode, SideProductNode } from '../../types/d3Types';
+import { LegacyProduct, LegacyProcessInputsRequiredOutputsOtherOutputs, LegacyProcessShortInput, LegacyProcessList, LegacyProcessInChain, LegacyProductionChain } from '../../types/intermediateTypes';
 
 // Sample data structure using local types
-const sampleProductionChain: LocalProductionChain = {
+const sampleProductionChain: LegacyProductionChain = {
     endProduct: {
       id: '44',
       name: 'Cement',
-      amount: 200000,
-      massKilogramsPerUnit: 1.2,
-      volumeLitersPerUnit: 1.0,
+    amount: 200000
+  },
+  products: [
+    { id: '1', name: 'Water' },
+    { id: '32', name: 'Quicklime' },
+    { id: '11', name: 'Calcite' }
+  ],
+  processes: [
+    {
+      id: '38',
+      name: 'Salty Cement Mixing',
+      buildingId: '3',
+      inputs: [
+        { productId: '1', unitsPerSR: '5' },
+        { productId: '32', unitsPerSR: '3' }
+      ],
+      outputs: [
+        { productId: '44', unitsPerSR: '7' }
+      ]
     },
+    {
+      id: '1',
+      name: 'Water Mining',
+      buildingId: '2',
+      inputs: [],
+      outputs: [
+        { productId: '1', unitsPerSR: '' }
+      ]
+    },
+    {
+      id: '29',
+      name: 'Calcite Calcination',
+      buildingId: '3',
+      inputs: [
+        { productId: '11', unitsPerSR: '100' }
+      ],
+      outputs: [
+        { productId: '6', unitsPerSR: '44' },
+        { productId: '32', unitsPerSR: '56' }
+      ]
+    },
+    {
+      id: '11',
+      name: 'Calcite Mining',
+      buildingId: '2',
+      inputs: [],
+      outputs: [
+        { productId: '11', unitsPerSR: '' }
+      ]
+    }
+  ],
+  productionChain: {
     process: {
       id: '38',
       name: 'Salty Cement Mixing',
       buildingId: '3',
       inputs: [
         {
-          product: { id: '1', name: 'Water', massKilogramsPerUnit: 1.0, volumeLitersPerUnit: 1.0 },
-          amount: 142857,
+          product: { id: '1', name: 'Water' },
+          amount: 142857.14285714287,
           process: {
             id: '1',
             name: 'Water Mining',
@@ -68,24 +76,24 @@ const sampleProductionChain: LocalProductionChain = {
             inputs: [],
             requiredOutput: [
               {
-                product: { id: '1', name: 'Water', massKilogramsPerUnit: 1.0, volumeLitersPerUnit: 1.0 },
-                amount: 142857
+                product: { id: '1', name: 'Water' },
+                amount: 142857.14285714287
               }
             ],
             otherOutput: []
           }
         },
         {
-          product: { id: '32', name: 'Quicklime', massKilogramsPerUnit: 0.8, volumeLitersPerUnit: 0.6 },
-          amount: 85714,
+          product: { id: '32', name: 'Quicklime' },
+          amount: 85714.28571428571,
           process: {
             id: '29',
             name: 'Calcite Calcination',
             buildingId: '3',
             inputs: [
               {
-                product: { id: '11', name: 'Calcite', massKilogramsPerUnit: 2.5, volumeLitersPerUnit: 1.5 },
-                amount: 153061,
+                product: { id: '11', name: 'Calcite' },
+                amount: 153061.22448979592,
                 process: {
                   id: '11',
                   name: 'Calcite Mining',
@@ -93,8 +101,8 @@ const sampleProductionChain: LocalProductionChain = {
                   inputs: [],
                   requiredOutput: [
                     {
-                      product: { id: '11', name: 'Calcite', massKilogramsPerUnit: 2.5, volumeLitersPerUnit: 1.5 },
-                      amount: 153061
+                      product: { id: '11', name: 'Calcite' },
+                      amount: 153061.22448979592
                     }
                   ],
                   otherOutput: []
@@ -103,14 +111,14 @@ const sampleProductionChain: LocalProductionChain = {
             ],
             requiredOutput: [
               {
-                product: { id: '32', name: 'Quicklime', massKilogramsPerUnit: 0.8, volumeLitersPerUnit: 0.6 },
-                amount: 85714
+                product: { id: '32', name: 'Quicklime' },
+                amount: 85714.28571428571
               }
             ],
             otherOutput: [
               {
-                product: { id: '6', name: 'Carbon Dioxide', massKilogramsPerUnit: 1.5, volumeLitersPerUnit: 1.0 },
-                amount: 67347
+                product: { id: '6', name: 'Carbon Dioxide' },
+                amount: 67346.9387755102
               }
             ]
           }
@@ -118,45 +126,87 @@ const sampleProductionChain: LocalProductionChain = {
       ],
       requiredOutput: [
         {
-          product: { id: '44', name: 'Cement', massKilogramsPerUnit: 1.2, volumeLitersPerUnit: 1.0 },
+          product: { id: '44', name: 'Cement' },
           amount: 200000
         }
       ],
       otherOutput: []
     }
-  };
+  }
+};
 
-// Function to transform production chain to D3-compatible format
-function transformProductionChain(data: LocalProductionChain): LocalTreeNode {
-    function transformProcess(process: LocalProcess): LocalTreeNode {
+// Helper function to convert LegacyProduct to InfluenceProduct
+const convertLegacyProductToInfluenceProduct = (legacyProduct: LegacyProduct): InfluenceProduct => {
+  return {
+    ...legacyProduct,
+    category: '', // Placeholder, update with actual data if available
+    massKilogramsPerUnit: 0, // Placeholder, update with actual data if available
+    quantized: false, // Placeholder, update with actual data if available
+    type: '', // Placeholder, update with actual data if available
+    volumeLitersPerUnit: 0 // Placeholder, update with actual data if available
+  };
+};
+
+// Function to transform legacy production chain to D3-compatible format
+function transformProductionChain(data: LegacyProductionChain): ProductNode {
+  function transformProcess(process: LegacyProcessInChain): ProcessNode {
+    const totalRuns = process.requiredOutput[0]?.amount || 0;
+    const totalDuration = totalRuns * parseFloat('0.0000825'); // Placeholder, adjust as needed
+
+    const sideProducts: SideProductNode[] = (process.otherOutput || []).map(output => ({
+      name: output.product.name,
+      type: 'sideProduct',
+      influenceProduct: convertLegacyProductToInfluenceProduct(output.product),
+      amount: output.amount,
+      totalWeight: output.amount * 0, // Placeholder, update with actual data if available
+      totalVolume: output.amount * 0 // Placeholder, update with actual data if available
+    }));
+
+    const children: ProductNode[] = (process.inputs || []).map(input => ({
+      name: input.product.name,
+      type: 'product',
+      influenceProduct: convertLegacyProductToInfluenceProduct(input.product),
+      amount: input.amount,
+      totalWeight: input.amount * 0, // Placeholder, update with actual data if available
+      totalVolume: input.amount * 0, // Placeholder, update with actual data if available
+      children: input.process ? transformProcess(input.process) : undefined
+    }));
+
       return {
         name: process.name,
         type: 'process',
+      influenceProcess: {
+        id: process.id,
+        name: process.name,
         buildingId: process.buildingId,
-        mAdalianHoursPerSR: process.mAdalianHoursPerSR || 0,
-        SR: process.SR || 0,
-        children: process.inputs.map(input => ({
-          name: input.product.name,
-          type: 'product',
-          massKilogramsPerUnit: input.product.massKilogramsPerUnit || 0,
-          volumeLitersPerUnit: input.product.volumeLitersPerUnit || 0,
-          amount: input.amount,
-          totalWeight: (input.amount * (input.product.massKilogramsPerUnit || 0)),
-          totalVolume: (input.amount * (input.product.volumeLitersPerUnit || 0)),
-          children: input.process ? [transformProcess(input.process)] : []
+        bAdalianHoursPerAction: '0', // Placeholder, update with actual data if available
+        mAdalianHoursPerSR: '0.0000825', // Placeholder, update with actual data if available
+        inputs: (process.inputs || []).map(input => ({
+          productId: input.product.id,
+          unitsPerSR: input.amount.toString()
+        })),
+        outputs: (process.requiredOutput || []).concat(process.otherOutput || []).map(output => ({
+          productId: output.product.id,
+          unitsPerSR: output.amount.toString()
         }))
-      };
-    }
+      },
+      totalDuration,
+      totalRuns,
+      sideProducts,
+      children
+    };
+  }
+
+  const endProduct: InfluenceProduct = convertLegacyProductToInfluenceProduct(data.endProduct);
   
     return {
-      name: data.endProduct.name,
+    name: endProduct.name,
       type: 'product',
-      amount: data.endProduct.amount || 0,
-      massKilogramsPerUnit: data.endProduct.massKilogramsPerUnit || 0,
-      volumeLitersPerUnit: data.endProduct.volumeLitersPerUnit || 0,
-      totalWeight: (data.endProduct.amount || 0) * (data.endProduct.massKilogramsPerUnit || 0),
-      totalVolume: (data.endProduct.amount || 0) * (data.endProduct.volumeLitersPerUnit || 0),
-      children: [transformProcess(data.process)]
+    influenceProduct: endProduct,
+    amount: data.endProduct.amount!,
+    totalWeight: data.endProduct.amount! * endProduct.massKilogramsPerUnit,
+    totalVolume: data.endProduct.amount! * endProduct.volumeLitersPerUnit,
+    children: transformProcess(data.productionChain.process)
     };
   }
   

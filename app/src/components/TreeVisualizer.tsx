@@ -1,26 +1,7 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import * as d3 from 'd3';
-
-interface TreeNode {
-    name: string;
-    type: 'product' | 'process';
-    amount?: number;
-    massKilogramsPerUnit?: number;
-    volumeLitersPerUnit?: number;
-    totalWeight?: number;
-    totalVolume?: number;
-    buildingId?: string;
-    mAdalianHoursPerSR?: number;
-    SR?: number;
-    children?: TreeNode[];
-    _children?: TreeNode[];
-}
-
-interface TreeData {
-    name: string;
-    type: 'product' | 'process';
-    children?: TreeNode[];
-}
+import { D3TreeNode, ProductNode, ProcessNode, SideProductNode } from '../types/d3Types';
+import styles from './TreeVisualizer.module.css';
 
 interface Margin {
     top: number;
@@ -29,7 +10,7 @@ interface Margin {
     left: number;
 }
 
-interface ExtendedD3HierarchyNode extends d3.HierarchyPointNode<TreeNode> {
+interface ExtendedD3HierarchyNode extends d3.HierarchyPointNode<D3TreeNode> {
     x0: number;
     y0: number;
     _children?: this[];
@@ -41,7 +22,7 @@ const TreeVisualizer: React.FC = () => {
     const updateRef = useRef<(source: ExtendedD3HierarchyNode) => void>();
     const iRef = useRef(0);
     const rootRef = useRef<ExtendedD3HierarchyNode | null>(null);
-    const [treeData, setTreeData] = useState<TreeData | null>(null);
+    const [treeData, setTreeData] = useState<D3TreeNode | null>(null);
 
     const margin: Margin = { top: 20, right: 90, bottom: 30, left: 90 };
 
@@ -53,33 +34,34 @@ const TreeVisualizer: React.FC = () => {
         }
     }, []);
 
-    const addNewNode = useCallback((event: React.MouseEvent, d: ExtendedD3HierarchyNode): void => {
-        event.stopPropagation();
+    // we may need this later, once we introduce dynamic tree manipulation
+    // const addNewNode = useCallback((event: React.MouseEvent, d: ExtendedD3HierarchyNode): void => {
+    //     event.stopPropagation();
 
-        const newNodeData: TreeNode = { name: `New Node ${d.data.children ? d.data.children.length + 1 : 1}`, type: 'product' };
-        const newNode: ExtendedD3HierarchyNode = {
-            data: newNodeData,
-            height: 0,
-            depth: d.depth + 1,
-            parent: d,
-            _id: ++iRef.current,
-            x0: d.x,
-            y0: d.y
-        } as ExtendedD3HierarchyNode;
+    //     const newNodeData: TreeNode = { name: `New Node ${d.data.children ? d.data.children.length + 1 : 1}`, type: 'product' };
+    //     const newNode: ExtendedD3HierarchyNode = {
+    //         data: newNodeData,
+    //         height: 0,
+    //         depth: d.depth + 1,
+    //         parent: d,
+    //         _id: ++iRef.current,
+    //         x0: d.x,
+    //         y0: d.y
+    //     } as ExtendedD3HierarchyNode;
 
-        if (d.children) {
-            d.children.push(newNode);
-            d.data.children?.push(newNodeData);
-        } else if (d._children) {
-            d._children.push(newNode);
-            d.data.children?.push(newNodeData);
-        } else {
-            d.children = [newNode];
-            d.data.children = [newNodeData];
-        }
+    //     if (d.children) {
+    //         d.children.push(newNode);
+    //         d.data.children?.push(newNodeData);
+    //     } else if (d._children) {
+    //         d._children.push(newNode);
+    //         d.data.children?.push(newNodeData);
+    //     } else {
+    //         d.children = [newNode];
+    //         d.data.children = [newNodeData];
+    //     }
 
-        updateRef.current?.(d);
-    }, []);
+    //     updateRef.current?.(d);
+    // }, []);
 
     const curvedLine = useCallback((s: ExtendedD3HierarchyNode, d: ExtendedD3HierarchyNode): string => {
         return `M ${s.y} ${s.x}
@@ -107,7 +89,7 @@ const TreeVisualizer: React.FC = () => {
         const width = window.innerWidth - margin.left - margin.right;
         const height = window.innerHeight - margin.top - margin.bottom;
 
-        const treemap = d3.tree<TreeNode>().size([height, width]);
+        const treemap = d3.tree<D3TreeNode>().size([height, width]);
         const root = rootRef.current;
         if (!root) return;
 
@@ -132,29 +114,46 @@ const TreeVisualizer: React.FC = () => {
             .on('click', (event, d) => click(event, d))
             .html(d => {
                 if (d.data.type === 'product') {
+                    const productNode = d.data as ProductNode;
                     return `
-                        <div class="card product-node">
+                        <div class="${styles.card} ${styles['product-node']}">
                             <div>PRODUCT</div>
-                            <div><strong>${d.data.name}</strong></div>
-                            <div>Type: ${d.data.type}</div>
-                            <div>Weight: ${d.data.massKilogramsPerUnit || 0} kg</div>
-                            <div>Volume: ${d.data.volumeLitersPerUnit || 0} L</div>
-                            <div>Units: ${d.data.amount || 0}</div>
-                            <div>Total Weight: ${(d.data.totalWeight || 0).toFixed(2)} kg</div>
-                            <div>Total Volume: ${(d.data.totalVolume || 0).toFixed(2)} L</div>
+                            <div><strong>${productNode.name}</strong></div>
+                            <div>Type: ${productNode.type}</div>
+                            <div>Weight: ${productNode.totalWeight || 0} kg</div>
+                            <div>Volume: ${productNode.totalVolume || 0} L</div>
+                            <div>Units: ${productNode.amount || 0}</div>
+                            <div>Total Weight: ${(productNode.totalWeight || 0).toFixed(2)} kg</div>
+                            <div>Total Volume: ${(productNode.totalVolume || 0).toFixed(2)} L</div>
                         </div>
                     `;
-                } else {
+                } else if (d.data.type === 'process') {
+                    const processNode = d.data as ProcessNode;
                     return `
-                        <div class="card process-node">
+                        <div class="${styles.card} ${styles['process-node']}">
                             <div>PROCESS</div>
-                            <div><strong>${d.data.name}</strong></div>
-                            <div>Building: ${d.data.buildingId}</div>
-                            <div>Duration: ${(d.data.mAdalianHoursPerSR || 0) * (d.data.SR || 0)} hours</div>
-                            <div>SRs: ${d.data.SR || 0}</div>
+                            <div><strong>${processNode.name}</strong></div>
+                            <div>Building: ${processNode.influenceProcess.buildingId}</div>
+                            <div>Duration: ${processNode.totalDuration.toFixed(2)} hours</div>
+                            <div>SRs: ${processNode.totalRuns}</div>
+                        </div>
+                    `;
+                } else if (d.data.type === 'sideProduct') {
+                    const sideProductNode = d.data as SideProductNode;
+                    return `
+                        <div class="${styles.card} ${styles['side-product-node']}">
+                            <div>SIDE PRODUCT</div>
+                            <div><strong>${sideProductNode.name}</strong></div>
+                            <div>Type: ${sideProductNode.type}</div>
+                            <div>Weight: ${sideProductNode.totalWeight || 0} kg</div>
+                            <div>Volume: ${sideProductNode.totalVolume || 0} L</div>
+                            <div>Units: ${sideProductNode.amount || 0}</div>
+                            <div>Total Weight: ${(sideProductNode.totalWeight || 0).toFixed(2)} kg</div>
+                            <div>Total Volume: ${(sideProductNode.totalVolume || 0).toFixed(2)} L</div>
                         </div>
                     `;
                 }
+                return '';
             });
 
         const nodeUpdate = nodeEnter.merge(node);
@@ -202,7 +201,7 @@ const TreeVisualizer: React.FC = () => {
             d.x0 = d.x;
             d.y0 = d.y;
         });
-    }, [curvedLine, margin]);
+    }, [curvedLine, click, margin]);
 
     updateRef.current = update;
 
@@ -243,7 +242,13 @@ const TreeVisualizer: React.FC = () => {
 
                 svg.call(zoomBehavior);
 
-                let root: ExtendedD3HierarchyNode = d3.hierarchy<TreeNode>(treeData, d => d.children) as ExtendedD3HierarchyNode;
+                let root: ExtendedD3HierarchyNode = d3.hierarchy<D3TreeNode>(treeData, d => {
+                    if ((d.type === 'product' || d.type === 'process') && Array.isArray(d.children)) {
+                        return d.children;
+                    }
+                    return null;
+                }) as ExtendedD3HierarchyNode;
+                                
                 root.x0 = height / 2;
                 root.y0 = 0;
 
