@@ -23,7 +23,7 @@
 │   │   │   ├── ProcessInputs.tsx
 │   │   │   └── ProcessSelector.tsx
 │   │   ├── ProductList.tsx
-│   │   ├── TreeView.tsx
+│   │   ├── TreeVisualizer.tsx
 │   │   └── ui
 │   │       ├── button.tsx
 │   │       ├── form.tsx
@@ -80,4 +80,4 @@
 ├── tsconfig.json
 └── tsconfig.tsbuildinfo
 
-19 directories, 62 files
+20 directories, 62 files
