@@ -18,7 +18,8 @@ const getProcessesByProductId = (productId: string): Process[] => {
 };
 
 const getSpectralTypesByProcessIds = (processIds: string[]): SpectralType[] => {
-  return productionChains.spectralTypes.filter(spectralType =>
+  const spectralTypes = productionChains.spectralTypes ?? [];
+  return spectralTypes.filter(spectralType =>
     spectralType.processes.some(processId => processIds.includes(processId))
   );
 };
