@@ -1,17 +1,15 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import * as d3 from 'd3';
 
 interface TreeNode {
     name: string;
-    amount?: number;
     children?: TreeNode[];
     _children?: TreeNode[];
 }
 
 interface TreeData {
     name: string;
-    amount?: number;
-    children?: TreeNode[];
+    children: TreeNode[];
 }
 
 interface Margin {
@@ -33,7 +31,6 @@ const TreeVisualizer: React.FC = () => {
     const updateRef = useRef<(source: ExtendedD3HierarchyNode) => void>();
     const iRef = useRef(0);
     const rootRef = useRef<ExtendedD3HierarchyNode | null>(null);
-    const [treeData, setTreeData] = useState<TreeData | null>(null);
 
     const margin: Margin = { top: 20, right: 90, bottom: 30, left: 90 };
 
@@ -189,57 +186,53 @@ const TreeVisualizer: React.FC = () => {
     updateRef.current = update;
 
     useEffect(() => {
-        const fetchData = async () => {
-            const response = await fetch('/api/configureProductionChainDynamic', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+        const treeData: TreeData = {
+            name: 'Top Level',
+            children: [
+                {
+                    name: 'Level 2: A',
+                    children: [
+                        { name: 'Son of A' },
+                        { name: 'Daughter of A' }
+                    ]
                 },
-                body: JSON.stringify({ product: 'Cement', amount: 200000 }),
-            });
-            const data = await response.json();
-            setTreeData(data);
+                { name: 'Level 2: B' }
+            ]
         };
 
-        fetchData();
-    }, []);
+        const container = d3.select(containerRef.current);
+        if (!container.empty()) {
+            const width = window.innerWidth - margin.left - margin.right;
+            const height = window.innerHeight - margin.top - margin.bottom;
 
-    useEffect(() => {
-        if (treeData) {
-            const container = d3.select(containerRef.current);
-            if (!container.empty()) {
-                const width = window.innerWidth - margin.left - margin.right;
-                const height = window.innerHeight - margin.top - margin.bottom;
+            const svg = container.append('svg')
+                .attr('width', width + margin.right + margin.left)
+                .attr('height', height + margin.top + margin.bottom);
 
-                const svg = container.append('svg')
-                    .attr('width', width + margin.right + margin.left)
-                    .attr('height', height + margin.top + margin.bottom);
+            const g = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
 
-                const g = svg.append('g')
-                    .attr('transform', `translate(${margin.left},${margin.top})`);
-
-                const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
-                    .on('zoom', (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
-                        g.attr('transform', event.transform as any);
-                    });
-
-                svg.call(zoomBehavior);
-
-                let root: ExtendedD3HierarchyNode = d3.hierarchy<TreeNode>(treeData, d => d.children) as ExtendedD3HierarchyNode;
-                root.x0 = height / 2;
-                root.y0 = 0;
-
-                root.each((d: ExtendedD3HierarchyNode) => {
-                    d._id = ++iRef.current;
+            const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
+                .on('zoom', (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+                    g.attr('transform', event.transform as any);
                 });
 
-                root.children?.forEach(collapse);
+            svg.call(zoomBehavior);
 
-                rootRef.current = root;
-                update(root);
-            }
+            let root: ExtendedD3HierarchyNode = d3.hierarchy<TreeNode>(treeData, d => d.children) as ExtendedD3HierarchyNode;
+            root.x0 = height / 2;
+            root.y0 = 0;
+
+            root.each((d: ExtendedD3HierarchyNode) => {
+                d._id = ++iRef.current;
+            });
+
+            root.children?.forEach(collapse);
+
+            rootRef.current = root;
+            update(root);
         }
-    }, [treeData, collapse, update, margin]);
+    }, [collapse, update, margin]);
 
     return (
         <div id="tree-container" ref={containerRef}></div>

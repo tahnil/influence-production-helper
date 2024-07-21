@@ -1,7 +1,7 @@
-// src/pages/tree-view.tsx
+// src/pages/tree-view-v2.tsx
 
 import React from 'react';
-import TreeVisualizer from '../components/TreeVisualizerOld';
+import TreeVisualizer from '../components/TreeVisualizer';
 
 const HomePage: React.FC = () => {
     return (

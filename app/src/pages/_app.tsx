@@ -9,6 +9,7 @@ function MyApp({ Component, pageProps }: AppProps) {
       <nav>
         <Link href="/">Home</Link>
         <Link href="/tree-view">Tree View</Link>
+        <Link href="/tree-view-v2">Tree View V2</Link>
       </nav>
       <Component {...pageProps} />
     </>
