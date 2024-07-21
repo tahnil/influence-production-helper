@@ -134,6 +134,7 @@ const TreeVisualizer: React.FC = () => {
                 if (d.data.type === 'product') {
                     return `
                         <div class="card product-node">
+                            <div>PRODUCT</div>
                             <div><strong>${d.data.name}</strong></div>
                             <div>Type: ${d.data.type}</div>
                             <div>Weight: ${d.data.massKilogramsPerUnit || 0} kg</div>
@@ -146,6 +147,7 @@ const TreeVisualizer: React.FC = () => {
                 } else {
                     return `
                         <div class="card process-node">
+                            <div>PROCESS</div>
                             <div><strong>${d.data.name}</strong></div>
                             <div>Building: ${d.data.buildingId}</div>
                             <div>Duration: ${(d.data.mAdalianHoursPerSR || 0) * (d.data.SR || 0)} hours</div>
