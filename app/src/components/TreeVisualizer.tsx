@@ -91,7 +91,7 @@ const TreeVisualizer: React.FC = () => {
                 .attr("y", -bbox.height / 2);
         });
     }
-
+    
     const update = useCallback((source: ExtendedD3HierarchyNode): void => {
         const container = d3.select(containerRef.current);
         const svg = container.select('svg');
@@ -169,13 +169,13 @@ const TreeVisualizer: React.FC = () => {
                 }
             })
             .each(function (d) {
-                const parent = this instanceof Element ? this.parentNode as SVGGElement | null : null;
-                if (parent) {
+                if (this instanceof Element && this.parentNode instanceof SVGForeignObjectElement) {
+                    const parent = this.parentNode as SVGForeignObjectElement;
                     const foreignObject = d3.select<SVGForeignObjectElement, ExtendedD3HierarchyNode>(parent);
                     updateForeignObjectSize(foreignObject);
                 }
             });
-
+            
         const nodeUpdate = nodeEnter.merge(node);
 
         nodeUpdate.transition()
