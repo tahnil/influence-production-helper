@@ -1,7 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import * as d3 from 'd3';
 import { D3TreeNode, ProductNode, ProcessNode, SideProductNode } from '../types/d3Types';
-import styles from './TreeVisualizer.module.css';
 
 interface Margin {
     top: number;
@@ -91,7 +90,7 @@ const TreeVisualizer: React.FC = () => {
                 .attr("y", -bbox.height / 2);
         });
     }
-    
+
     const update = useCallback((source: ExtendedD3HierarchyNode): void => {
         const container = d3.select(containerRef.current);
         const svg = container.select('svg');
@@ -128,7 +127,7 @@ const TreeVisualizer: React.FC = () => {
                     case 'product':
                         const productNode = d.data as ProductNode;
                         return `
-                            <div class="card product-node">
+                            <div class="border rounded-md p-2 bg-white shadow text-sm w-44">
                                 <div>PRODUCT</div>
                                 <div><strong>${productNode.name}</strong></div>
                                 <div>Type: ${productNode.type}</div>
@@ -142,7 +141,7 @@ const TreeVisualizer: React.FC = () => {
                     case 'process':
                         const processNode = d.data as ProcessNode;
                         return `
-                            <div class="card process-node">
+                            <div class="border rounded-md p-2 bg-white shadow text-sm w-44">
                                 <div>PROCESS</div>
                                 <div><strong>${processNode.name}</strong></div>
                                 <div>Building: ${processNode.influenceProcess.buildingId}</div>
@@ -153,7 +152,7 @@ const TreeVisualizer: React.FC = () => {
                     case 'sideProduct':
                         const sideProductNode = d.data as SideProductNode;
                         return `
-                            <div class="card side-product-node">
+                            <div class="border rounded-md p-2 bg-white shadow text-sm w-44">
                                 <div>SIDE PRODUCT</div>
                                 <div><strong>${sideProductNode.name}</strong></div>
                                 <div>Type: ${sideProductNode.type}</div>

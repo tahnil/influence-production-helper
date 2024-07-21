@@ -1,6 +1,5 @@
 // pages/_app.tsx
 import './globals.css';
-import './../components/TreeVisualizer.module.css';
 import { AppProps } from 'next/app';
 import Link from 'next/link';
 
