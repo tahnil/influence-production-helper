@@ -168,13 +168,13 @@ function transformProductionChain(data: LegacyProductionChain): ProductNode {
       influenceProduct: convertLegacyProductToInfluenceProduct(input.product),
       amount: input.amount,
       totalWeight: input.amount * 0, // Placeholder, update with actual data if available
-      totalVolume: input.amount * 0, // Placeholder, update with actual data if available
-      children: input.process ? transformProcess(input.process) : undefined
+      totalVolume: input.amount * 0, // Placeholder, update with actual data if available,
+      children: input.process ? [transformProcess(input.process)] : undefined // Ensure children is an array
     }));
 
-      return {
-        name: process.name,
-        type: 'process',
+    return {
+      name: process.name,
+      type: 'process',
       influenceProcess: {
         id: process.id,
         name: process.name,
@@ -193,22 +193,22 @@ function transformProductionChain(data: LegacyProductionChain): ProductNode {
       totalDuration,
       totalRuns,
       sideProducts,
-      children
+      children: children.length > 0 ? children : undefined // Ensure children is undefined if empty
     };
   }
 
   const endProduct: InfluenceProduct = convertLegacyProductToInfluenceProduct(data.endProduct);
-  
-    return {
+
+  return {
     name: endProduct.name,
-      type: 'product',
+    type: 'product',
     influenceProduct: endProduct,
     amount: data.endProduct.amount!,
     totalWeight: data.endProduct.amount! * endProduct.massKilogramsPerUnit,
     totalVolume: data.endProduct.amount! * endProduct.volumeLitersPerUnit,
-    children: transformProcess(data.productionChain.process)
-    };
-  }
+    children: [transformProcess(data.productionChain.process)] // Ensure children is an array
+  };
+}
   
   // API Handler
   export default function handler(req: NextApiRequest, res: NextApiResponse) {
