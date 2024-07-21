@@ -8,7 +8,7 @@ export interface ProductNode {
     amount: number;
     totalWeight: number; // Calculated total weight
     totalVolume: number; // Calculated total volume
-    children?: ProcessNode; // Single child, always a ProcessNode or undefined
+    children?: ProcessNode[];
 }
 
 // Define the SideProductNode type
