@@ -3,14 +3,22 @@ import * as d3 from 'd3';
 
 interface TreeNode {
     name: string;
+    type: 'product' | 'process';
     amount?: number;
+    massKilogramsPerUnit?: number;
+    volumeLitersPerUnit?: number;
+    totalWeight?: number;
+    totalVolume?: number;
+    buildingId?: string;
+    mAdalianHoursPerSR?: number;
+    SR?: number;
     children?: TreeNode[];
     _children?: TreeNode[];
 }
 
 interface TreeData {
     name: string;
-    amount?: number;
+    type: 'product' | 'process';
     children?: TreeNode[];
 }
 
@@ -48,7 +56,7 @@ const TreeVisualizer: React.FC = () => {
     const addNewNode = useCallback((event: React.MouseEvent, d: ExtendedD3HierarchyNode): void => {
         event.stopPropagation();
 
-        const newNodeData: TreeNode = { name: `New Node ${d.data.children ? d.data.children.length + 1 : 1}` };
+        const newNodeData: TreeNode = { name: `New Node ${d.data.children ? d.data.children.length + 1 : 1}`, type: 'product' };
         const newNode: ExtendedD3HierarchyNode = {
             data: newNodeData,
             height: 0,
@@ -115,35 +123,43 @@ const TreeVisualizer: React.FC = () => {
             .attr('class', 'node')
             .attr('transform', d => `translate(${source.y0},${source.x0})`);
 
-        nodeEnter.append('circle')
-            .attr('class', 'node')
-            .attr('r', 1e-6)
-            .style('fill', d => d._children ? 'lightsteelblue' : '#fff')
-            .on('click', (event, d) => click(event, d));
-
-        nodeEnter.append('text')
-            .attr('dy', '.35em')
-            .attr('x', d => (d.children || d._children) ? -13 : 13)
-            .attr('text-anchor', d => (d.children || d._children) ? 'end' : 'start')
-            .text(d => d.data.name);
-
-        nodeEnter.append('text')
-            .attr('x', 20)
-            .attr('y', 3)
-            .text('+')
-            .style('cursor', 'pointer')
-            .on('click', (event, d) => addNewNode(event, d));
+        nodeEnter.append('foreignObject')
+            .attr('width', 200)
+            .attr('height', 100)
+            .attr('x', -100)
+            .attr('y', -50)
+            .append('xhtml:div')
+            .on('click', (event, d) => click(event, d))
+            .html(d => {
+                if (d.data.type === 'product') {
+                    return `
+                        <div class="card product-node">
+                            <div><strong>${d.data.name}</strong></div>
+                            <div>Type: ${d.data.type}</div>
+                            <div>Weight: ${d.data.massKilogramsPerUnit || 0} kg</div>
+                            <div>Volume: ${d.data.volumeLitersPerUnit || 0} L</div>
+                            <div>Units: ${d.data.amount || 0}</div>
+                            <div>Total Weight: ${(d.data.totalWeight || 0).toFixed(2)} kg</div>
+                            <div>Total Volume: ${(d.data.totalVolume || 0).toFixed(2)} L</div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="card process-node">
+                            <div><strong>${d.data.name}</strong></div>
+                            <div>Building: ${d.data.buildingId}</div>
+                            <div>Duration: ${(d.data.mAdalianHoursPerSR || 0) * (d.data.SR || 0)} hours</div>
+                            <div>SRs: ${d.data.SR || 0}</div>
+                        </div>
+                    `;
+                }
+            });
 
         const nodeUpdate = nodeEnter.merge(node);
 
         nodeUpdate.transition()
             .duration(750)
             .attr('transform', d => `translate(${d.y},${d.x})`);
-
-        nodeUpdate.select('circle.node')
-            .attr('r', 10)
-            .style('fill', d => d._children ? 'lightsteelblue' : '#333')
-            .attr('cursor', 'pointer');
 
         const nodeExit = node.exit().transition()
             .duration(750)
@@ -184,7 +200,7 @@ const TreeVisualizer: React.FC = () => {
             d.x0 = d.x;
             d.y0 = d.y;
         });
-    }, [curvedLine, click, addNewNode, margin]);
+    }, [curvedLine, margin]);
 
     updateRef.current = update;
 
