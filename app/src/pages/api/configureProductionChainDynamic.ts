@@ -1,14 +1,13 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { InfluenceProduct, InfluenceProcess } from '../../types/influenceTypes';
-import { ProductionChainProduct, ProductionChainProcess } from '../../types/productionChainTypes';
 import { D3TreeNode, ProductNode, ProcessNode, SideProductNode } from '../../types/d3Types';
-import { LegacyProduct, LegacyProcessInputsRequiredOutputsOtherOutputs, LegacyProcessShortInput, LegacyProcessList, LegacyProcessInChain, LegacyProductionChain } from '../../types/intermediateTypes';
+import { LegacyProduct, LegacyProcessInChain, LegacyProductionChain } from '../../types/intermediateTypes';
 
 // Sample data structure using local types
 const sampleProductionChain: LegacyProductionChain = {
-    endProduct: {
-      id: '44',
-      name: 'Cement',
+  endProduct: {
+    id: '44',
+    name: 'Cement',
     amount: 200000
   },
   products: [
@@ -169,7 +168,7 @@ function transformProductionChain(data: LegacyProductionChain): ProductNode {
       amount: input.amount,
       totalWeight: input.amount * 0, // Placeholder, update with actual data if available
       totalVolume: input.amount * 0, // Placeholder, update with actual data if available,
-      children: input.process ? [transformProcess(input.process)] : undefined // Ensure children is an array
+      children: input.process ? [transformProcess(input.process)] : undefined // Ensure children is an array or undefined
     }));
 
     return {
@@ -209,17 +208,17 @@ function transformProductionChain(data: LegacyProductionChain): ProductNode {
     children: [transformProcess(data.productionChain.process)] // Ensure children is an array
   };
 }
-  
-  // API Handler
-  export default function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method === 'POST') {
-      const updatedData = req.body;
-  
-      // Transform the production chain data to D3-compatible format
-      const transformedData = transformProductionChain(sampleProductionChain);
-  
-      res.status(200).json(transformedData);
-    } else {
-      res.status(405).end(); // Method Not Allowed
-    }
+
+// API Handler
+export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === 'POST') {
+    const updatedData = req.body;
+
+    // Transform the production chain data to D3-compatible format
+    const transformedData = transformProductionChain(sampleProductionChain);
+
+    res.status(200).json(transformedData);
+  } else {
+    res.status(405).end(); // Method Not Allowed
   }
+}

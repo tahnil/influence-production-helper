@@ -79,7 +79,7 @@ const TreeVisualizer: React.FC = () => {
             d._children = undefined;
         }
         updateRef.current?.(d);
-    }, []);
+    }, []);    
 
     const update = useCallback((source: ExtendedD3HierarchyNode): void => {
         const container = d3.select(containerRef.current);
@@ -113,47 +113,49 @@ const TreeVisualizer: React.FC = () => {
             .append('xhtml:div')
             .on('click', (event, d) => click(event, d))
             .html(d => {
-                if (d.data.type === 'product') {
-                    const productNode = d.data as ProductNode;
-                    return `
-                        <div class="${styles.card} ${styles['product-node']}">
-                            <div>PRODUCT</div>
-                            <div><strong>${productNode.name}</strong></div>
-                            <div>Type: ${productNode.type}</div>
-                            <div>Weight: ${productNode.totalWeight || 0} kg</div>
-                            <div>Volume: ${productNode.totalVolume || 0} L</div>
-                            <div>Units: ${productNode.amount || 0}</div>
-                            <div>Total Weight: ${(productNode.totalWeight || 0).toFixed(2)} kg</div>
-                            <div>Total Volume: ${(productNode.totalVolume || 0).toFixed(2)} L</div>
-                        </div>
-                    `;
-                } else if (d.data.type === 'process') {
-                    const processNode = d.data as ProcessNode;
-                    return `
-                        <div class="${styles.card} ${styles['process-node']}">
-                            <div>PROCESS</div>
-                            <div><strong>${processNode.name}</strong></div>
-                            <div>Building: ${processNode.influenceProcess.buildingId}</div>
-                            <div>Duration: ${processNode.totalDuration.toFixed(2)} hours</div>
-                            <div>SRs: ${processNode.totalRuns}</div>
-                        </div>
-                    `;
-                } else if (d.data.type === 'sideProduct') {
-                    const sideProductNode = d.data as SideProductNode;
-                    return `
-                        <div class="${styles.card} ${styles['side-product-node']}">
-                            <div>SIDE PRODUCT</div>
-                            <div><strong>${sideProductNode.name}</strong></div>
-                            <div>Type: ${sideProductNode.type}</div>
-                            <div>Weight: ${sideProductNode.totalWeight || 0} kg</div>
-                            <div>Volume: ${sideProductNode.totalVolume || 0} L</div>
-                            <div>Units: ${sideProductNode.amount || 0}</div>
-                            <div>Total Weight: ${(sideProductNode.totalWeight || 0).toFixed(2)} kg</div>
-                            <div>Total Volume: ${(sideProductNode.totalVolume || 0).toFixed(2)} L</div>
-                        </div>
-                    `;
+                switch (d.data.type) {
+                    case 'product':
+                        const productNode = d.data as ProductNode;
+                        return `
+                            <div class="card product-node">
+                                <div>PRODUCT</div>
+                                <div><strong>${productNode.name}</strong></div>
+                                <div>Type: ${productNode.type}</div>
+                                <div>Weight: ${productNode.influenceProduct.massKilogramsPerUnit || 0} kg</div>
+                                <div>Volume: ${productNode.influenceProduct.volumeLitersPerUnit || 0} L</div>
+                                <div>Units: ${productNode.amount || 0}</div>
+                                <div>Total Weight: ${(productNode.totalWeight || 0).toFixed(2)} kg</div>
+                                <div>Total Volume: ${(productNode.totalVolume || 0).toFixed(2)} L</div>
+                            </div>
+                        `;
+                    case 'process':
+                        const processNode = d.data as ProcessNode;
+                        return `
+                            <div class="card process-node">
+                                <div>PROCESS</div>
+                                <div><strong>${processNode.name}</strong></div>
+                                <div>Building: ${processNode.influenceProcess.buildingId}</div>
+                                <div>Duration: ${(processNode.totalDuration || 0).toFixed(2)} hours</div>
+                                <div>SRs: ${processNode.totalRuns || 0}</div>
+                            </div>
+                        `;
+                    case 'sideProduct':
+                        const sideProductNode = d.data as SideProductNode;
+                        return `
+                            <div class="card side-product-node">
+                                <div>SIDE PRODUCT</div>
+                                <div><strong>${sideProductNode.name}</strong></div>
+                                <div>Type: ${sideProductNode.type}</div>
+                                <div>Weight: ${sideProductNode.influenceProduct.massKilogramsPerUnit || 0} kg</div>
+                                <div>Volume: ${sideProductNode.influenceProduct.volumeLitersPerUnit || 0} L</div>
+                                <div>Units: ${sideProductNode.amount || 0}</div>
+                                <div>Total Weight: ${(sideProductNode.totalWeight || 0).toFixed(2)} kg</div>
+                                <div>Total Volume: ${(sideProductNode.totalVolume || 0).toFixed(2)} L</div>
+                            </div>
+                        `;
+                    default:
+                        return `<div class="card unknown-node">Unknown Node Type</div>`;
                 }
-                return '';
             });
 
         const nodeUpdate = nodeEnter.merge(node);
@@ -248,7 +250,7 @@ const TreeVisualizer: React.FC = () => {
                     }
                     return null;
                 }) as ExtendedD3HierarchyNode;
-                                
+
                 root.x0 = height / 2;
                 root.y0 = 0;
 
