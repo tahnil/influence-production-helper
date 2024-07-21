@@ -79,8 +79,11 @@ const TreeVisualizer: React.FC = () => {
         updateRef.current?.(d);
     }, []);
 
-    const straightLine = useCallback((s: ExtendedD3HierarchyNode, d: ExtendedD3HierarchyNode): string => {
-        return `M ${s.y} ${s.x} L ${d.y} ${d.x}`;
+    const curvedLine = useCallback((s: ExtendedD3HierarchyNode, d: ExtendedD3HierarchyNode): string => {
+        return `M ${s.y} ${s.x}
+            C ${(s.y + d.y) / 2} ${s.x},
+            ${(s.y + d.y) / 2} ${d.x},
+            ${d.y} ${d.x}`;
     }, []);
 
     const click = useCallback((event: React.MouseEvent, d: ExtendedD3HierarchyNode): void => {
@@ -168,7 +171,7 @@ const TreeVisualizer: React.FC = () => {
             .attr('class', 'link')
             .attr('d', d => {
                 const o = { x: source.x0, y: source.y0, x0: source.x0, y0: source.y0, _id: source._id, data: source.data, depth: source.depth, height: source.height, parent: source.parent } as ExtendedD3HierarchyNode;
-                return straightLine(o, o);
+                return curvedLine(o, o);
             })
             .style('fill', 'none')
             .style('stroke', 'steelblue')  // Set your desired color here
@@ -178,13 +181,13 @@ const TreeVisualizer: React.FC = () => {
 
         linkUpdate.transition()
             .duration(750)
-            .attr('d', d => straightLine(d, d.parent as ExtendedD3HierarchyNode));
+            .attr('d', d => curvedLine(d, d.parent as ExtendedD3HierarchyNode));
 
         const linkExit = link.exit().transition()
             .duration(750)
             .attr('d', d => {
                 const o = { x: source.x, y: source.y, x0: source.x0, y0: source.y0, _id: source._id, data: source.data, depth: source.depth, height: source.height, parent: source.parent } as ExtendedD3HierarchyNode;
-                return straightLine(o, o);
+                return curvedLine(o, o);
             })
             .remove();
 
@@ -192,7 +195,7 @@ const TreeVisualizer: React.FC = () => {
             d.x0 = d.x;
             d.y0 = d.y;
         });
-    }, [straightLine, click, addNewNode, margin]);
+    }, [curvedLine, click, addNewNode, margin]);
 
     updateRef.current = update;
 
