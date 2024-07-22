@@ -1,10 +1,11 @@
 // d3TreeUtils.ts
 import * as d3 from 'd3';
-import { D3TreeNode, ExtendedD3HierarchyNode, ProcessNode, ProductNode, SideProductNode } from '../types/d3Types';
+import { D3TreeNode, ExtendedD3HierarchyNode } from '../types/d3Types';
+import { renderNodeHtml } from '../components/TreeVisualizer/renderNodes'
 
 export const createD3Tree = (
-    containerRef: React.RefObject<HTMLDivElement>, 
-    treeData: D3TreeNode, 
+    containerRef: React.RefObject<HTMLDivElement>,
+    treeData: D3TreeNode,
     rootRef: React.MutableRefObject<ExtendedD3HierarchyNode | null>,
     iRef: React.MutableRefObject<number>,
     update: (source: ExtendedD3HierarchyNode) => void,
@@ -91,7 +92,7 @@ export const updateD3Tree = (
         .attr('y', -50)
         .append('xhtml:div')
         .on('click', (event, d) => click(event as unknown as React.MouseEvent, d))
-        .html(d => nodeHtml(d.data));
+        .html(d => renderNodeHtml(d.data));
 
     const nodeUpdate = nodeEnter.merge(node);
 
@@ -154,52 +155,6 @@ export const curvedLine = (s: ExtendedD3HierarchyNode, d: ExtendedD3HierarchyNod
         C ${(s.y + d.y) / 2} ${s.x},
         ${(s.y + d.y) / 2} ${d.x},
         ${d.y} ${d.x}`;
-};
-
-export const nodeHtml = (data: D3TreeNode): string => {
-    switch (data.type) {
-        case 'product':
-            const productNode = data as ProductNode;
-            return `
-                <div class="border rounded-md p-2 bg-white shadow text-sm w-44">
-                    <div>PRODUCT</div>
-                    <div><strong>${productNode.name}</strong></div>
-                    <div>Type: ${productNode.type}</div>
-                    <div>Weight: <span class="number-format" data-value="${productNode.influenceProduct.massKilogramsPerUnit}"></span> kg</div>
-                    <div>Volume: <span class="number-format" data-value="${productNode.influenceProduct.volumeLitersPerUnit}"></span> L</div>
-                    <div>Units: <span class="number-format" data-value="${productNode.amount}"></span></div>
-                    <div>Total Weight: <span class="number-format" data-value="${productNode.totalWeight}"></span> kg</div>
-                    <div>Total Volume: <span class="number-format" data-value="${productNode.totalVolume}"></span> L</div>
-                </div>
-            `;
-        case 'process':
-            const processNode = data as ProcessNode;
-            return `
-                <div class="border rounded-md p-2 bg-white shadow text-sm w-44">
-                    <div>PROCESS</div>
-                    <div><strong>${processNode.name}</strong></div>
-                    <div>Building: ${processNode.influenceProcess.buildingId}</div>
-                    <div>Duration: <span class="number-format" data-value="${processNode.totalDuration}"></span> hours</div>
-                    <div>SRs: <span class="number-format" data-value="${processNode.totalRuns}"></span></div>
-                </div>
-            `;
-        case 'sideProduct':
-            const sideProductNode = data as SideProductNode;
-            return `
-                <div class="border rounded-md p-2 bg-white shadow text-sm w-44">
-                    <div>SIDE PRODUCT</div>
-                    <div><strong>${sideProductNode.name}</strong></div>
-                    <div>Type: ${sideProductNode.type}</div>
-                    <div>Weight: <span class="number-format" data-value="${sideProductNode.influenceProduct.massKilogramsPerUnit}"></span> kg</div>
-                    <div>Volume: <span class="number-format" data-value="${sideProductNode.influenceProduct.volumeLitersPerUnit}"></span> L</div>
-                    <div>Units: <span class="number-format" data-value="${sideProductNode.amount}"></span></div>
-                    <div>Total Weight: <span class="number-format" data-value="${sideProductNode.totalWeight}"></span> kg</div>
-                    <div>Total Volume: <span class="number-format" data-value="${sideProductNode.totalVolume}"></span> L</div>
-                </div>
-            `;
-        default:
-            return `<div class="card unknown-node">Unknown Node Type</div>`;
-    }
 };
 
 export const collapse = (d: ExtendedD3HierarchyNode): void => {
