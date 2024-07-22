@@ -23,7 +23,13 @@
 │   │   │   ├── ProcessInputs.tsx
 │   │   │   └── ProcessSelector.tsx
 │   │   ├── ProductList.tsx
-│   │   ├── TreeVisualizer.tsx
+│   │   ├── TreeVisualizer
+│   │   │   ├── ProcessNodeComponent.tsx
+│   │   │   ├── ProductNodeComponent.tsx
+│   │   │   ├── SideProductNodeComponent.tsx
+│   │   │   ├── TreeVisualizer.tsx
+│   │   │   └── renderNodes.tsx
+│   │   ├── TreeVisualizerOld.tsx
 │   │   └── ui
 │   │       ├── button.tsx
 │   │       ├── form.tsx
@@ -33,6 +39,7 @@
 │   │       └── table.tsx
 │   ├── hooks
 │   │   ├── useConfigureProductionChain.ts
+│   │   ├── useFetchTreeData.ts
 │   │   ├── useInputsByProcessId.ts
 │   │   ├── useProcessesByProductId.ts
 │   │   └── useProducts.ts
@@ -52,7 +59,7 @@
 │   │   ├── _app.tsx
 │   │   ├── api
 │   │   │   ├── configureProductionChain.ts
-│   │   │   ├── fetchProductionChains.ts
+│   │   │   ├── configureProductionChainDynamic.ts
 │   │   │   ├── inputs.ts
 │   │   │   ├── processes.ts
 │   │   │   ├── productionChains.ts
@@ -61,23 +68,26 @@
 │   │   ├── globals.css
 │   │   ├── index.tsx
 │   │   ├── layout.tsx
+│   │   ├── tree-view-v2.tsx
 │   │   └── tree-view.tsx
 │   ├── sdk
 │   │   └── productionChains.json
 │   ├── services
 │   │   └── apiService.ts
-│   ├── store
-│   │   └── useProductionChainStore.ts
 │   ├── styles
 │   ├── types
+│   │   ├── d3Types.ts
+│   │   ├── influenceTypes.ts
+│   │   ├── intermediateTypes.ts
+│   │   ├── productionChainTypes.ts
 │   │   └── types.ts
 │   └── utils
 │       ├── aggregateIngredients.ts
+│       ├── d3TreeUtils.ts
 │       ├── errorHandler.ts
-│       ├── logger.ts
-│       └── transformToTreeData.ts
+│       └── logger.ts
 ├── tailwind.config.ts
 ├── tsconfig.json
 └── tsconfig.tsbuildinfo
 
-20 directories, 62 files
+19 directories, 72 files
