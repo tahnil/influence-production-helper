@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import useFetchTreeData from '../hooks/useFetchTreeData';
-import { ExtendedD3HierarchyNode } from '../types/d3Types';
-import { createD3Tree, updateD3Tree, collapse } from '../utils/d3TreeUtils';
+import useFetchTreeData from '@/hooks/useFetchTreeData';
+import { ExtendedD3HierarchyNode } from '@/types/d3Types';
+import { createD3Tree, updateD3Tree, collapse } from '@/utils/d3TreeUtils';
 
 const TreeVisualizer: React.FC = () => {
     const containerRef = useRef<HTMLDivElement | null>(null);
