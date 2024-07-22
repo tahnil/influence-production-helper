@@ -81,17 +81,6 @@ const TreeVisualizer: React.FC = () => {
         updateRef.current?.(d);
     }, []);
 
-    function updateForeignObjectSize(foreignObject: d3.Selection<SVGForeignObjectElement, ExtendedD3HierarchyNode, SVGGElement, unknown>) {
-        foreignObject.each(function () {
-            const bbox = (this.firstChild as HTMLElement).getBoundingClientRect();
-            d3.select(this)
-                .attr("width", bbox.width)
-                .attr("height", bbox.height)
-                .attr("x", -bbox.width / 2)
-                .attr("y", -bbox.height / 2);
-        });
-    }
-
     const update = useCallback((source: ExtendedD3HierarchyNode): void => {
 
         const container = d3.select(containerRef.current);
@@ -118,8 +107,9 @@ const TreeVisualizer: React.FC = () => {
             .attr('transform', d => `translate(${source.y0},${source.x0})`);
 
         nodeEnter.append('foreignObject')
-            .attr('width', 200)
-            .attr('height', 200)
+            .attr('width', 1)
+            .attr('height', 1)
+            .attr('style', 'overflow: visible')
             .attr('x', -100)
             .attr('y', -50)
             .append('xhtml:div')
@@ -168,13 +158,6 @@ const TreeVisualizer: React.FC = () => {
                     default:
                         return `<div class="card unknown-node">Unknown Node Type</div>`;
                 }
-            })
-            .each(function (d) {
-                if (this instanceof Element && this.parentNode instanceof SVGForeignObjectElement) {
-                    const parent = this.parentNode as SVGForeignObjectElement;
-                    const foreignObject = d3.select<SVGForeignObjectElement, ExtendedD3HierarchyNode>(parent);
-                    updateForeignObjectSize(foreignObject);
-                }
             });
             
         const nodeUpdate = nodeEnter.merge(node);
@@ -222,9 +205,6 @@ const TreeVisualizer: React.FC = () => {
             d.x0 = d.x;
             d.y0 = d.y;
         });
-
-        // Update foreignObject sizes after updating nodes
-        updateForeignObjectSize(nodeUpdate.selectAll<SVGForeignObjectElement, ExtendedD3HierarchyNode>('foreignObject'));
 
         // Format numbers in the node cards
         d3.selectAll('.number-format').each(function() {
