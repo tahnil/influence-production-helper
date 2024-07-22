@@ -9,6 +9,7 @@ export interface ExtendedD3HierarchyNode extends d3.HierarchyPointNode<D3TreeNod
 
 // Define the ProductNode type
 export interface ProductNode {
+    id?: string;
     name: string;
     type: 'product';
     influenceProduct: InfluenceProduct; // Reference to InfluenceProduct
