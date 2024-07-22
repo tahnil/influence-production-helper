@@ -1,19 +1,10 @@
 // components/ProcessConfigurator.tsx
 import React, { useEffect, useState } from 'react';
-import { Process, Product, Input } from '../../types/types';
+import { Process, Product, Input, ProcessConfiguratorProps } from '../../types/types';
 import { generateUniqueId } from '../../lib/uniqueId';
 import useProcessesByProductId from '../../hooks/useProcessesByProductId';
 import useInputsByProcessId from '../../hooks/useInputsByProcessId';
 import ProcessSelector from './ProcessSelector';
-
-interface ProcessConfiguratorProps {
-  product: Product;
-  amount: number;
-  selectedProcesses: { [key: string]: string };
-  onProcessSelect: (uniqueId: string, processId: string) => void;
-  level?: number;
-  parentId?: string | null;
-}
 
 const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amount, selectedProcesses, onProcessSelect, level = 0, parentId = null }) => {
   const uniqueId = generateUniqueId(product.id, level, parentId);

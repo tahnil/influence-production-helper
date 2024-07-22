@@ -1,6 +1,8 @@
 // src/types/types.ts
 import * as d3 from 'd3';
 
+// used by
+// src/pages/api/processes.ts
 export interface ApiError {
   message: string;
   status?: number;
@@ -17,15 +19,13 @@ export interface Product {
   quantized?: boolean;
 }
 
-// Define a new type for the enriched product
-export interface ProductWithSpectralTypes extends Product {
-  spectralTypes?: { id: string; name: string }[];
+// Define types for the enriched products
+export interface EndProduct extends Product {
+  amount: number;
 }
 
-export interface SpectralType {
-  id: string;
-  name: string;
-  processes: string[];
+export interface ProductWithSpectralTypes extends Product {
+  spectralTypes?: { id: string; name: string }[];
 }
 
 export interface Process {
@@ -37,11 +37,6 @@ export interface Process {
   bAdalianHoursPerAction?: string;
   mAdalianHoursPerSR?: string;
 }
-
-export interface EndProduct extends Product {
-  amount: number;
-}
-
 export interface InputOutput {
   productId: string;
   unitsPerSR: string;
@@ -63,6 +58,12 @@ export interface ProductionChainProcess {
   otherOutput: ProductionChainProduct[];
 }
 
+export interface SpectralType {
+  id: string;
+  name: string;
+  processes: string[];
+}
+
 export interface ProductionChain {
   endProduct: EndProduct;
   products: Product[];
@@ -73,11 +74,17 @@ export interface ProductionChain {
   spectralTypes?: SpectralType[];
 }
 
+// used by
+// components/ProcessConfigurator.tsx
+// components/ProcessInputs.tsx
+// lib/processUtils.ts
 export interface Input {
   product: Product;
   unitsPerSR: string;
 }
 
+// used by
+// components/ProcessConfigurator.tsx
 export interface ProcessConfiguratorProps {
   product: Product;
   amount: number;
@@ -85,49 +92,4 @@ export interface ProcessConfiguratorProps {
   onProcessSelect: (uniqueId: string, processId: string) => void;
   level?: number;
   parentId?: string | null;
-}
-
-export interface ProductionChainState {
-  selectedProduct: Product | null;
-  selectedProcesses: { [key: string]: string };
-  productionChain: any;
-  loading: boolean;
-  error: string | null;
-  processes: Process[];
-  setSelectedProduct: (product: Product) => void;
-  setSelectedProcess: (uniqueId: string, processId: string) => void;
-  configureChain: (amount: number) => Promise<void>;
-  fetchProcesses: () => Promise<void>;
-}
-
-export interface TreeNode {
-  type: string;
-  name: string;
-  amount?: number;
-  children?: TreeNode[];
-  inputs?: TreeNode[];
-  outputs?: TreeNode[];
-  selectableProcesses?: Process[];
-  selectedProcessId?: string;
-  isExpanded?: boolean;
-}
-
-export interface HierarchyNode {
-  id: string;
-  name: string;
-  amount: number;
-  children?: HierarchyNode[];
-  _children?: HierarchyNode[];
-  selectableProcesses?: Process[];
-  selectedProcessId?: string;
-  inputs?: HierarchyNode[];
-}
-
-export interface ExtendedHierarchyNode extends d3.HierarchyNode<HierarchyNode> {
-  x0?: number;
-  y0?: number;
-  _children?: this[];
-  id: string | undefined;
-  selectableProcesses?: Process[];
-  selectedProcessId?: string;
 }
