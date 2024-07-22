@@ -3,6 +3,7 @@
 import { Input, InputOutput, Process, Product } from '../types/types';
 import { loadProductionChains } from './dataLoader';
 import { fetchProductById } from './productUtils';
+import { InfluenceProcess } from '@/types/influenceTypes';
 
 // Load the production chains data
 const productionChains = loadProductionChains();
@@ -10,6 +11,23 @@ const productionChains = loadProductionChains();
 // Helper functions
 export const getProcessById = (id: string): Process | undefined => {
   return productionChains.processes.find(process => process.id === id);
+};
+
+// Utility function to convert Process to InfluenceProcess
+const convertProcessToInfluenceProcess = (process: Process): InfluenceProcess => {
+  return {
+    ...process,
+    bAdalianHoursPerAction: process.bAdalianHoursPerAction ? parseFloat(process.bAdalianHoursPerAction).toString() : '0',
+    mAdalianHoursPerSR: process.mAdalianHoursPerSR ? parseFloat(process.mAdalianHoursPerSR).toString() : '0',
+    inputs: process.inputs.map(input => ({
+      productId: input.productId,
+      unitsPerSR: parseFloat(input.unitsPerSR).toString(),
+    })),
+    outputs: process.outputs.map(output => ({
+      productId: output.productId,
+      unitsPerSR: parseFloat(output.unitsPerSR).toString(),
+    })),
+  };
 };
 
 const getProcessesByProductIdAsOutput = (productId: string): Process[] => {
@@ -54,4 +72,9 @@ export const fetchProcessesByProductId = async (productId: string): Promise<Proc
 
 export const fetchInputsByProcessId = async (processId: string): Promise<Input[]> => {
   return await getInputsByProcessId(processId);
+};
+
+export const fetchInfluenceProcessById = async (id: string): Promise<InfluenceProcess | undefined> => {
+  const process = getProcessById(id);
+  return process ? convertProcessToInfluenceProcess(process) : undefined;
 };

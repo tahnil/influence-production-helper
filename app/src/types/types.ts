@@ -34,6 +34,8 @@ export interface Process {
   inputs: InputOutput[];
   outputs: InputOutput[];
   buildingId: string;
+  bAdalianHoursPerAction?: string;
+  mAdalianHoursPerSR?: string;
 }
 
 export interface EndProduct extends Product {

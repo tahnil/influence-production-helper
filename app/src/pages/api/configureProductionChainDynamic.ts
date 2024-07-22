@@ -2,6 +2,8 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { InfluenceProduct, InfluenceProcess } from '../../types/influenceTypes';
 import { D3TreeNode, ProductNode, ProcessNode, SideProductNode } from '../../types/d3Types';
 import { LegacyProduct, LegacyProcessInChain, LegacyProductionChain } from '../../types/intermediateTypes';
+import { fetchProductById, fetchInfluenceProductById } from '../../lib/productUtils';
+import { fetchProcessById, fetchInfluenceProcessById } from '../../lib/processUtils';
 
 // Sample data structure using local types
 const sampleProductionChain: LegacyProductionChain = {
@@ -134,90 +136,84 @@ const sampleProductionChain: LegacyProductionChain = {
   }
 };
 
-// Helper function to convert LegacyProduct to InfluenceProduct
-const convertLegacyProductToInfluenceProduct = (legacyProduct: LegacyProduct): InfluenceProduct => {
-  return {
-    ...legacyProduct,
-    category: '', // Placeholder, update with actual data if available
-    massKilogramsPerUnit: 0, // Placeholder, update with actual data if available
-    quantized: false, // Placeholder, update with actual data if available
-    type: '', // Placeholder, update with actual data if available
-    volumeLitersPerUnit: 0 // Placeholder, update with actual data if available
-  };
-};
-
 // Function to transform legacy production chain to D3-compatible format
-function transformProductionChain(data: LegacyProductionChain): ProductNode {
-  function transformProcess(process: LegacyProcessInChain): ProcessNode {
-    const totalRuns = process.requiredOutput[0]?.amount || 0;
-    const totalDuration = totalRuns * parseFloat('0.0000825'); // Placeholder, adjust as needed
+async function transformProductionChain(data: LegacyProductionChain): Promise<ProductNode> {
+  async function transformProcess(process: LegacyProcessInChain): Promise<ProcessNode> {
+    const processData = await fetchInfluenceProcessById(process.id);
+    if (!processData) throw new Error(`Process with id ${process.id} not found`);
 
-    const sideProducts: SideProductNode[] = (process.otherOutput || []).map(output => ({
+    const totalRuns = process.requiredOutput[0]?.amount || 0;
+    const totalDuration = totalRuns * parseFloat(processData.mAdalianHoursPerSR || '0');
+
+    const sideProducts: SideProductNode[] = await Promise.all((process.otherOutput || []).map(async (output) => {
+      const influenceProduct = await fetchInfluenceProductById(output.product.id);
+      if (!influenceProduct) throw new Error(`Product with id ${output.product.id} not found`);
+
+      return {
       name: output.product.name,
       type: 'sideProduct',
-      influenceProduct: convertLegacyProductToInfluenceProduct(output.product),
+        influenceProduct,
       amount: output.amount,
-      totalWeight: output.amount * 0, // Placeholder, update with actual data if available
-      totalVolume: output.amount * 0 // Placeholder, update with actual data if available
+        totalWeight: output.amount * (influenceProduct.massKilogramsPerUnit || 0),
+        totalVolume: output.amount * (influenceProduct.volumeLitersPerUnit || 0),
+      };
     }));
 
-    const children: ProductNode[] = (process.inputs || []).map(input => ({
+    const children: ProductNode[] = await Promise.all((process.inputs || []).map(async (input) => {
+      const influenceProduct = await fetchInfluenceProductById(input.product.id);
+      if (!influenceProduct) throw new Error(`Product with id ${input.product.id} not found`);
+
+      return {
       name: input.product.name,
       type: 'product',
-      influenceProduct: convertLegacyProductToInfluenceProduct(input.product),
+        influenceProduct,
       amount: input.amount,
-      totalWeight: input.amount * 0, // Placeholder, update with actual data if available
-      totalVolume: input.amount * 0, // Placeholder, update with actual data if available,
-      children: input.process ? [transformProcess(input.process)] : undefined // Ensure children is an array or undefined
+        totalWeight: input.amount * (influenceProduct.massKilogramsPerUnit || 0),
+        totalVolume: input.amount * (influenceProduct.volumeLitersPerUnit || 0),
+        children: input.process ? [await transformProcess(input.process)] : undefined,
+      };
     }));
 
     return {
       name: process.name,
       type: 'process',
-      influenceProcess: {
-        id: process.id,
-        name: process.name,
-        buildingId: process.buildingId,
-        bAdalianHoursPerAction: '0', // Placeholder, update with actual data if available
-        mAdalianHoursPerSR: '0.0000825', // Placeholder, update with actual data if available
-        inputs: (process.inputs || []).map(input => ({
-          productId: input.product.id,
-          unitsPerSR: input.amount.toString()
-        })),
-        outputs: (process.requiredOutput || []).concat(process.otherOutput || []).map(output => ({
-          productId: output.product.id,
-          unitsPerSR: output.amount.toString()
-        }))
-      },
+      influenceProcess: processData,
       totalDuration,
       totalRuns,
       sideProducts,
-      children: children.length > 0 ? children : undefined // Ensure children is undefined if empty
+      children: children.length > 0 ? children : undefined, // Ensure children is undefined if empty
     };
   }
 
-  const endProduct: InfluenceProduct = convertLegacyProductToInfluenceProduct(data.endProduct);
+  const endProduct = await fetchInfluenceProductById(data.endProduct.id);
+  if (!endProduct) throw new Error(`End product with id ${data.endProduct.id} not found`);
 
   return {
     name: endProduct.name,
     type: 'product',
     influenceProduct: endProduct,
     amount: data.endProduct.amount!,
-    totalWeight: data.endProduct.amount! * endProduct.massKilogramsPerUnit,
-    totalVolume: data.endProduct.amount! * endProduct.volumeLitersPerUnit,
-    children: [transformProcess(data.productionChain.process)] // Ensure children is an array
+    totalWeight: data.endProduct.amount! * (endProduct.massKilogramsPerUnit || 0),
+    totalVolume: data.endProduct.amount! * (endProduct.volumeLitersPerUnit || 0),
+    children: [await transformProcess(data.productionChain.process)], // Ensure children is an array
   };
 }
 
 // API Handler
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
-    const updatedData = req.body;
-
-    // Transform the production chain data to D3-compatible format
-    const transformedData = transformProductionChain(sampleProductionChain);
-
-    res.status(200).json(transformedData);
+    try {
+      const updatedData = req.body;
+      // Transform the production chain data to D3-compatible format
+      const transformedData = await transformProductionChain(sampleProductionChain);
+      res.status(200).json(transformedData);
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'An unknown error occurred' });
+      }
+    }
   } else {
     res.status(405).end(); // Method Not Allowed
   }

@@ -1,12 +1,12 @@
 // type for influence entities
 export interface InfluenceProduct {
-    category: string;
+    category?: string;
     id: string;
-    massKilogramsPerUnit: number;
+    massKilogramsPerUnit?: number;
     name: string;
-    quantized: boolean;
-    type: string;
-    volumeLitersPerUnit: number;
+    quantized?: boolean;
+    type?: string;
+    volumeLitersPerUnit?: number;
 }
 
 export interface InfluenceProcess {

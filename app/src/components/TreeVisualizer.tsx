@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import * as d3 from 'd3';
 import { D3TreeNode, ProductNode, ProcessNode, SideProductNode } from '../types/d3Types';
+import { NumericFormat } from 'react-number-format';
 
 interface Margin {
     top: number;
@@ -92,6 +93,7 @@ const TreeVisualizer: React.FC = () => {
     }
 
     const update = useCallback((source: ExtendedD3HierarchyNode): void => {
+
         const container = d3.select(containerRef.current);
         const svg = container.select('svg');
         const g = svg.select('g');
@@ -131,11 +133,11 @@ const TreeVisualizer: React.FC = () => {
                                 <div>PRODUCT</div>
                                 <div><strong>${productNode.name}</strong></div>
                                 <div>Type: ${productNode.type}</div>
-                                <div>Weight: ${productNode.influenceProduct.massKilogramsPerUnit || 0} kg</div>
-                                <div>Volume: ${productNode.influenceProduct.volumeLitersPerUnit || 0} L</div>
-                                <div>Units: ${productNode.amount || 0}</div>
-                                <div>Total Weight: ${(productNode.totalWeight || 0).toFixed(2)} kg</div>
-                                <div>Total Volume: ${(productNode.totalVolume || 0).toFixed(2)} L</div>
+                                <div>Weight: <span class="number-format" data-value="${productNode.influenceProduct.massKilogramsPerUnit}"></span> kg</div>
+                                <div>Volume: <span class="number-format" data-value="${productNode.influenceProduct.volumeLitersPerUnit}"></span> L</div>
+                                <div>Units: <span class="number-format" data-value="${productNode.amount}"></span></div>
+                                <div>Total Weight: <span class="number-format" data-value="${productNode.totalWeight}"></span> kg</div>
+                                <div>Total Volume: <span class="number-format" data-value="${productNode.totalVolume}"></span> L</div>
                             </div>
                         `;
                     case 'process':
@@ -145,8 +147,8 @@ const TreeVisualizer: React.FC = () => {
                                 <div>PROCESS</div>
                                 <div><strong>${processNode.name}</strong></div>
                                 <div>Building: ${processNode.influenceProcess.buildingId}</div>
-                                <div>Duration: ${(processNode.totalDuration || 0).toFixed(2)} hours</div>
-                                <div>SRs: ${processNode.totalRuns || 0}</div>
+                                <div>Duration: <span class="number-format" data-value="${processNode.totalDuration}"></span> hours</div>
+                                <div>SRs: <span class="number-format" data-value="${processNode.totalRuns}"></span></div>
                             </div>
                         `;
                     case 'sideProduct':
@@ -156,11 +158,11 @@ const TreeVisualizer: React.FC = () => {
                                 <div>SIDE PRODUCT</div>
                                 <div><strong>${sideProductNode.name}</strong></div>
                                 <div>Type: ${sideProductNode.type}</div>
-                                <div>Weight: ${sideProductNode.influenceProduct.massKilogramsPerUnit || 0} kg</div>
-                                <div>Volume: ${sideProductNode.influenceProduct.volumeLitersPerUnit || 0} L</div>
-                                <div>Units: ${sideProductNode.amount || 0}</div>
-                                <div>Total Weight: ${(sideProductNode.totalWeight || 0).toFixed(2)} kg</div>
-                                <div>Total Volume: ${(sideProductNode.totalVolume || 0).toFixed(2)} L</div>
+                                <div>Weight: <span class="number-format" data-value="${sideProductNode.influenceProduct.massKilogramsPerUnit}"></span> kg</div>
+                                <div>Volume: <span class="number-format" data-value="${sideProductNode.influenceProduct.volumeLitersPerUnit}"></span> L</div>
+                                <div>Units: <span class="number-format" data-value="${sideProductNode.amount}"></span></div>
+                                <div>Total Weight: <span class="number-format" data-value="${sideProductNode.totalWeight}"></span> kg</div>
+                                <div>Total Volume: <span class="number-format" data-value="${sideProductNode.totalVolume}"></span> L</div>
                             </div>
                         `;
                     default:
@@ -223,6 +225,15 @@ const TreeVisualizer: React.FC = () => {
 
         // Update foreignObject sizes after updating nodes
         updateForeignObjectSize(nodeUpdate.selectAll<SVGForeignObjectElement, ExtendedD3HierarchyNode>('foreignObject'));
+
+        // Format numbers in the node cards
+        d3.selectAll('.number-format').each(function() {
+            const element = d3.select(this);
+            const value = element.attr('data-value');
+            if (value) {
+                element.text(new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(value)));
+            }
+        });
     }, [curvedLine, click, margin]);
 
     updateRef.current = update;
