@@ -78,6 +78,24 @@ const TreeVisualizer: React.FC = () => {
         const inputs: ProcessInput[] = await response.json(); // Use the ProcessInput type here
         console.log(`Fetched inputs for process ${processId}:`, inputs);
 
+        const processesPromises = inputs.map(input => 
+            fetchProcessesForProduct(input.product.id)  // Ensure processes are fetched and updated
+        );
+
+        const productsWithProcesses = await Promise.all(processesPromises);
+
+        const inputNodes = inputs.map((input, index) => ({
+            id: input.product.id,
+            name: input.product.name,
+            type: 'product',
+            influenceProduct: input.product,
+            amount: parseFloat(input.unitsPerSR),
+            totalWeight: 0, // calculate function missing based on process data
+            totalVolume: 0, // calculate function missing based on process data
+            children: [],
+            processes: productsWithProcesses[index] // Store processes for each new product
+        }))
+
         const selectedProcess = processList[parentId]?.find(p => p.id === processId);
         console.log(`Selected parent id:`, processList[parentId]);
 
@@ -86,26 +104,6 @@ const TreeVisualizer: React.FC = () => {
             console.error('Selected process is undefined.');
             return; // Optionally, handle this case more gracefully in your UI
         }
-
-        // Iterate through each input to fetch and assign processes
-        const inputNodes = await Promise.all(inputs.map(async (input) => {
-            // const processResponse = await fetch(`/api/processes?outputProductId=${input.product.id}`);
-            // const processesForProduct = await processResponse.json();
-            await fetchProcessesForProduct(input.product.id);
-            const processesForProduct = processList[input.product.id] || [];
-            
-            return {
-                id: input.product.id,
-                name: input.product.name,
-                type: 'product',
-                influenceProduct: input.product,
-                amount: parseFloat(input.unitsPerSR),
-                totalWeight: 0, // calculate function missing based on process data
-                totalVolume: 0, // calculate function missing based on process data
-                children: [],
-                processes: processesForProduct // Store processes for each new product
-            };
-        }));
 
         const newNode: ProcessNode = {
             id: selectedProcess.id,
