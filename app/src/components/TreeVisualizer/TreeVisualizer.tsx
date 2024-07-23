@@ -32,15 +32,32 @@ const TreeVisualizer: React.FC = () => {
         }
     }, [selectedProduct]);
 
+    const fetchProcessesForProduct = async (productId: string) => {
+        try {
+            console.log(`Fetching processes for product ID: ${productId}`);
+            const response = await fetch(`/api/processes?outputProductId=${productId}`);
+            if (!response.ok) throw new Error('Failed to fetch processes');
+            const processes = await response.json();
+            setProcessList(prev => ({ ...prev, [productId]: processes }));
+            console.log(`Processes for product ID ${productId}:`, processes);
+            return processes;
+        } catch (error) {
+            console.error(`Error fetching processes for product ${productId}:`, error);
+        }
+    };
+
     const handleProductSelection = async (product: InfluenceProduct) => {
-        console.log(`Selected product: ${product.name}`);
-        const response = await fetch(`/api/processes?outputProductId=${product.id}`);
-        const processes = await response.json();
+        console.log(`Selected product: ${product.name} with id: ${product.id}`);
+        const processes = await fetchProcessesForProduct(product.id);
         console.log(`Fetched processes for ${product.name}:`, processes);
-        setProcessList(prev => ({ ...prev, [product.id]: processes }));
-        console.log('Updated process list for product', product.id, processes);
+
+        // const processes = await response.json();
+        // console.log(`Fetched processes for ${product.name}:`, processes);
+        // setProcessList(prev => ({ ...prev, [product.id]: processes }));
+        // console.log('Updated process list for product', product.id, processes);
 
         const newNode: ProductNode = {
+            id: product.id,
             name: product.name,
             type: 'product',
             influenceProduct: product,
@@ -72,9 +89,11 @@ const TreeVisualizer: React.FC = () => {
 
         // Iterate through each input to fetch and assign processes
         const inputNodes = await Promise.all(inputs.map(async (input) => {
-            const processResponse = await fetch(`/api/processes?outputProductId=${input.product.id}`);
-            const processesForProduct = await processResponse.json();
-    
+            // const processResponse = await fetch(`/api/processes?outputProductId=${input.product.id}`);
+            // const processesForProduct = await processResponse.json();
+            await fetchProcessesForProduct(input.product.id);
+            const processesForProduct = processList[input.product.id] || [];
+            
             return {
                 id: input.product.id,
                 name: input.product.name,
@@ -84,7 +103,7 @@ const TreeVisualizer: React.FC = () => {
                 totalWeight: 0, // calculate function missing based on process data
                 totalVolume: 0, // calculate function missing based on process data
                 children: [],
-                processes: processesForProduct  // Store processes for each new product
+                processes: processesForProduct // Store processes for each new product
             };
         }));
 
@@ -135,7 +154,7 @@ const TreeVisualizer: React.FC = () => {
 
         // Update the treeData with the new node
         if (treeData) {
-            const updatedTreeData = addNodeToTree(treeData, newNode);
+            const updatedTreeData = addNodeToTree(treeData, newNode, parentId);
             console.log("Updated Tree Data:", updatedTreeData); // Log the updated tree data
 
             // Check if the updatedTreeData is still a ProductNode
