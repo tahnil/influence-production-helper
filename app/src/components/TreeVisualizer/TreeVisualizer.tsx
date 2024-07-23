@@ -87,48 +87,38 @@ const TreeVisualizer: React.FC = () => {
         };
 
         const addNodeToTree = (node: D3TreeNode, newNode: ProcessNode | ProductNode, parentId: string): D3TreeNode => {
-            console.log("New process node being added:", newNode);
-            console.log("Selected process details:", selectedProcess);
-
-            // Handling product nodes that might receive a new process node
             if (node.type === 'product' && node.id === parentId) {
                 if (newNode.type === 'process') {
+                    // Initialize children if undefined
                     if (!node.children) {
                         node.children = [];
                     }
-                    // Check if there is already a process node under this product
-                    const existingProcessIndex = node.children?.findIndex(child => child.type === 'process' && child.id === newNode.id);
-                    console.log(`Existing Process Index: ${existingProcessIndex}`);
-                    console.log(`Checking process node at index ${existingProcessIndex}`, node.children[existingProcessIndex]);
-                    console.log("Current process node:", node.children[existingProcessIndex]);
+                    // Find index of any existing process node
+                    const existingProcessIndex = node.children.findIndex(child => child.type === 'process');
 
-                    if (existingProcessIndex !== undefined && existingProcessIndex !== -1) {
+                    if (existingProcessIndex !== -1) {
                         // Check if the same process is selected again
                         if (node.children[existingProcessIndex].id === newNode.id) {
                             console.log(`Process ${node.children[existingProcessIndex].id} / ${newNode.id} already selected, no action taken`);
                             return node; // No update if the same process is selected
                         } else {
                             // Replace the existing process node with the new one
-                            const updatedChildren = [...node.children];
-                            updatedChildren[existingProcessIndex] = newNode as ProcessNode;
-                            return { ...node, children: updatedChildren };
+                            console.log(`Replacing process ${node.children[existingProcessIndex].id} with new process ${newNode.id}`);
+                            node.children[existingProcessIndex] = newNode as ProcessNode;
+                            return { ...node }; // Using spread to trigger React re-render
                         }
                     } else {
                         // No existing process node, add the new one
-                        const updatedChildren = node.children ? [...node.children, newNode as ProcessNode] : [newNode as ProcessNode];
-                        return { ...node, children: updatedChildren };
+                        console.log(`Adding new process ${newNode.id}`);
+                        node.children.push(newNode as ProcessNode);
+                        return { ...node }; // Using spread to trigger React re-render
                     }
                 }
-            } else if (node.type === 'process' && newNode.type === 'product' && node.id === parentId) {
-                // Handling process nodes receiving new product nodes
-                const updatedChildren = node.children ? [...node.children, newNode as ProductNode] : [newNode as ProductNode];
-                return { ...node, children: updatedChildren };
             } else if (node.children) {
                 // Recursively update children nodes if no direct match
-                const updatedChildren = node.children.map(child => addNodeToTree(child, newNode, parentId));
-                return { ...node, children: updatedChildren };
+                node.children = node.children.map(child => addNodeToTree(child, newNode, parentId));
             }
-            return node; // Return unchanged if SideProductNode or conditions do not match
+            return node; // Return unchanged if conditions do not match
         };
 
         // Update the treeData with the new node
