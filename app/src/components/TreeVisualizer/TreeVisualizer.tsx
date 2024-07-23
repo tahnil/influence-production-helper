@@ -43,9 +43,9 @@ const TreeVisualizer: React.FC = () => {
             name: product.name,
             type: 'product',
             influenceProduct: product,
-            amount: 0,
-            totalWeight: 0,
-            totalVolume: 0,
+            amount: 0, // we still need logic to poll the desired amount by the user
+            totalWeight: 0, // calculate function missing based on the amount and product data
+            totalVolume: 0, // calculate function missing based on the amount and product data
             children: []
         };
 
@@ -70,8 +70,8 @@ const TreeVisualizer: React.FC = () => {
             name: selectedProcess.name,
             type: 'process',
             influenceProcess: selectedProcess,
-            totalDuration: 0,
-            totalRuns: 0,
+            totalDuration: 0, // calculate function missing based on process data
+            totalRuns: 0, // calculate function missing based on process data
             children: inputs.map((input: ProcessInput) => ({
                 name: input.product.name,
                 type: 'product',
