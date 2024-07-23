@@ -7,10 +7,14 @@ export interface ExtendedD3HierarchyNode extends d3.HierarchyPointNode<D3TreeNod
     _id: number;
 }
 
-// Define the ProductNode type
-export interface ProductNode {
+export interface BaseNode {
     id?: string;
     name: string;
+    type: 'product' |'sideProduct' | 'process';
+}
+
+// Define the ProductNode type
+export interface ProductNode extends BaseNode {
     type: 'product';
     influenceProduct: InfluenceProduct; // Reference to InfluenceProduct
     amount: number;
@@ -20,8 +24,7 @@ export interface ProductNode {
 }
 
 // Define the SideProductNode type
-export interface SideProductNode {
-    name: string;
+export interface SideProductNode extends BaseNode {
     type: 'sideProduct';
     influenceProduct: InfluenceProduct;
     amount: number;
@@ -30,8 +33,7 @@ export interface SideProductNode {
 }
 
 // Define the ProcessNode type
-export interface ProcessNode {
-    name: string;
+export interface ProcessNode extends BaseNode {
     type: 'process';
     influenceProcess: InfluenceProcess; // Reference to InfluenceProcess
     totalDuration: number; // Calculated total duration

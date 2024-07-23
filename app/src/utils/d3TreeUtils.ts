@@ -1,7 +1,8 @@
-// d3TreeUtils.ts
+// utils/d3TreeUtils.ts
 import * as d3 from 'd3';
 import { D3TreeNode, ExtendedD3HierarchyNode } from '../types/d3Types';
-import { renderNodeHtml } from '../components/TreeVisualizer/renderNodes'
+import { InfluenceProcess } from '../types/influenceTypes';
+import { renderNodeHtml } from '../components/TreeVisualizer/renderNodes';
 
 export const createD3Tree = (
     containerRef: React.RefObject<HTMLDivElement>,
@@ -9,7 +10,9 @@ export const createD3Tree = (
     rootRef: React.MutableRefObject<ExtendedD3HierarchyNode | null>,
     iRef: React.MutableRefObject<number>,
     update: (source: ExtendedD3HierarchyNode) => void,
-    click: (event: React.MouseEvent, d: ExtendedD3HierarchyNode) => void
+    click: (event: React.MouseEvent, d: ExtendedD3HierarchyNode) => void,
+    onSelectProcess: (processId: string, parentId: string) => void,
+    processList: { [key: string]: InfluenceProcess[] }
 ) => {
     const container = d3.select(containerRef.current);
     const margin = { top: 20, right: 90, bottom: 30, left: 90 };
@@ -59,7 +62,10 @@ export const updateD3Tree = (
     rootRef: React.MutableRefObject<ExtendedD3HierarchyNode | null>,
     margin: { top: number; right: number; bottom: number; left: number; },
     updateRef: React.MutableRefObject<(source: ExtendedD3HierarchyNode) => void>,
-    click: (event: React.MouseEvent, d: ExtendedD3HierarchyNode) => void
+    update: (source: ExtendedD3HierarchyNode) => void,
+    click: (event: React.MouseEvent, d: ExtendedD3HierarchyNode) => void,
+    onSelectProcess: (processId: string, parentId: string) => void,
+    processList: { [key: string]: InfluenceProcess[] }
 ) => {
     const container = d3.select(containerRef.current);
     const svg = container.select('svg');
@@ -82,17 +88,28 @@ export const updateD3Tree = (
 
     const nodeEnter = node.enter().append('g')
         .attr('class', 'node')
-        .attr('transform', d => `translate(${source.y0},${source.x0})`);
+        .attr('transform', d => `translate(${source.y0},${source.x0})`)
+        .on('click', (event, d) => {
+            click(event, d);
+            update(d);  // This ensures that the tree is updated after a node is clicked
+        });
 
     nodeEnter.append('foreignObject')
-        .attr('width', 1)
-        .attr('height', 1)
+        .attr('width', 200)
+        .attr('height', 150)
         .attr('style', 'overflow: visible')
         .attr('x', -100)
         .attr('y', -50)
         .append('xhtml:div')
-        .on('click', (event, d) => click(event as unknown as React.MouseEvent, d))
-        .html(d => renderNodeHtml(d.data));
+        .html(d => renderNodeHtml(d.data, onSelectProcess, processList))
+        .each(function(d) { // Use D3's each function to access the DOM node
+            const div = d3.select(this);
+            div.selectAll('select') // Assuming <select> is the element to bind event to
+              .on('change', function(event) { // Attach event listener
+                const processId = event.target.value;
+                onSelectProcess(processId, d.data.influenceProduct.id);
+              });
+        });
 
     const nodeUpdate = nodeEnter.merge(node);
 
@@ -141,7 +158,7 @@ export const updateD3Tree = (
     });
 
     // Format numbers in the node cards
-    d3.selectAll('.number-format').each(function() {
+    d3.selectAll('.number-format').each(function () {
         const element = d3.select(this);
         const value = element.attr('data-value');
         if (value) {

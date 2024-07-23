@@ -23,3 +23,8 @@ export interface InfluenceProcessInputOutput {
     productId: string;
     unitsPerSR: string;
 }
+
+export interface ProcessInput {
+    product: InfluenceProduct;
+    unitsPerSR: string; // Assuming this is a string based on your examples, adjust if necessary
+}
