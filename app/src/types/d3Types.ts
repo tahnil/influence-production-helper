@@ -8,6 +8,7 @@ export interface ExtendedD3HierarchyNode extends d3.HierarchyPointNode<D3TreeNod
 }
 
 export interface BaseNode {
+    uniqueNodeId: string;
     id?: string;
     name: string;
     type: 'product' |'sideProduct' | 'process';

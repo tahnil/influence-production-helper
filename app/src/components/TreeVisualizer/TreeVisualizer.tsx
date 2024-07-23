@@ -46,12 +46,19 @@ const TreeVisualizer: React.FC = () => {
         }
     };
 
+    const generateUniqueId = () => {
+        const timestamp = Date.now();
+        const randomString = Math.random().toString(36).substring(2, 15);
+        return `${timestamp}-${randomString}`;
+    };
+
     const handleProductSelection = async (product: InfluenceProduct) => {
         console.log(`Selected product: ${product.name} with id: ${product.id}`);
         const processes = await fetchProcessesForProduct(product.id);
         console.log(`Fetched processes for ${product.name}:`, processes);
 
         const newNode: ProductNode = {
+            uniqueNodeId: generateUniqueId(),
             id: product.id,
             name: product.name,
             type: 'product',
@@ -101,6 +108,7 @@ const TreeVisualizer: React.FC = () => {
         }
 
         const newNode: ProcessNode = {
+            uniqueNodeId: generateUniqueId(),
             id: selectedProcess.id,
             name: selectedProcess.name,
             type: 'process',
