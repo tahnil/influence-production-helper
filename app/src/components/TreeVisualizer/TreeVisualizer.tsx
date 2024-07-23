@@ -199,7 +199,10 @@ const TreeVisualizer: React.FC = () => {
 
     useEffect(() => {
         if (treeData) {
-            createD3Tree(containerRef, treeData, rootRef, iRef, update, click, handleProcessSelection, processList);
+            const updateCallback = (source: ExtendedD3HierarchyNode) => {
+                updateRef.current?.(source);
+            };
+            createD3Tree(containerRef, treeData, rootRef, updateCallback, click, handleProcessSelection, processList);
         }
     }, [treeData, update, click, handleProcessSelection, processList]);
 

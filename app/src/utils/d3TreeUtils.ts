@@ -8,7 +8,6 @@ export const createD3Tree = (
     containerRef: React.RefObject<HTMLDivElement>,
     treeData: D3TreeNode,
     rootRef: React.MutableRefObject<ExtendedD3HierarchyNode | null>,
-    iRef: React.MutableRefObject<number>,
     update: (source: ExtendedD3HierarchyNode) => void,
     click: (event: React.MouseEvent, d: ExtendedD3HierarchyNode) => void,
     onSelectProcess: (processId: string, parentId: string) => void,
@@ -45,10 +44,6 @@ export const createD3Tree = (
         root.x0 = height / 2;
         root.y0 = 0;
 
-        root.each((d: ExtendedD3HierarchyNode) => {
-            d._id = ++iRef.current;
-        });
-
         rootRef.current = root;
         update(root);
     }
@@ -79,18 +74,17 @@ export const updateD3Tree = (
     const treeData = treemap(root);
     const nodes = treeData.descendants() as ExtendedD3HierarchyNode[];
     console.log("Nodes:", nodes);
-    const links = treeData.descendants().slice(1) as ExtendedD3HierarchyNode[];
-    nodes.forEach(d => d.y = d.depth * 180);
+    const links = treeData.links();
 
     const node = g.selectAll<SVGGElement, ExtendedD3HierarchyNode>('g.node')
-        .data(nodes, d => d._id);
+    .data(nodes, d => d.data.uniqueNodeId);  // Use uniqueNodeId for object constancy
 
     const nodeEnter = node.enter().append('g')
-        .attr('class', 'node')
-        .attr('transform', d => `translate(${source.y0},${source.x0})`)
+        .classed('node', true)
+        .attr('transform', d => `translate(${d.y},${d.x})`)  // Start at their actual position
         .on('click', (event, d) => {
             click(event, d);
-            update(d);  // This ensures that the tree is updated after a node is clicked
+            update(d);
         });
 
     nodeEnter.append('foreignObject')
@@ -126,52 +120,42 @@ export const updateD3Tree = (
     nodeExit.select('text').style('fill-opacity', 1e-6);
 
     const link = g.selectAll<SVGPathElement, ExtendedD3HierarchyNode>('path.link')
-        .data(links, d => d._id);
+        .data(links, d => d.target.data.uniqueNodeId);
 
     const linkEnter = link.enter().insert('path', 'g')
-        .attr('class', 'link')
-        .attr('d', d => {
-            const o = { x: source.x0, y: source.y0, x0: source.x0, y0: source.y0, _id: source._id, data: source.data, depth: source.depth, height: source.height, parent: source.parent } as ExtendedD3HierarchyNode;
-            return curvedLine(o, o);
-        })
+        .classed('link', true)
+        .attr('d', d => curvedLine(d.source, d.target))
         .style('fill', 'none')
         .style('stroke', 'steelblue')
         .style('stroke-width', '2px');
 
-    const linkUpdate = linkEnter.merge(link);
+    link.merge(linkEnter).transition().duration(750)
+        .attr('d', d => curvedLine(d.source, d.target));
 
-    linkUpdate.transition()
-        .duration(750)
-        .attr('d', d => curvedLine(d, d.parent as ExtendedD3HierarchyNode));
-
-    const linkExit = link.exit().transition()
-        .duration(750)
-        .attr('d', d => {
-            const o = { x: source.x, y: source.y, x0: source.x0, y0: source.y0, _id: source._id, data: source.data, depth: source.depth, height: source.height, parent: source.parent } as ExtendedD3HierarchyNode;
-            return curvedLine(o, o);
-        })
-        .remove();
+    link.exit().transition().duration(750).remove();
 
     nodes.forEach(d => {
         d.x0 = d.x;
         d.y0 = d.y;
     });
-
-    // Format numbers in the node cards
-    d3.selectAll('.number-format').each(function () {
+    // Format numbers in the node cards after updates
+    svg.selectAll('.number-format').each(function () {
         const element = d3.select(this);
         const value = element.attr('data-value');
         if (value) {
-            element.text(new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(value)));
+            element.text(new Intl.NumberFormat('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(parseFloat(value)));
         }
     });
 };
 
-export const curvedLine = (s: ExtendedD3HierarchyNode, d: ExtendedD3HierarchyNode): string => {
-    return `M ${s.y} ${s.x}
-        C ${(s.y + d.y) / 2} ${s.x},
-        ${(s.y + d.y) / 2} ${d.x},
-        ${d.y} ${d.x}`;
+export const curvedLine = (source, target) => {
+    return `M ${source.y} ${source.x}
+            C ${(source.y + target.y) / 2} ${source.x},
+              ${(source.y + target.y) / 2} ${target.x},
+              ${target.y} ${target.x}`;
 };
 
 export const collapse = (d: ExtendedD3HierarchyNode): void => {
