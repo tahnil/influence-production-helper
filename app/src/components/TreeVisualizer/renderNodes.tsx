@@ -11,7 +11,7 @@ export const renderNodeHtml = (data: D3TreeNode, onSelectProcess: (processId: st
     switch (data.type) {
         case 'product':
             const productNode = data as ProductNode;
-            console.log(`renderNodeHtml for ${productNode.name} with processes:`, productNode.processes);
+            // console.log(`renderNodeHtml for ${productNode.name} with processes:`, productNode.processes);
             return ReactDOMServer.renderToString(
                 <ProductNodeComponent 
                     node={productNode} 

@@ -7,7 +7,7 @@ interface ProcessSelectorProps {
 }
 
 const ProcessSelector: React.FC<ProcessSelectorProps> = ({ processes, onSelect }) => {
-    console.log('ProcessSelector processes:', processes);
+    // console.log('ProcessSelector processes:', processes);
     return (
         <select onChange={(e) => onSelect(e.target.value)}>
             <option value="">Select a Process</option>

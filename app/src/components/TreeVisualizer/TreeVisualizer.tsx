@@ -34,12 +34,12 @@ const TreeVisualizer: React.FC = () => {
 
     const fetchProcessesForProduct = async (productId: string) => {
         try {
-            console.log(`Fetching processes for product ID: ${productId}`);
+            // console.log(`Fetching processes for product ID: ${productId}`);
             const response = await fetch(`/api/processes?outputProductId=${productId}`);
             if (!response.ok) throw new Error('Failed to fetch processes');
             const processes = await response.json();
             setProcessList(prev => ({ ...prev, [productId]: processes }));
-            console.log(`Processes for product ID ${productId}:`, processes);
+            // console.log(`Processes for product ID ${productId}:`, processes);
             return processes;
         } catch (error) {
             console.error(`Error fetching processes for product ${productId}:`, error);
@@ -53,9 +53,9 @@ const TreeVisualizer: React.FC = () => {
     };
 
     const handleProductSelection = async (product: InfluenceProduct) => {
-        console.log(`Selected product: ${product.name} with id: ${product.id}`);
+        // console.log(`Selected product: ${product.name} with id: ${product.id}`);
         const processes = await fetchProcessesForProduct(product.id);
-        console.log(`Fetched processes for ${product.name}:`, processes);
+        // console.log(`Fetched processes for ${product.name}:`, processes);
 
         const newNode: ProductNode = {
             uniqueNodeId: generateUniqueId(),
@@ -74,11 +74,11 @@ const TreeVisualizer: React.FC = () => {
     };
 
     const handleProcessSelection = async (processId: string, parentId: string) => {
-        console.log(`Selected process ID: ${processId} for parent product ID: ${parentId}`);
+        // console.log(`Selected process ID: ${processId} for parent product ID: ${parentId}`);
 
         const response = await fetch(`/api/inputs?processId=${processId}`);
         const inputs: ProcessInput[] = await response.json(); // Use the ProcessInput type here
-        console.log(`Fetched inputs for process ${processId}:`, inputs);
+        // console.log(`Fetched inputs for process ${processId}:`, inputs);
 
         const processesPromises = inputs.map(input => 
             fetchProcessesForProduct(input.product.id)  // Ensure processes are fetched and updated
@@ -99,7 +99,7 @@ const TreeVisualizer: React.FC = () => {
         }))
 
         const selectedProcess = processList[parentId]?.find(p => p.id === processId);
-        console.log(`Selected parent id:`, processList[parentId]);
+        // console.log(`Selected parent id:`, processList[parentId]);
 
         // Check if selectedProcess is defined
         if (!selectedProcess) {
@@ -172,7 +172,7 @@ const TreeVisualizer: React.FC = () => {
     };
 
     useEffect(() => {
-        console.log('Updated processList:', processList);
+        // console.log('Updated processList:', processList);
     }, [processList]);
 
     const click = useCallback((event: React.MouseEvent, d: ExtendedD3HierarchyNode): void => {

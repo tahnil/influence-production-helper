@@ -12,7 +12,7 @@ interface ProductNodeComponentProps {
 }
 
 const ProductNodeComponent: React.FC<ProductNodeComponentProps> = ({ node, processes, onSelectProcess }) => {
-    console.log(`ProductNodeComponent for ${node.name} with processes:`, processes);
+    // console.log(`ProductNodeComponent for ${node.name} with processes:`, processes);
     return (
         <div className="border rounded-md p-2 bg-white shadow text-sm w-44">
             <div>PRODUCT</div>
