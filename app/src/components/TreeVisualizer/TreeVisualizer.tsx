@@ -38,6 +38,7 @@ const TreeVisualizer: React.FC = () => {
         const processes = await response.json();
         console.log(`Fetched processes for ${product.name}:`, processes);
         setProcessList(prev => ({ ...prev, [product.id]: processes }));
+        console.log('Updated process list for product', product.id, processes);
 
         const newNode: ProductNode = {
             name: product.name,
@@ -46,7 +47,8 @@ const TreeVisualizer: React.FC = () => {
             amount: 0, // we still need logic to poll the desired amount by the user
             totalWeight: 0, // calculate function missing based on the amount and product data
             totalVolume: 0, // calculate function missing based on the amount and product data
-            children: []
+            children: [],
+            processes: processes
         };
 
         setTreeData(newNode);
@@ -60,12 +62,31 @@ const TreeVisualizer: React.FC = () => {
         console.log(`Fetched inputs for process ${processId}:`, inputs);
 
         const selectedProcess = processList[parentId]?.find(p => p.id === processId);
+        console.log(`Selected parent id:`, processList[parentId]);
 
         // Check if selectedProcess is defined
         if (!selectedProcess) {
             console.error('Selected process is undefined.');
             return; // Optionally, handle this case more gracefully in your UI
         }
+
+        // Iterate through each input to fetch and assign processes
+        const inputNodes = await Promise.all(inputs.map(async (input) => {
+            const processResponse = await fetch(`/api/processes?outputProductId=${input.product.id}`);
+            const processesForProduct = await processResponse.json();
+    
+            return {
+                id: input.product.id,
+                name: input.product.name,
+                type: 'product',
+                influenceProduct: input.product,
+                amount: parseFloat(input.unitsPerSR),
+                totalWeight: 0, // calculate function missing based on process data
+                totalVolume: 0, // calculate function missing based on process data
+                children: [],
+                processes: processesForProduct  // Store processes for each new product
+            };
+        }));
 
         const newNode: ProcessNode = {
             id: selectedProcess.id,
@@ -74,16 +95,7 @@ const TreeVisualizer: React.FC = () => {
             influenceProcess: selectedProcess,
             totalDuration: 0, // calculate function missing based on process data
             totalRuns: 0, // calculate function missing based on process data
-            children: inputs.map((input: ProcessInput) => ({
-                id: input.product.id,
-                name: input.product.name,
-                type: 'product',
-                influenceProduct: input.product,
-                amount: parseFloat(input.unitsPerSR),
-                totalWeight: 0,
-                totalVolume: 0,
-                children: []
-            }))
+            children: inputNodes
         };
 
         const addNodeToTree = (node: D3TreeNode, newNode: ProcessNode | ProductNode, parentId: string): D3TreeNode => {

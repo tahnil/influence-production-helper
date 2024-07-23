@@ -21,6 +21,7 @@ export interface ProductNode extends BaseNode {
     totalWeight: number; // Calculated total weight
     totalVolume: number; // Calculated total volume
     children?: ProcessNode[];
+    processes?: InfluenceProcess[];
 }
 
 // Define the SideProductNode type

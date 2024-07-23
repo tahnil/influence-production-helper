@@ -10,7 +10,15 @@ import { ProductNode, ProcessNode } from '@/types/d3Types';
 export const renderNodeHtml = (data: D3TreeNode, onSelectProcess: (processId: string, parentId: string) => void, processList: { [key: string]: InfluenceProcess[] }): string => {
     switch (data.type) {
         case 'product':
-            return ReactDOMServer.renderToString(<ProductNodeComponent node={data as ProductNode} onSelectProcess={onSelectProcess} processes={processList[data.influenceProduct.id] || []} />);
+            const productNode = data as ProductNode;
+            console.log(`renderNodeHtml for ${productNode.name} with processes:`, productNode.processes);
+            return ReactDOMServer.renderToString(
+                <ProductNodeComponent 
+                    node={productNode} 
+                    processes={productNode.processes || []} 
+                    onSelectProcess={onSelectProcess} 
+                />
+            );
         case 'process':
             return ReactDOMServer.renderToString(<ProcessNodeComponent node={data as ProcessNode} />);
         default:
