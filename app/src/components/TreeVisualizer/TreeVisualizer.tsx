@@ -57,6 +57,7 @@ const TreeVisualizer: React.FC = () => {
 
         const response = await fetch(`/api/inputs?processId=${processId}`);
         const inputs: ProcessInput[] = await response.json(); // Use the ProcessInput type here
+        console.log(`Fetched inputs for process ${processId}:`, inputs);
 
         const selectedProcess = processList[parentId]?.find(p => p.id === processId);
 
@@ -67,12 +68,14 @@ const TreeVisualizer: React.FC = () => {
         }
 
         const newNode: ProcessNode = {
+            id: selectedProcess.id,
             name: selectedProcess.name,
             type: 'process',
             influenceProcess: selectedProcess,
             totalDuration: 0, // calculate function missing based on process data
             totalRuns: 0, // calculate function missing based on process data
             children: inputs.map((input: ProcessInput) => ({
+                id: input.product.id,
                 name: input.product.name,
                 type: 'product',
                 influenceProduct: input.product,
@@ -83,25 +86,49 @@ const TreeVisualizer: React.FC = () => {
             }))
         };
 
-        const addNodeToTree = (node: D3TreeNode, newNode: ProcessNode | ProductNode): D3TreeNode => {
-            if (node.type === 'product' && newNode.type === 'process') {
-                // Assure TypeScript that children are ProcessNode[] if they exist
-                const updatedChildren: ProcessNode[] = node.children ? [...node.children, newNode as ProcessNode] : [newNode as ProcessNode];
-                return { ...node, children: updatedChildren };
-            } else if (node.type === 'process' && newNode.type === 'product') {
-                // Assure TypeScript that children are ProductNode[] if they exist
-                const updatedChildren: ProductNode[] = node.children ? [...node.children, newNode as ProductNode] : [newNode as ProductNode];
-                return { ...node, children: updatedChildren };
-            } else if ((node.type === 'product' || node.type === 'process') && node.children) {
-                // Handle recursive updates correctly
-                const updatedChildren = node.children.map(child => addNodeToTree(child, newNode));
-                if (node.type === 'product') {
-                    return { ...node, children: updatedChildren as ProcessNode[] };
-                } else if (node.type === 'process') {
-                    return { ...node, children: updatedChildren as ProductNode[] };
+        const addNodeToTree = (node: D3TreeNode, newNode: ProcessNode | ProductNode, parentId: string): D3TreeNode => {
+            console.log("New process node being added:", newNode);
+            console.log("Selected process details:", selectedProcess);
+
+            // Handling product nodes that might receive a new process node
+            if (node.type === 'product' && node.id === parentId) {
+                if (newNode.type === 'process') {
+                    if (!node.children) {
+                        node.children = [];
+                    }
+                    // Check if there is already a process node under this product
+                    const existingProcessIndex = node.children?.findIndex(child => child.type === 'process' && child.id === newNode.id);
+                    console.log(`Existing Process Index: ${existingProcessIndex}`);
+                    console.log(`Checking process node at index ${existingProcessIndex}`, node.children[existingProcessIndex]);
+                    console.log("Current process node:", node.children[existingProcessIndex]);
+
+                    if (existingProcessIndex !== undefined && existingProcessIndex !== -1) {
+                        // Check if the same process is selected again
+                        if (node.children[existingProcessIndex].id === newNode.id) {
+                            console.log(`Process ${node.children[existingProcessIndex].id} / ${newNode.id} already selected, no action taken`);
+                            return node; // No update if the same process is selected
+                        } else {
+                            // Replace the existing process node with the new one
+                            const updatedChildren = [...node.children];
+                            updatedChildren[existingProcessIndex] = newNode as ProcessNode;
+                            return { ...node, children: updatedChildren };
+                        }
+                    } else {
+                        // No existing process node, add the new one
+                        const updatedChildren = node.children ? [...node.children, newNode as ProcessNode] : [newNode as ProcessNode];
+                        return { ...node, children: updatedChildren };
+                    }
                 }
+            } else if (node.type === 'process' && newNode.type === 'product' && node.id === parentId) {
+                // Handling process nodes receiving new product nodes
+                const updatedChildren = node.children ? [...node.children, newNode as ProductNode] : [newNode as ProductNode];
+                return { ...node, children: updatedChildren };
+            } else if (node.children) {
+                // Recursively update children nodes if no direct match
+                const updatedChildren = node.children.map(child => addNodeToTree(child, newNode, parentId));
+                return { ...node, children: updatedChildren };
             }
-            return node; // Return unchanged if SideProductNode or if conditions do not match
+            return node; // Return unchanged if SideProductNode or conditions do not match
         };
 
         // Update the treeData with the new node
@@ -139,12 +166,12 @@ const TreeVisualizer: React.FC = () => {
 
     const update = useCallback((source: ExtendedD3HierarchyNode | null): void => {
         if (source) {
-            updateD3Tree(source, containerRef, rootRef, 
+            updateD3Tree(source, containerRef, rootRef,
                 { top: 20, right: 90, bottom: 30, left: 90 },
-                updateRef, update, click, 
+                updateRef, update, click,
                 handleProcessSelection, processList);
         }
-    }, [click, handleProcessSelection, processList]);    
+    }, [click, handleProcessSelection, processList]);
 
     updateRef.current = update;
 

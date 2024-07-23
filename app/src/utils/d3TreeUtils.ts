@@ -107,6 +107,7 @@ export const updateD3Tree = (
             div.selectAll('select') // Assuming <select> is the element to bind event to
               .on('change', function(event) { // Attach event listener
                 const processId = event.target.value;
+                console.log("Change event fired with value: " + processId);
                 onSelectProcess(processId, d.data.influenceProduct.id);
               });
         });
