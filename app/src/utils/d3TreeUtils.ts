@@ -49,8 +49,6 @@ export const createD3Tree = (
             d._id = ++iRef.current;
         });
 
-        root.children?.forEach(d => collapse(d));
-
         rootRef.current = root;
         update(root);
     }

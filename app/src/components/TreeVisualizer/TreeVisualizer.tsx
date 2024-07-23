@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { InfluenceProduct, InfluenceProcess } from '@/types/influenceTypes';
 import { ExtendedD3HierarchyNode, D3TreeNode, ProductNode, ProcessNode } from '@/types/d3Types';
-import { createD3Tree, updateD3Tree, collapse } from '@/utils/d3TreeUtils';
+import { createD3Tree, updateD3Tree } from '@/utils/d3TreeUtils';
 import ProductSelector from './ProductSelector';
 import { ProcessInput } from '@/types/influenceTypes';
 
