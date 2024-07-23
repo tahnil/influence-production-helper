@@ -78,6 +78,7 @@ export const updateD3Tree = (
 
     const treeData = treemap(root);
     const nodes = treeData.descendants() as ExtendedD3HierarchyNode[];
+    console.log("Nodes:", nodes);
     const links = treeData.descendants().slice(1) as ExtendedD3HierarchyNode[];
     nodes.forEach(d => d.y = d.depth * 180);
 
