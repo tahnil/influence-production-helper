@@ -51,11 +51,6 @@ const TreeVisualizer: React.FC = () => {
         const processes = await fetchProcessesForProduct(product.id);
         console.log(`Fetched processes for ${product.name}:`, processes);
 
-        // const processes = await response.json();
-        // console.log(`Fetched processes for ${product.name}:`, processes);
-        // setProcessList(prev => ({ ...prev, [product.id]: processes }));
-        // console.log('Updated process list for product', product.id, processes);
-
         const newNode: ProductNode = {
             id: product.id,
             name: product.name,
