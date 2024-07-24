@@ -73,24 +73,28 @@ export const updateD3Tree = (
     if (!root) return;
 
     const treeData = treemap(root);
-    const nodes = treeData.descendants() as ExtendedD3HierarchyNode[];
-    console.log("Nodes:", nodes);
-    const links: Array<HierarchyPointLink<D3TreeNode>> = treeData.links();
-    console.log("Links:", links);
 
+    // define nodes and links
+    const nodes = treeData.descendants() as ExtendedD3HierarchyNode[];
     const node = g.selectAll<SVGGElement, ExtendedD3HierarchyNode>('g.node')
         .data(nodes, d => d.data.uniqueNodeId);  // Use uniqueNodeId for object constancy
+    console.log("Nodes:", nodes);
 
-
+    const links = treeData.links() as Array<HierarchyPointLink<D3TreeNode>>;
+    const link = g.selectAll<SVGPathElement, HierarchyPointLink<D3TreeNode>>('path.link')
+        .data(links, d => d.target.data.uniqueNodeId);
+    console.log("Links:", links);    
+    
     // ####### Entering Elements #########
     const nodeEnter = node.enter().append('g')
         .classed('node', true)
-        .attr('transform', d => `translate(${source.y},${source.x})`)  // Start at their actual position
+        .attr('transform', d => `translate(${d.parent.y},${d.parent.x})`)  // Start at their actual position
         .on('click', (event, d) => {
             click(event, d);
             update(d);
         });
-
+    
+    // inject our Product and Process node cards into diagram
     nodeEnter.append('foreignObject')
         .attr('width', 200)
         .attr('height', 150)
@@ -108,25 +112,6 @@ export const updateD3Tree = (
                 onSelectProcess(processId, d.data.influenceProduct.id);
               });
         });
-    
-    // ####### Updating Elements #########
-    const nodeUpdate = nodeEnter.merge(node);
-
-    nodeUpdate.transition()
-        .duration(750)
-        .attr('transform', d => `translate(${d.y},${d.x})`);
-
-    // ####### Exiting Elements #########
-    const nodeExit = node.exit().transition()
-        .duration(750)
-        .attr('transform', d => `translate(${source.y},${source.x})`)
-        .remove();
-
-    nodeExit.select('circle').attr('r', 1e-6);
-    nodeExit.select('text').style('fill-opacity', 1e-6);
-
-    const link = g.selectAll<SVGPathElement, HierarchyPointLink<D3TreeNode>>('path.link')
-        .data(links, d => d.target.data.uniqueNodeId);
 
     const linkEnter = link.enter().insert('path', 'g')
         .classed('link', true)
@@ -147,11 +132,32 @@ export const updateD3Tree = (
         .style('fill', 'none')
         .style('stroke', 'steelblue')
         .style('stroke-width', '2px');
-
+    
+    // update the 'd' attribute of all link objects in the diagram
+    // the 'd' attribute describes the path data for the link
+    // 'source' is the source node of the link
+    // 'target' is the target node of the link
     link.merge(linkEnter).transition().duration(750)
         .attr('d', d => curvedLine(d.source, d.target));
 
-    const linkExit = link.exit().transition()
+    
+    // ####### Updating Elements #########
+    const nodeUpdate = nodeEnter.merge(node);
+
+    nodeUpdate.transition()
+        .duration(750)
+        .attr('transform', d => `translate(${d.y},${d.x})`);
+
+    // ####### Exiting Elements #########
+    const nodeExit = node.exit().transition()
+        .duration(750)
+        .attr('transform', d => `translate(${source.y},${source.x})`)
+        .remove();
+
+    nodeExit.select('circle').attr('r', 1e-6);
+    nodeExit.select('text').style('fill-opacity', 1e-6);
+
+    link.exit().transition()
         .duration(750)
         .attr('d', d => {
             const o = { 
