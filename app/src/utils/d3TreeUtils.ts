@@ -89,8 +89,8 @@ export const updateD3Tree = (
     const nodeEnter = node.enter().append('g')
         .classed('node', true)
         .attr('transform', d => {
-            const startY = d.parent ? d.parent.y0 : source.y;
-            const startX = d.parent ? d.parent.x0 : source.x;
+            const startY = d.parent ? d.parent.y : source.y;
+            const startX = d.parent ? d.parent.x : source.x;
             return `translate(${source.y},${source.x})`  // Start at their actual position
         })
         .on('click', (event, d) => {
