@@ -1,10 +1,11 @@
 import { InfluenceProduct, InfluenceProcess } from './influenceTypes';
+import { HierarchyPointNode } from 'd3';
 
-export interface ExtendedD3HierarchyNode extends d3.HierarchyPointNode<D3TreeNode> {
-    x0: number;
-    y0: number;
+export interface ExtendedD3HierarchyNode extends HierarchyPointNode<D3TreeNode> {
+    x0?: number;
+    y0?: number;
     _children?: this[];
-    _id: number;
+    _id?: number;
     uniqueNodeId: string;
 }
 

@@ -1,18 +1,18 @@
 // components/TreeVisualizer/ProductNodeComponent.tsx:
 
 import React from 'react';
-import { ProductNode } from '../../types/d3Types';
-import ProcessSelector from './ProcessSelector';
+import { ExtendedD3HierarchyNode, ProductNode } from '../../types/d3Types';
 import { InfluenceProcess } from '../../types/influenceTypes';
+import ProcessSelector from './ProcessSelector';
 
 interface ProductNodeComponentProps {
     node: ProductNode;
     processes: InfluenceProcess[];
-    onSelectProcess: (processId: string, parentId: string) => void;
+    handleProcessSelection: (processId: string, parentId: string, source: ExtendedD3HierarchyNode) => void;
 }
 
-const ProductNodeComponent: React.FC<ProductNodeComponentProps> = ({ node, processes, onSelectProcess }) => {
-    // console.log(`ProductNodeComponent for ${node.name} with processes:`, processes);
+const ProductNodeComponent: React.FC<ProductNodeComponentProps> = ({ node, processes, handleProcessSelection }) => {
+    console.log(`[function 'ProductNodeComponent' (ProductNodeComponent.tsx)]:\n#########\nRender ProductNodeComponent for ${node.name} with processes:`, processes,`.\n\nAnd here's the node object:`, node);
     return (
         <div className="border rounded-md p-2 bg-white shadow text-sm w-44">
             <div>PRODUCT</div>
@@ -23,7 +23,10 @@ const ProductNodeComponent: React.FC<ProductNodeComponentProps> = ({ node, proce
             <div>Units: <span className="number-format" data-value={node.amount}></span></div>
             <div>Total Weight: <span className="number-format" data-value={node.totalWeight}></span> kg</div>
             <div>Total Volume: <span className="number-format" data-value={node.totalVolume}></span> L</div>
-            <ProcessSelector processes={processes} onSelect={(processId) => onSelectProcess(processId, node.influenceProduct.id)} />
+            <ProcessSelector 
+                processes={processes} 
+                onSelect={(processId) => handleProcessSelection(processId, node.influenceProduct.id, node)} 
+            />
         </div>
     );
 };

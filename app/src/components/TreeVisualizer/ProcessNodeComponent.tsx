@@ -8,6 +8,7 @@ interface ProcessNodeComponentProps {
 }
 
 const ProcessNodeComponent: React.FC<ProcessNodeComponentProps> = ({ node }) => {
+    console.log(`[function 'ProcessNodeComponent' (ProcessNodeComponent.tsx)]\n#########\nNode:`, node);
     return (
         <div className="border rounded-md p-2 bg-white shadow text-sm w-44">
             <div>PROCESS</div>

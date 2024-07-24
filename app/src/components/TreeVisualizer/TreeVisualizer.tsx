@@ -6,6 +6,7 @@ import { ExtendedD3HierarchyNode, D3TreeNode, ProductNode, ProcessNode } from '@
 import { createD3Tree, updateD3Tree } from '@/utils/d3TreeUtils';
 import ProductSelector from './ProductSelector';
 import { ProcessInput } from '@/types/influenceTypes';
+import { generateUniqueId } from '@/utils/generateUniqueId';
 
 const TreeVisualizer: React.FC = () => {
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -18,20 +19,22 @@ const TreeVisualizer: React.FC = () => {
     const [productList, setProductList] = useState<InfluenceProduct[]>([]);
     const [processList, setProcessList] = useState<{ [key: string]: InfluenceProcess[] }>({});
 
+    // Fetch the list of products on initial load
     useEffect(() => {
-        // Fetch the list of products on initial load
         fetch('/api/products')
             .then(response => response.json())
             .then(data => setProductList(data))
             .catch(error => console.error('Error fetching products:', error));
     }, []);
 
+    // handleProductSelection
     useEffect(() => {
         if (selectedProduct) {
             handleProductSelection(selectedProduct);
         }
     }, [selectedProduct]);
 
+    // fetch all processes that yield selected product
     const fetchProcessesForProduct = async (productId: string) => {
         try {
             // console.log(`Fetching processes for product ID: ${productId}`);
@@ -46,12 +49,7 @@ const TreeVisualizer: React.FC = () => {
         }
     };
 
-    const generateUniqueId = () => {
-        const timestamp = Date.now();
-        const randomString = Math.random().toString(36).substring(2, 15);
-        return `${timestamp}-${randomString}`;
-    };
-
+    // handle the initial selection of a product, before the tree is rendered
     const handleProductSelection = async (product: InfluenceProduct) => {
         // console.log(`Selected product: ${product.name} with id: ${product.id}`);
         const processes = await fetchProcessesForProduct(product.id);
@@ -73,8 +71,10 @@ const TreeVisualizer: React.FC = () => {
         setTreeData(newNode);
     };
 
-    const handleProcessSelection = async (processId: string, parentId: string) => {
+    // handle the selection of a process from a Product node
+    const handleProcessSelection = async (processId: string, parentId: string, source: ExtendedD3HierarchyNode) => {
         // console.log(`Selected process ID: ${processId} for parent product ID: ${parentId}`);
+        console.log(`[function 'handleProcessSelection' (TreeVisualizer.tsx)]\n#########\nSource node:`, source.data.id, `partent ID:`, parentId, `process ID:`, processId);
 
         const response = await fetch(`/api/inputs?processId=${processId}`);
         const inputs: ProcessInput[] = await response.json(); // Use the ProcessInput type here
@@ -161,8 +161,8 @@ const TreeVisualizer: React.FC = () => {
             // Check if the updatedTreeData is still a ProductNode
             if (updatedTreeData.type === 'product') {
                 setTreeData(updatedTreeData);
-                if (updateRef.current && rootRef.current) {
-                    updateRef.current(rootRef.current);
+                if (updateRef.current && source) {
+                    updateRef.current(source);
                 }
             } else {
                 console.error("Unexpected node type at the root of the tree");
@@ -171,10 +171,12 @@ const TreeVisualizer: React.FC = () => {
         }
     };
 
+    // Handle processList changes
     useEffect(() => {
         // console.log('Updated processList:', processList);
     }, [processList]);
 
+    // handle collapsing and expanding of nodes
     const click = useCallback((event: React.MouseEvent, d: ExtendedD3HierarchyNode): void => {
         if (d.children) {
             d._children = d.children;
@@ -183,19 +185,29 @@ const TreeVisualizer: React.FC = () => {
             d.children = d._children;
             d._children = undefined;
         }
-        updateRef.current?.(d);
+        updateRef.current(d);
     }, []);
 
+    // update function
     const update = useCallback((source: ExtendedD3HierarchyNode | null): void => {
+        console.log('[function `update` via useCallback (TreeVisualizer.tsx)]\n#########\nUpdate function called...');
         if (source) {
-            updateD3Tree(source, containerRef, rootRef,
+            updateD3Tree(
+                source, 
+                containerRef, 
+                rootRef,
                 { top: 20, right: 90, bottom: 30, left: 90 },
-                updateRef, update, click,
-                handleProcessSelection, processList);
+                update, 
+                click,
+                handleProcessSelection, 
+                processList
+            );
         }
     }, [click, handleProcessSelection, processList]);
 
-    updateRef.current = update;
+    useEffect(() => {
+        updateRef.current = update;
+    }, [update]);
 
     useEffect(() => {
         if (treeData) {

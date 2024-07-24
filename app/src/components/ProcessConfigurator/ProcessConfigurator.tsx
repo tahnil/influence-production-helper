@@ -23,7 +23,7 @@ const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amou
     } else if (!inputsLoading && inputs.length > 0) {
       // Extract products from inputs and fetch processes for each
       const newIntermediateProducts = inputs.map(input => input.product);
-      console.log(`Intermediate products for ${product.name}:`, newIntermediateProducts);
+      console.log(`[useEffect in components/ProcessConfigurator.tsx]\nIntermediate products for ${product.name}:`, newIntermediateProducts);
       setIntermediateProducts(newIntermediateProducts);
     }
   }, [inputs, inputsLoading, inputsError]);

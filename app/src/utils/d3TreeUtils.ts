@@ -11,7 +11,7 @@ export const createD3Tree = (
     rootRef: React.MutableRefObject<ExtendedD3HierarchyNode | null>,
     update: (source: ExtendedD3HierarchyNode) => void,
     click: (event: React.MouseEvent, d: ExtendedD3HierarchyNode) => void,
-    onSelectProcess: (processId: string, parentId: string) => void,
+    handleProcessSelection: (processId: string, parentId: string, source: ExtendedD3HierarchyNode) => void,
     processList: { [key: string]: InfluenceProcess[] }
 ) => {
     const container = d3.select(containerRef.current);
@@ -55,12 +55,12 @@ export const updateD3Tree = (
     containerRef: React.RefObject<HTMLDivElement>,
     rootRef: React.MutableRefObject<ExtendedD3HierarchyNode | null>,
     margin: { top: number; right: number; bottom: number; left: number; },
-    updateRef: React.MutableRefObject<(source: ExtendedD3HierarchyNode) => void>,
     update: (source: ExtendedD3HierarchyNode) => void,
     click: (event: React.MouseEvent, d: ExtendedD3HierarchyNode) => void,
-    onSelectProcess: (processId: string, parentId: string) => void,
+    handleProcessSelection: (processId: string, parentId: string, source: ExtendedD3HierarchyNode) => void,
     processList: { [key: string]: InfluenceProcess[] }
 ) => {
+    console.log('[function `updateD3Tree` (d3TreeUtils.ts)]\n#########\nContent of object `source`:', source);
     const container = d3.select(containerRef.current);
     const svg = container.select('svg');
     const g = svg.select('g');
@@ -78,17 +78,21 @@ export const updateD3Tree = (
     const nodes = treeData.descendants() as ExtendedD3HierarchyNode[];
     const node = g.selectAll<SVGGElement, ExtendedD3HierarchyNode>('g.node')
         .data(nodes, d => d.data.uniqueNodeId);  // Use uniqueNodeId for object constancy
-    console.log("Nodes:", nodes);
+    // console.log("Nodes:", nodes);
 
     const links = treeData.links() as Array<HierarchyPointLink<D3TreeNode>>;
     const link = g.selectAll<SVGPathElement, HierarchyPointLink<D3TreeNode>>('path.link')
         .data(links, d => d.target.data.uniqueNodeId);
-    console.log("Links:", links);    
+    // console.log("Links:", links);    
     
     // ####### Entering Elements #########
     const nodeEnter = node.enter().append('g')
         .classed('node', true)
-        .attr('transform', d => `translate(${d.parent.y},${d.parent.x})`)  // Start at their actual position
+        .attr('transform', d => {
+            const startY = d.parent ? d.parent.y0 : source.y;
+            const startX = d.parent ? d.parent.x0 : source.x;
+            return `translate(${source.y},${source.x})`  // Start at their actual position
+        })
         .on('click', (event, d) => {
             click(event, d);
             update(d);
@@ -102,15 +106,17 @@ export const updateD3Tree = (
         .attr('x', -100)
         .attr('y', -50)
         .append('xhtml:div')
-        .html(d => renderNodeHtml(d.data, onSelectProcess, processList))
+        .html(d => renderNodeHtml(d.data, handleProcessSelection, processList))
         .each(function(d) { // Use D3's each function to access the DOM node
             const div = d3.select(this);
-            div.selectAll('select') // Assuming <select> is the element to bind event to
-              .on('change', function(event) { // Attach event listener
-                const processId = event.target.value;
-                console.log("Change event fired with value: " + processId);
-                onSelectProcess(processId, d.data.influenceProduct.id);
-              });
+            if (d.data.type === 'product') {
+                div.selectAll('select') // Assuming <select> is the element to bind event to
+                .on('change', function(event) { // Attach event listener
+                  const processId = event.target.value;
+                  console.log(`[nodeEnter.append('foreignObject'):\n##########\nChange event fired with value `, processId, `\n\nSource node: `, source.data.name,`\n\nHanding over Source: `, source, `\n\nAnd this is the content of 'd':`, d,`\nCalling handleProcessSelection.`);
+                  handleProcessSelection(processId, d.data.influenceProduct.id, d);
+                });
+            }
         });
 
     const linkEnter = link.enter().insert('path', 'g')
@@ -137,7 +143,7 @@ export const updateD3Tree = (
     // the 'd' attribute describes the path data for the link
     // 'source' is the source node of the link
     // 'target' is the target node of the link
-    link.merge(linkEnter).transition().duration(750)
+    link.merge(linkEnter).transition().duration(5000)
         .attr('d', d => curvedLine(d.source, d.target));
 
     
@@ -145,20 +151,24 @@ export const updateD3Tree = (
     const nodeUpdate = nodeEnter.merge(node);
 
     nodeUpdate.transition()
-        .duration(750)
+        .duration(5000)
         .attr('transform', d => `translate(${d.y},${d.x})`);
 
     // ####### Exiting Elements #########
     const nodeExit = node.exit().transition()
-        .duration(750)
-        .attr('transform', d => `translate(${source.y},${source.x})`)
+        .duration(5000)
+        .attr('transform', d => {
+            const endY = d.parent ? d.parent.y : source.y;
+            const endX = d.parent ? d.parent.x : source.x;
+            return `translate(${endY},${endX})`
+        })
         .remove();
 
     nodeExit.select('circle').attr('r', 1e-6);
     nodeExit.select('text').style('fill-opacity', 1e-6);
 
     link.exit().transition()
-        .duration(750)
+        .duration(5000)
         .attr('d', d => {
             const o = { 
                 x: source.x, 
