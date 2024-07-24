@@ -5,6 +5,7 @@ export interface ExtendedD3HierarchyNode extends d3.HierarchyPointNode<D3TreeNod
     y0: number;
     _children?: this[];
     _id: number;
+    uniqueNodeId: string;
 }
 
 export interface BaseNode {

@@ -1,5 +1,6 @@
 // utils/d3TreeUtils.ts
 import * as d3 from 'd3';
+import { HierarchyPointLink } from 'd3';
 import { D3TreeNode, ExtendedD3HierarchyNode } from '../types/d3Types';
 import { InfluenceProcess } from '../types/influenceTypes';
 import { renderNodeHtml } from '../components/TreeVisualizer/renderNodes';
@@ -74,14 +75,17 @@ export const updateD3Tree = (
     const treeData = treemap(root);
     const nodes = treeData.descendants() as ExtendedD3HierarchyNode[];
     console.log("Nodes:", nodes);
-    const links = treeData.links();
+    const links: Array<HierarchyPointLink<D3TreeNode>> = treeData.links();
+    console.log("Links:", links);
 
     const node = g.selectAll<SVGGElement, ExtendedD3HierarchyNode>('g.node')
-    .data(nodes, d => d.data.uniqueNodeId);  // Use uniqueNodeId for object constancy
+        .data(nodes, d => d.data.uniqueNodeId);  // Use uniqueNodeId for object constancy
 
+
+    // ####### Entering Elements #########
     const nodeEnter = node.enter().append('g')
         .classed('node', true)
-        .attr('transform', d => `translate(${d.y},${d.x})`)  // Start at their actual position
+        .attr('transform', d => `translate(${source.y},${source.x})`)  // Start at their actual position
         .on('click', (event, d) => {
             click(event, d);
             update(d);
@@ -104,13 +108,15 @@ export const updateD3Tree = (
                 onSelectProcess(processId, d.data.influenceProduct.id);
               });
         });
-
+    
+    // ####### Updating Elements #########
     const nodeUpdate = nodeEnter.merge(node);
 
     nodeUpdate.transition()
         .duration(750)
         .attr('transform', d => `translate(${d.y},${d.x})`);
 
+    // ####### Exiting Elements #########
     const nodeExit = node.exit().transition()
         .duration(750)
         .attr('transform', d => `translate(${source.y},${source.x})`)
@@ -119,12 +125,25 @@ export const updateD3Tree = (
     nodeExit.select('circle').attr('r', 1e-6);
     nodeExit.select('text').style('fill-opacity', 1e-6);
 
-    const link = g.selectAll<SVGPathElement, ExtendedD3HierarchyNode>('path.link')
+    const link = g.selectAll<SVGPathElement, HierarchyPointLink<D3TreeNode>>('path.link')
         .data(links, d => d.target.data.uniqueNodeId);
 
     const linkEnter = link.enter().insert('path', 'g')
         .classed('link', true)
-        .attr('d', d => curvedLine(d.source, d.target))
+        .attr('d', d => {
+            const o = { 
+                x: source.x0, 
+                y: source.y0, 
+                x0: source.x0, 
+                y0: source.y0, 
+                _id: source._id, 
+                data: source.data, 
+                depth: source.depth, 
+                height: source.height, 
+                parent: source.parent 
+            } as ExtendedD3HierarchyNode;
+            return curvedLine(o, o);
+        })
         .style('fill', 'none')
         .style('stroke', 'steelblue')
         .style('stroke-width', '2px');
@@ -132,12 +151,34 @@ export const updateD3Tree = (
     link.merge(linkEnter).transition().duration(750)
         .attr('d', d => curvedLine(d.source, d.target));
 
-    link.exit().transition().duration(750).remove();
+    const linkExit = link.exit().transition()
+        .duration(750)
+        .attr('d', d => {
+            const o = { 
+                x: source.x, 
+                y: source.y, 
+                x0: source.x0, 
+                y0: source.y0, 
+                _id: source._id, 
+                data: source.data, 
+                depth: source.depth, 
+                height: source.height, 
+                parent: source.parent 
+            } as ExtendedD3HierarchyNode;
+            return curvedLine(o, o);
+        })
+        .remove();
 
+    // store the current position of nodes as their 
+    // "previous" position once the transition completes 
+    // at the end of the diagram update
+    // for consistency across transitions
+    // smooth animations and as reference point for debugging
     nodes.forEach(d => {
         d.x0 = d.x;
         d.y0 = d.y;
     });
+
     // Format numbers in the node cards after updates
     svg.selectAll('.number-format').each(function () {
         const element = d3.select(this);
@@ -151,11 +192,11 @@ export const updateD3Tree = (
     });
 };
 
-export const curvedLine = (source, target) => {
-    return `M ${source.y} ${source.x}
-            C ${(source.y + target.y) / 2} ${source.x},
-              ${(source.y + target.y) / 2} ${target.x},
-              ${target.y} ${target.x}`;
+export const curvedLine = (s: ExtendedD3HierarchyNode, d: ExtendedD3HierarchyNode): string => {
+    return `M ${s.y} ${s.x}
+        C ${(s.y + d.y) / 2} ${s.x},
+        ${(s.y + d.y) / 2} ${d.x},
+        ${d.y} ${d.x}`;
 };
 
 export const collapse = (d: ExtendedD3HierarchyNode): void => {
