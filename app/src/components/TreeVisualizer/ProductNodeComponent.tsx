@@ -1,17 +1,23 @@
 // components/TreeVisualizer/ProductNodeComponent.tsx:
-
 import React from 'react';
-import { ExtendedD3HierarchyNode, ProductNode } from '../../types/d3Types';
+import { ProductNode, ExtendedD3HierarchyNode } from '../../types/d3Types';
 import { InfluenceProcess } from '../../types/influenceTypes';
 import ProcessSelector from './ProcessSelector';
 
 interface ProductNodeComponentProps {
     node: ProductNode;
+    currentD3Node: ExtendedD3HierarchyNode;
     processes: InfluenceProcess[];
     handleProcessSelection: (processId: string, parentId: string, source: ExtendedD3HierarchyNode) => void;
 }
 
-const ProductNodeComponent: React.FC<ProductNodeComponentProps> = ({ node, processes, handleProcessSelection }) => {
+const ProductNodeComponent: React.FC<ProductNodeComponentProps> = ({
+    node,
+    currentD3Node,
+    processes,
+    handleProcessSelection
+}) => {
+
     console.log(`[function 'ProductNodeComponent' (ProductNodeComponent.tsx)]:\n#########\nRender ProductNodeComponent for ${node.name} with processes:`, processes,`.\n\nAnd here's the node object:`, node);
     return (
         <div className="border rounded-md p-2 bg-white shadow text-sm w-44">
@@ -25,8 +31,9 @@ const ProductNodeComponent: React.FC<ProductNodeComponentProps> = ({ node, proce
             <div>Total Volume: <span className="number-format" data-value={node.totalVolume}></span> L</div>
             <ProcessSelector 
                 processes={processes} 
-                onSelect={(processId) => handleProcessSelection(processId, node.influenceProduct.id, node)} 
+                onSelect={(processId) => handleProcessSelection(processId, node.influenceProduct.id, currentD3Node)} 
             />
+            <div>Current Source: {currentD3Node.data.name} (ID: {currentD3Node.data.id})</div>
         </div>
     );
 };

@@ -106,7 +106,7 @@ export const updateD3Tree = (
         .attr('x', -100)
         .attr('y', -50)
         .append('xhtml:div')
-        .html(d => renderNodeHtml(d.data, handleProcessSelection, processList))
+        .html(d => renderNodeHtml(d.data, source, processList, handleProcessSelection))
         .each(function(d) { // Use D3's each function to access the DOM node
             const div = d3.select(this);
             if (d.data.type === 'product') {

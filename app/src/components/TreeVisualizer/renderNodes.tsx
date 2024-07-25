@@ -1,25 +1,23 @@
 // renderNodes.tsx
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
-import { D3TreeNode, ExtendedD3HierarchyNode } from '@/types/d3Types';
-import { InfluenceProcess } from '@/types/influenceTypes';
-import { ProductNode, ProcessNode } from '@/types/d3Types';
+import { D3TreeNode, ExtendedD3HierarchyNode, ProcessNode } from '@/types/d3Types';
 import ProductNodeComponent from '@/components/TreeVisualizer/ProductNodeComponent';
 import ProcessNodeComponent from '@/components/TreeVisualizer/ProcessNodeComponent';
 
 export const renderNodeHtml = (
     data: D3TreeNode, 
-    handleProcessSelection: (processId: string, parentId: string, source: ExtendedD3HierarchyNode) => void, 
-    processList: { [key: string]: InfluenceProcess[] }
+    currentD3Node: ExtendedD3HierarchyNode, 
+    handleProcessSelection: (processId: string, parentId: string, source: ExtendedD3HierarchyNode) => void,
+    processList: { [key: string]: any[] }
 ): string => {
     switch (data.type) {
         case 'product':
-            const productNode = data as ProductNode;
-            // console.log(`renderNodeHtml for ${productNode.name} with processes:`, productNode.processes);
             return ReactDOMServer.renderToString(
                 <ProductNodeComponent 
-                    node={productNode} 
-                    processes={productNode.processes || []} 
+                    node={data}
+                    currentD3Node={currentD3Node}
+                    processes={data.processes || []}
                     handleProcessSelection={handleProcessSelection} 
                 />
             );
