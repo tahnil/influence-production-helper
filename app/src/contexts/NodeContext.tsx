@@ -1,45 +1,53 @@
 // contexts/NodeContext.tsx
 import React, { createContext, useState, useContext, useEffect, useMemo } from 'react';
 import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
-import useProcessesByProductId from '@/hooks/useProcessesByProductId';
+import { globalState } from '../globalState';
 
 // Define the structure of the context's value for better TypeScript support
 interface NodeContextType {
   selectedProduct: InfluenceProduct | null;
   setSelectedProduct: (product: InfluenceProduct | null) => void;
   processes: InfluenceProcess[];
-  processesLoading: boolean;
-  processesError: string | null;
+  updateProcesses: (processes: InfluenceProcess[]) => void;
 }
 
-export const HandleProcessSelectionContext = createContext<NodeContextType>({
-  selectedProduct: null,
-  setSelectedProduct: () => {},
-  processes: [],
-  processesLoading: false,
-  processesError: null
-});
+export const HandleProcessSelectionContext = createContext<NodeContextType>(null!);
 
 export const NodeContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [selectedProduct, setSelectedProduct] = useState<InfluenceProduct | null>(null);
-  const { processes, loading: processesLoading, error: processesError } = useProcessesByProductId(selectedProduct?.id || '');
-  
-  // Memoize the context value
-  const value = useMemo(() => ({
-      selectedProduct,
-      setSelectedProduct,
-      processes,
-      processesLoading,
-      processesError
-  }), [selectedProduct, processes, processesLoading, processesError]);
+  const [state, setState] = useState({
+    selectedProduct: globalState.selectedProduct,
+    processes: globalState.processes
+  });
+
+  useEffect(() => {
+    const unsubscribe = globalState.subscribe(() => {
+      setState({
+        selectedProduct: globalState.selectedProduct,
+        processes: globalState.processes
+      });
+    });
+    return unsubscribe;
+  }, []);
+
+  const setSelectedProduct = (product: InfluenceProduct | null) => {
+    globalState.updateSelectedProduct(product);
+  };
+
+  const updateProcesses = (processes: InfluenceProcess[]) => {
+    globalState.updateProcesses(processes);
+  };
+
+  const contextValue = useMemo(() => ({
+    selectedProduct: state.selectedProduct,
+    setSelectedProduct,
+    processes: state.processes,
+    updateProcesses
+  }), [state]);
 
   return (
-    <>
-      {console.log(`[NodeContextProvider]\nContext "value": `, value, `\nContext "processes": `, processes, `\nContext "selectedProduct": `, selectedProduct)}
-      <HandleProcessSelectionContext.Provider value={value}>
-        {children}
-      </HandleProcessSelectionContext.Provider>
-    </>
+    <HandleProcessSelectionContext.Provider value={contextValue}>
+      {children}
+    </HandleProcessSelectionContext.Provider>
   );
 };
 
