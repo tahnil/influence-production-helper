@@ -2,7 +2,6 @@
 import React, { useContext } from 'react';
 import { ProductNode } from '@/types/d3Types';
 import { InfluenceProcess } from '@/types/influenceTypes';
-import HandleProcessSelectionContext from '@/contexts/NodeContext';
 import ProcessSelector from '@/components/TreeVisualizer/ProcessSelector';
 
 interface NodeContentProps {
