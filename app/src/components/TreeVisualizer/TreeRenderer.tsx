@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { useNodeContext, NodeContextProvider } from '@/contexts/NodeContext';
 import { InfluenceProduct } from '@/types/influenceTypes';
 import { ExtendedD3HierarchyNode, ProductNode } from '@/types/d3Types';
@@ -77,7 +77,7 @@ const TreeRenderer: React.FC = () => {
         updateRef.current = update;
     }, [update]);
 
-    const contextValue = {
+    const contextValue = useMemo(() => ({
         handleProcessSelection: async (processId: string, parentId: string, source: ExtendedD3HierarchyNode) => {
             const newNode = await handleProcessSelection(processId, parentId, { [selectedProduct?.id || '']: processes });
             if (newNode && treeData) {
@@ -92,7 +92,7 @@ const TreeRenderer: React.FC = () => {
                 }
             }
         }
-    };
+    }), [selectedProduct, processes]);
 
     // Render the product selector and D3 tree container
     return (

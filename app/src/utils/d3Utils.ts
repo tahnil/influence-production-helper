@@ -4,7 +4,7 @@ import { ExtendedD3HierarchyNode } from '@/types/d3Types';
 import { renderReactComponent } from '@/components/TreeVisualizer/reactDOM';
 import { InfluenceProcess } from '@/types/influenceTypes';
 
-export const createAndAppendNodes = (nodeEnter: d3.Selection<SVGGElement, ExtendedD3HierarchyNode, SVGGElement, unknown>, processList: { [key: string]: InfluenceProcess[] }) => {
+export const createAndAppendNodes = (nodeEnter: d3.Selection<SVGGElement, ExtendedD3HierarchyNode, SVGGElement, unknown>) => {
     nodeEnter.each(function(d) {
         console.log(`[d3Utils > createAndAppendNodes] d:`, d);
         const foreignObject = d3.select(this).append("foreignObject")
