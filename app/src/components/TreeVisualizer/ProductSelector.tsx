@@ -1,20 +1,26 @@
+// components/TreeVisualizer/ProductSelector.tsx
 import React from 'react';
 import { InfluenceProduct } from '@/types/influenceTypes';
 
 interface ProductSelectorProps {
     products: InfluenceProduct[];
-    onSelect: (product: InfluenceProduct) => void;
+    onSelect: (product: InfluenceProduct | null) => void;
 }
 
 const ProductSelector: React.FC<ProductSelectorProps> = ({ products, onSelect }) => {
+  const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedProduct = products.find(product => product.id === event.target.value) || null;
+    console.log("[ProductSelector] selectedProduct:", selectedProduct); // Debug log
+    onSelect(selectedProduct);
+  };
+
     return (
-        <select onChange={(e) => {
-            const selectedProduct = products.find(product => product.id === e.target.value);
-            if (selectedProduct) onSelect(selectedProduct);
-        }}>
-            <option value="">Select a Product</option>
+    <select onChange={handleChange}>
+      <option value="">Select a product</option>
             {products.map(product => (
-                <option key={product.id} value={product.id}>{product.name}</option>
+        <option key={product.id} value={product.id}>
+          {product.name}
+        </option>
             ))}
         </select>
     );

@@ -5,7 +5,7 @@ import ProductNodeContent from '@/components/TreeVisualizer/ProductNodeContent';
 import ProcessNodeContent from '@/components/TreeVisualizer/ProcessNodeContent';
 import { D3TreeNode } from '@/types/d3Types';
 import { InfluenceProcess } from '@/types/influenceTypes';
-import HandleProcessSelectionContext from '@/contexts/NodeContext';
+import { HandleProcessSelectionContext } from '@/contexts/NodeContext';
 
 const rootMap = new Map<HTMLElement, ReturnType<typeof createRoot>>();
 
