@@ -6,7 +6,7 @@ import { InfluenceProcess } from '@/types/influenceTypes';
 
 export const createAndAppendNodes = (nodeEnter: d3.Selection<SVGGElement, ExtendedD3HierarchyNode, SVGGElement, unknown>, processList: { [key: string]: InfluenceProcess[] }) => {
     nodeEnter.each(function(d) {
-        console.log(`[createAndAppendNodes] d:`, d);
+        console.log(`[d3Utils > createAndAppendNodes] d:`, d);
         const foreignObject = d3.select(this).append("foreignObject")
             .attr("width", 200)
             .attr("height", 150)
@@ -17,7 +17,7 @@ export const createAndAppendNodes = (nodeEnter: d3.Selection<SVGGElement, Extend
         container.className = 'react-container';
 
         foreignObject.node()?.appendChild(container);
-        renderReactComponent(d.data, container, processList);
+        renderReactComponent(d.data, container);
     });
 };
 

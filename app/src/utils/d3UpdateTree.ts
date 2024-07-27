@@ -12,7 +12,6 @@ export const updateD3Tree = (
     margin: { top: number; right: number; bottom: number; left: number; },
     update: (source: ExtendedD3HierarchyNode) => void,
     click: (event: React.MouseEvent, d: ExtendedD3HierarchyNode) => void,
-    processList: { [key: string]: InfluenceProcess[] }
 ) => {
     console.log(`[d3UpdateTree.tsx] updateD3Tree() called...`);
     const container = d3.select(containerRef.current);
@@ -41,7 +40,7 @@ export const updateD3Tree = (
         .attr('transform', d => `translate(${d.y},${d.x})`)
         .on('click', click);
 
-    createAndAppendNodes(nodeEnter, processList);
+    createAndAppendNodes(nodeEnter);
 
     const nodeUpdate = nodeEnter.merge(node);
     nodeUpdate.transition().duration(750).attr('transform', d => `translate(${d.y},${d.x})`);
