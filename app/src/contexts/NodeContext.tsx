@@ -1,5 +1,5 @@
 // contexts/NodeContext.tsx
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useMemo } from 'react';
 import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 
@@ -23,20 +23,18 @@ export const HandleProcessSelectionContext = createContext<NodeContextType>({
 export const NodeContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [selectedProduct, setSelectedProduct] = useState<InfluenceProduct | null>(null);
   const { processes, loading: processesLoading, error: processesError } = useProcessesByProductId(selectedProduct?.id || '');
-
-  useEffect(() => {
-    console.log("[NodeContext] Selected Product:", selectedProduct);
-    console.log("[NodeContext] Processes:", processes);
-  }, [selectedProduct, processes]);
   
-  return (
-    <HandleProcessSelectionContext.Provider value={{
+  // Memoize the context value
+  const value = useMemo(() => ({
       selectedProduct,
       setSelectedProduct,
       processes,
       processesLoading,
       processesError
-    }}>
+  }), [selectedProduct, processes, processesLoading, processesError]);
+
+  return (
+    <HandleProcessSelectionContext.Provider value={value}>
       {children}
     </HandleProcessSelectionContext.Provider>
   );

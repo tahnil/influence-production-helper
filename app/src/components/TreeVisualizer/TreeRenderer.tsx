@@ -48,7 +48,7 @@ const TreeRenderer: React.FC = () => {
 
         // Invoke the function
         fetchAndSetTreeData();
-    }, [selectedProduct, processes]);
+    }, [selectedProduct]);
 
     // Create D3 tree when treeData changes
     useEffect(() => {
