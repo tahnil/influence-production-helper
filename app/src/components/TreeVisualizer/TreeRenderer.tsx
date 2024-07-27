@@ -18,7 +18,7 @@ const TreeRenderer: React.FC = () => {
     const updateRef = useRef<(source: ExtendedD3HierarchyNode | null) => void>(() => { });
     const [treeData, setTreeData] = useState<ProductNode | null>(null);
     const { influenceProducts, loading, error } = useInfluenceProducts();
-    const { processes, setSelectedProduct, processesLoading, processesError, selectedProduct } = useNodeContext();
+    const { setSelectedProduct, selectedProduct, processes } = useNodeContext();
 
     // Fetch processes and set treeData when a product is selected
     useEffect(() => {
@@ -94,18 +94,9 @@ const TreeRenderer: React.FC = () => {
         }
     };
 
-    // Render loading and error states
-    if (loading || processesLoading) {
-        return <div>Loading...</div>;
-    }
-
-    if (error || processesError) {
-        return <div>Error: {error || processesError}</div>;
-    }
-
     // Render the product selector and D3 tree container
     return (
-        <NodeContextProvider value={contextValue}>
+        <NodeContextProvider>
             <ProductSelector products={influenceProducts} onSelect={setSelectedProduct} />
             <div ref={containerRef}></div>
         </NodeContextProvider>

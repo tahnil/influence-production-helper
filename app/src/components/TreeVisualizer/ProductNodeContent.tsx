@@ -1,6 +1,6 @@
 // components/TreeVisualizer/ProductNodeContent.tsx
 import React, { useContext } from 'react';
-import ReactDOM  from 'react-dom';
+import ReactDOM from 'react-dom';
 import { ProductNode } from '@/types/d3Types';
 import { HandleProcessSelectionContext } from '@/contexts/NodeContext';
 import ProcessSelector from '@/components/TreeVisualizer/ProcessSelector';
@@ -10,10 +10,10 @@ interface NodeContentProps {
 }
 
 const ProductNodeContent: React.FC<NodeContentProps> = ({ node }) => {
-    const { handleProcessSelection, processes } = useContext(HandleProcessSelectionContext);
+    const { processes } = useContext(HandleProcessSelectionContext); // Only use processes from context
     const container = document.querySelector('.react-container');
     const nodeProcesses = processes.filter(process => process.outputs.some(output => output.productId === node.id));
-    console.log("[ProductNodeContent] Processes from context:", handleProcessSelection, processes);
+    console.log("[ProductNodeContent] Processes from context:", processes);
 
     const content = (
         <>
@@ -24,7 +24,7 @@ const ProductNodeContent: React.FC<NodeContentProps> = ({ node }) => {
             <div>Units: {node.amount}</div>
             <ProcessSelector
                 processes={nodeProcesses}
-                onSelect={(processId) => handleProcessSelection(processId, node.id, node)}
+                onSelect={(processId) => console.log('Process selected:', processId)} // Simplified onSelect
             />
         </>
     );
