@@ -15,16 +15,18 @@ import { updateD3Tree } from '@/utils/d3UpdateTree';
 const TreeRenderer: React.FC = () => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const rootRef = useRef<ExtendedD3HierarchyNode | null>(null);
-  const updateRef = useRef<(source: ExtendedD3HierarchyNode | null) => void>(() => {});
+    const updateRef = useRef<(source: ExtendedD3HierarchyNode | null) => void>(() => { });
     const [treeData, setTreeData] = useState<ProductNode | null>(null);
     const { influenceProducts, loading, error } = useInfluenceProducts();
-  const { processes, setSelectedProduct, processesLoading, processesError, selectedProduct } = useNodeContext();
+    const { processes, setSelectedProduct, processesLoading, processesError, selectedProduct } = useNodeContext();
 
     // Fetch processes and set treeData when a product is selected
     useEffect(() => {
         console.log("[TreeRenderer] useEffect triggered by state change of 'selectedProduct' or 'processes'.");
         console.log("[TreeRenderer] selectedProduct:", selectedProduct);
         console.log("[TreeRenderer] processes:", processes);
+
+        // Define the async function within the useEffect to ensure it is invoked
         const fetchAndSetTreeData = async () => {
             if (selectedProduct) {
                 console.log("[TreeRenderer] function 'fetchAndSetTreeData' triggered.");
@@ -40,10 +42,12 @@ const TreeRenderer: React.FC = () => {
                     children: [],
                     processes: processes
                 };
+                console.log("[TreeRenderer] newNode:", newNode);
                 setTreeData(newNode);
             }
         };
 
+        // Invoke the function
         fetchAndSetTreeData();
     }, [selectedProduct, processes]);
 

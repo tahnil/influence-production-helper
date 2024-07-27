@@ -17,7 +17,7 @@ export const NodeContextProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const { processes, loading: processesLoading, error: processesError } = useProcessesByProductId(selectedProduct ? selectedProduct.id : '');
 
   useEffect(() => {
-    console.log("[NodeContextProvider] selectedProduct updated:", selectedProduct); // Debug log
+    console.log("[NodeContext] selectedProduct updated:", selectedProduct); // Debug log
   }, [selectedProduct]);
 
   const handleProcessSelection = useCallback(async (processId: string, parentId: string, source: any) => {
@@ -39,5 +39,4 @@ export const NodeContextProvider: React.FC<{ children: React.ReactNode }> = ({ c
 };
 
 export const useNodeContext = () => useContext(HandleProcessSelectionContext);
-
-export { HandleProcessSelectionContext };
+export { HandleProcessSelectionContext}

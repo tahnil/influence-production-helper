@@ -10,7 +10,7 @@ interface ProductSelectorProps {
 const ProductSelector: React.FC<ProductSelectorProps> = ({ products, onSelect }) => {
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedProduct = products.find(product => product.id === event.target.value) || null;
-    console.log("[ProductSelector] selectedProduct:", selectedProduct); // Debug log
+    console.log("[ProductSelector] Calling onSelect with:", selectedProduct); // Debug log
     onSelect(selectedProduct);
   };
 
