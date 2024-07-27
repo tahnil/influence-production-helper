@@ -1,7 +1,6 @@
 // src/hooks/useProcessesByProductId.ts
 
-import { useState, useEffect, useReducer, useMemo } from 'react';
-import { InfluenceProcess } from '@/types/influenceTypes';
+import { useEffect, useReducer, useMemo } from 'react';
 
 // Defining a reducer function for managing state
 const reducer = (state: any, action: { type: any; payload: any; }) => {

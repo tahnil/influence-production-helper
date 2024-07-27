@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
-import { useNodeContext, NodeContextProvider } from '@/contexts/NodeContext';
+import { useNodeContext } from '@/contexts/NodeContext';
 import { InfluenceProduct } from '@/types/influenceTypes';
 import { ExtendedD3HierarchyNode, ProductNode } from '@/types/d3Types';
 import useInfluenceProducts from '@/hooks/useInfluenceProducts';
@@ -11,6 +11,7 @@ import { prepareTreeData } from '@/utils/prepareTreeData';
 import { generateUniqueId } from '@/utils/generateUniqueId';
 import { createD3Tree } from '@/utils/d3CreateTree';
 import { updateD3Tree } from '@/utils/d3UpdateTree';
+import { globalState } from '@/globalState';  // Ensure globalState is correctly imported
 
 const TreeRenderer: React.FC = () => {
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -43,12 +44,13 @@ const TreeRenderer: React.FC = () => {
                 };
                 console.log("[TreeRenderer] newNode:", newNode);
                 setTreeData(newNode);
+                globalState.updateProcesses(processes);  // Ensure that the processes are updated in global state
             }
         };
 
         // Invoke the function
         fetchAndSetTreeData();
-    }, [selectedProduct]);
+    }, [selectedProduct, processes]);
 
     // Create D3 tree when treeData changes
     useEffect(() => {
