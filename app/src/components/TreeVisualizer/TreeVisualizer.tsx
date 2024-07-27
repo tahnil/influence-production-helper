@@ -7,6 +7,7 @@ import { createD3Tree, updateD3Tree } from '@/utils/d3TreeUtils';
 import ProductSelector from './ProductSelector';
 import { ProcessInput } from '@/types/influenceTypes';
 import { generateUniqueId } from '@/utils/generateUniqueId';
+import useInfluenceProducts from '@/hooks/useInfluenceProducts';
 
 const TreeVisualizer: React.FC = () => {
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -18,14 +19,14 @@ const TreeVisualizer: React.FC = () => {
     const [selectedProduct, setSelectedProduct] = useState<InfluenceProduct | null>(null);
     const [productList, setProductList] = useState<InfluenceProduct[]>([]);
     const [processList, setProcessList] = useState<{ [key: string]: InfluenceProcess[] }>({});
+    const { influenceProducts, loading, error } = useInfluenceProducts();
 
     // Fetch the list of products on initial load
     useEffect(() => {
-        fetch('/api/products')
-            .then(response => response.json())
-            .then(data => setProductList(data))
-            .catch(error => console.error('Error fetching products:', error));
-    }, []);
+        if (!loading && !error) {
+            setProductList(influenceProducts);
+        }
+    }, [loading, error, influenceProducts]);
 
     // handleProductSelection
     useEffect(() => {
@@ -51,7 +52,7 @@ const TreeVisualizer: React.FC = () => {
 
     // handle the initial selection of a product, before the tree is rendered
     const handleProductSelection = async (product: InfluenceProduct) => {
-        // console.log(`Selected product: ${product.name} with id: ${product.id}`);
+        console.log(`Selected product: ${product.name} with id: ${product.id}`);
         const processes = await fetchProcessesForProduct(product.id);
         // console.log(`Fetched processes for ${product.name}:`, processes);
 
@@ -217,6 +218,14 @@ const TreeVisualizer: React.FC = () => {
             createD3Tree(containerRef, treeData, rootRef, updateCallback, click, handleProcessSelection, processList);
         }
     }, [treeData, update, click, handleProcessSelection, processList]);
+
+    if (loading) {
+        return <div>Loading...</div>;
+    }
+
+    if (error) {
+        return <div>Error: {error}</div>;
+    }
 
     return (
         <div>

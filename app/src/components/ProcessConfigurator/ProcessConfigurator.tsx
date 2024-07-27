@@ -7,6 +7,7 @@ import useInputsByProcessId from '../../hooks/useInputsByProcessId';
 import ProcessSelector from './ProcessSelector';
 
 const ProcessConfigurator: React.FC<ProcessConfiguratorProps> = ({ product, amount, selectedProcesses, onProcessSelect, level = 0, parentId = null }) => {
+  console.log(`[ProcessConfigurator] Function called`);
   const uniqueId = generateUniqueId(product.id, level, parentId);
   const outputProductId = product.id;
 
