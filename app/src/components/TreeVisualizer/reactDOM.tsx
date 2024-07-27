@@ -1,44 +1,27 @@
 // components/TreeVisualizer/reactDom.tsx
-import { createRoot } from 'react-dom/client';
 import React from 'react';
 import ProductNodeContent from '@/components/TreeVisualizer/ProductNodeContent';
 import ProcessNodeContent from '@/components/TreeVisualizer/ProcessNodeContent';
 import { D3TreeNode } from '@/types/d3Types';
-import { InfluenceProcess } from '@/types/influenceTypes';
-import { HandleProcessSelectionContext } from '@/contexts/NodeContext';
+import ReactDOM from 'react-dom';
 
-const rootMap = new Map<HTMLElement, ReturnType<typeof createRoot>>();
-
-export const renderReactComponent = (node: D3TreeNode, container: HTMLElement, processList: { [key: string]: InfluenceProcess[] }) => {
+export const renderReactComponent = (node: D3TreeNode, container: HTMLElement) => {
     let Component;
-    let element;
     switch (node.type) {
         case 'product':
             console.log(`[renderReactComponent] node:`, node);
-            console.log(`[renderReactComponent] node:`, processList);
+            console.log('[renderReactComponent] container', container);
             Component = ProductNodeContent;
-            element = (
-                <HandleProcessSelectionContext.Consumer>
-                    {({ handleProcessSelection }) => (
-                        <Component node={node} processes={processList || []} handleProcessSelection={handleProcessSelection} />
-                    )}
-                </HandleProcessSelectionContext.Consumer>
-            );
             break;
         case 'process':
             Component = ProcessNodeContent;
-            element = <Component node={node} />;
             break;
         default:
-            element = <div>Unknown Node Type</div>;
-            break;
+            // Render a fallback or nothing if the type is unknown
+            ReactDOM.render(<div>Unknown Node Type</div>, container);
+            return; // Stop further execution
     }
 
-    let root = rootMap.get(container);
-    if (!root) {
-        root = createRoot(container);
-        rootMap.set(container, root);
-    }
-
-    root.render(element);
+    // Render using ReactDOM directly into the container as a portal target
+    ReactDOM.render(<Component node={node} container={container} />, container);
 };

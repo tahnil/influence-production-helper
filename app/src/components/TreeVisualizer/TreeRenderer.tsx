@@ -40,7 +40,6 @@ const TreeRenderer: React.FC = () => {
                     totalWeight: 0, // Calculate based on the amount and product data
                     totalVolume: 0, // Calculate based on the amount and product data
                     children: [],
-                    processes: processes
                 };
                 console.log("[TreeRenderer] newNode:", newNode);
                 setTreeData(newNode);

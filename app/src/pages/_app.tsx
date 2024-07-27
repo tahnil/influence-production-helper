@@ -1,10 +1,12 @@
 // pages/_app.tsx
 import './globals.css';
 import { AppProps } from 'next/app';
+import { NodeContextProvider } from '@/contexts/NodeContext';
 import Link from 'next/link';
 
-function MyApp({ Component, pageProps }: AppProps) {
+function InfluenceProductionHelper({ Component, pageProps }: AppProps) {
   return (
+    <NodeContextProvider>
     <>
       <nav>
         <Link href="/">Home</Link>
@@ -13,7 +15,8 @@ function MyApp({ Component, pageProps }: AppProps) {
       </nav>
       <Component {...pageProps} />
     </>
+    </NodeContextProvider>
   );
 }
 
-export default MyApp;
+export default InfluenceProductionHelper;
