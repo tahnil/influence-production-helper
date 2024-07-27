@@ -34,9 +34,12 @@ export const NodeContextProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }), [selectedProduct, processes, processesLoading, processesError]);
 
   return (
-    <HandleProcessSelectionContext.Provider value={value}>
-      {children}
-    </HandleProcessSelectionContext.Provider>
+    <>
+      {console.log(`[NodeContextProvider]\nContext "value": `, value, `\nContext "processes": `, processes, `\nContext "selectedProduct": `, selectedProduct)}
+      <HandleProcessSelectionContext.Provider value={value}>
+        {children}
+      </HandleProcessSelectionContext.Provider>
+    </>
   );
 };
 

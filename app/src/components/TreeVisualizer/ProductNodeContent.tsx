@@ -13,7 +13,7 @@ const ProductNodeContent: React.FC<NodeContentProps> = ({ node }) => {
     const { processes } = useContext(HandleProcessSelectionContext); // Only use processes from context
     const container = document.querySelector('.react-container');
     const nodeProcesses = processes.filter(process => process.outputs.some(output => output.productId === node.id));
-    console.log("[ProductNodeContent] Processes from context:", processes);
+    console.log("[ProductNodeContent] Available processes: ", processes);
 
     const content = (
         <>

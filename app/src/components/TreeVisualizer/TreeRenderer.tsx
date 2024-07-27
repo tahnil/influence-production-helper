@@ -96,10 +96,10 @@ const TreeRenderer: React.FC = () => {
 
     // Render the product selector and D3 tree container
     return (
-        <NodeContextProvider>
+        <>
             <ProductSelector products={influenceProducts} onSelect={setSelectedProduct} />
             <div ref={containerRef}></div>
-        </NodeContextProvider>
+        </>
     );
 };
 
