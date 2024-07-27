@@ -11,7 +11,7 @@ import { prepareTreeData } from '@/utils/prepareTreeData';
 import { generateUniqueId } from '@/utils/generateUniqueId';
 import { createD3Tree } from '@/utils/d3CreateTree';
 import { updateD3Tree } from '@/utils/d3UpdateTree';
-import { globalState } from '@/globalState';  // Ensure globalState is correctly imported
+import { globalState } from '@/globalState';
 
 const TreeRenderer: React.FC = () => {
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -94,7 +94,7 @@ const TreeRenderer: React.FC = () => {
                 }
             }
         }
-    }), [selectedProduct, processes]);
+  }), [selectedProduct, processes, treeData]);
 
     // Render the product selector and D3 tree container
     return (

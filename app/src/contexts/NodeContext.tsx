@@ -1,5 +1,5 @@
 // contexts/NodeContext.tsx
-import React, { createContext, useState, useContext, useEffect, useMemo } from 'react';
+import React, { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
 import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 import { globalState } from '@/globalState';  // Ensure globalState is correctly imported
@@ -13,7 +13,7 @@ interface NodeContextType {
   processesError: string | null;
 }
 
-export const HandleProcessSelectionContext = createContext<NodeContextType>({
+const HandleProcessSelectionContext = createContext<NodeContextType>({
   selectedProduct: null,
   setSelectedProduct: () => { },
   processes: [],
@@ -22,36 +22,33 @@ export const HandleProcessSelectionContext = createContext<NodeContextType>({
 });
 
 export const NodeContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [selectedProduct, setSelectedProduct] = useState<InfluenceProduct | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<InfluenceProduct | null>(globalState.selectedProduct);
   const { processes, loading: processesLoading, error: processesError } = useProcessesByProductId(selectedProduct?.id || '');
 
-  // Update global state whenever local state updates
+  // Sync global state with local state
+  useEffect(() => {
+    globalState.updateSelectedProduct(selectedProduct);
+  }, [selectedProduct]);
+
   useEffect(() => {
     globalState.updateProcesses(processes);
-    // If additional state management is needed, handle it similarly
   }, [processes]);
 
-  // Subscribe to global state updates
-  useEffect(() => {
-    const unsubscribe = globalState.subscribe(() => {
-      setSelectedProduct(globalState.selectedProduct);  // Ensure selectedProduct is managed globally if necessary
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const contextValue = useMemo(() => ({
+  const value = useMemo(() => ({
     selectedProduct,
     setSelectedProduct,
-    processes: globalState.processes, // Directly use processes from global state
+    processes,
     processesLoading,
     processesError
-  }), [selectedProduct, globalState.processes, processesLoading, processesError]);
+  }), [selectedProduct, processes, processesLoading, processesError]);
 
   return (
-    <HandleProcessSelectionContext.Provider value={contextValue}>
+    <HandleProcessSelectionContext.Provider value={value}>
       {children}
     </HandleProcessSelectionContext.Provider>
   );
 };
 
 export const useNodeContext = () => useContext(HandleProcessSelectionContext);
+
+export { HandleProcessSelectionContext };
