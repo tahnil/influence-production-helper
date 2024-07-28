@@ -5,7 +5,6 @@ import { renderReactComponent } from '@/components/TreeVisualizer/reactDOM';
 
 export const createAndAppendNodes = (nodeEnter: d3.Selection<SVGGElement, ExtendedD3HierarchyNode, SVGGElement, unknown>) => {
     nodeEnter.each(function(d) {
-        console.log(`[d3Utils > createAndAppendNodes] d:`, d);
         const foreignObject = d3.select(this).append("foreignObject")
             .attr("width", 200)
             .attr("height", 150)
@@ -15,8 +14,12 @@ export const createAndAppendNodes = (nodeEnter: d3.Selection<SVGGElement, Extend
         const container = document.createElement('div');
         container.className = 'react-container';
 
+        if (foreignObject.node()) {
         foreignObject.node()?.appendChild(container);
         renderReactComponent(d.data, container);
+        } else {
+            console.error('ForeignObject node is not available.');
+        }
     });
 };
 

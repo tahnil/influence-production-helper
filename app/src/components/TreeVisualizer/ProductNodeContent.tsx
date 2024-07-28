@@ -7,11 +7,11 @@ import ProcessSelector from '@/components/TreeVisualizer/ProcessSelector';
 
 interface NodeContentProps {
     node: ProductNode;
+    container: HTMLElement;
 }
 
-const ProductNodeContent: React.FC<NodeContentProps> = ({ node }) => {
+const ProductNodeContent: React.FC<NodeContentProps> = ({ node, container }) => {
     const { processes, handleProcessSelection } = useContext(HandleProcessSelectionContext);
-    const container = document.querySelector('.react-container');
     const nodeProcesses = processes.filter(process => process.outputs.some(output => output.productId === node.id));
     console.log("[ProductNodeContent] Available processes: ", processes);
 
@@ -33,13 +33,7 @@ const ProductNodeContent: React.FC<NodeContentProps> = ({ node }) => {
                 </div>
             );
 
-    // Ensure the container exists before trying to use it as a portal target
-    if (container) {
-        return ReactDOM.createPortal(content, container);
-    } else {
-        console.error('The container for the portal is not found.');
-        return null;
-    }
+    return container ? ReactDOM.createPortal(content, container) : null;
 };
 
 export default ProductNodeContent;

@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { useNodeContext } from '@/contexts/NodeContext';
-import { ProductNode, ExtendedD3HierarchyNode, ProcessNode, D3TreeNode } from '@/types/d3Types';
+import { ProductNode, ExtendedD3HierarchyNode, D3TreeNode } from '@/types/d3Types';
 import useInfluenceProducts from '@/hooks/useInfluenceProducts';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import { generateUniqueId } from '@/utils/generateUniqueId';
@@ -11,17 +11,13 @@ import { unifiedD3Tree } from '@/utils/d3Tree';
 import handleProcessSelection from '@/utils/handleProcessSelection';
 import { HandleProcessSelectionContext } from '@/contexts/NodeContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import ProductNodeContent from './ProductNodeContent';
-import ProcessNodeContent from './ProcessNodeContent';
 
 const TreeRenderer: React.FC = () => {
-    const containerRef = useRef<HTMLDivElement | null>(null);
     const rootRef = useRef<ExtendedD3HierarchyNode | null>(null);
     const updateRef = useRef<(source: ExtendedD3HierarchyNode | null) => void>(() => { });
     const [treeData, setTreeData] = useState<ProductNode | null>(null);
     const { influenceProducts, loading, error } = useInfluenceProducts();
     const { setSelectedProduct, selectedProduct, processes } = useNodeContext();
-    const [selectedNode, setSelectedNode] = useState<D3TreeNode | null>(null);
 
     // Function to handle process selection and update the tree structure
     const handleProcessSelectionCallback = useCallback(async (processId: string, node: ProductNode) => {
@@ -63,17 +59,18 @@ const TreeRenderer: React.FC = () => {
         fetchAndSetTreeData();
     }, [selectedProduct, processes]);
 
-    // Create D3 tree when treeData changes
     useEffect(() => {
-        if (containerRef.current && treeData) {
+        const containerRef = document.getElementById('d3-container');
+        if (containerRef && treeData) {
             console.log("[TreeRenderer] Creating or updating D3 tree with treeData:", treeData);
-            unifiedD3Tree(containerRef, rootRef, treeData, updateRef, setSelectedNode);
+            unifiedD3Tree(containerRef, rootRef, treeData, updateRef, setTreeData);
         }
     }, [treeData]);
 
     const update = useCallback((source: ExtendedD3HierarchyNode | null): void => {
-        if (source) {
-            unifiedD3Tree(containerRef, rootRef, source.data as ProductNode, updateRef, setSelectedNode);
+        const containerRef = document.getElementById('d3-container');
+        if (containerRef && source) {
+            unifiedD3Tree(containerRef, rootRef, source.data as ProductNode, updateRef, setTreeData);
         }
     }, []);
 
@@ -96,15 +93,6 @@ const TreeRenderer: React.FC = () => {
         <ErrorBoundary>
         <HandleProcessSelectionContext.Provider value={contextValue}>
             <ProductSelector products={influenceProducts} onSelect={setSelectedProduct} />
-            <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
-                <div id="react-portal-container" style={{ position: 'absolute', top: 0, left: 0 }}></div>
-            </div>
-            {selectedNode && (
-                <div>
-                    {selectedNode.type === 'product' && <ProductNodeContent node={selectedNode} />}
-                    {selectedNode.type === 'process' && <ProcessNodeContent node={selectedNode} />}
-                </div>
-            )}
         </HandleProcessSelectionContext.Provider>
         </ErrorBoundary>
     );
