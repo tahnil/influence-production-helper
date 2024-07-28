@@ -8,6 +8,7 @@ import { NodeContextProvider } from '@/contexts/NodeContext';
 
 export const renderReactComponent = (nodeData: ProductNode | ProcessNode, container: HTMLElement) => {
     const root = createRoot(container);
+    console.log("[reactDOM] renderReactComponent triggered. Trying to render:", nodeData);
     
     if (nodeData.type === 'product') {
         root.render(
@@ -16,9 +17,13 @@ export const renderReactComponent = (nodeData: ProductNode | ProcessNode, contai
             </NodeContextProvider>
         );
     } else if (nodeData.type === 'process') {
-        root.render(<ProcessNodeContent node={nodeData as ProcessNode} container={container} />);
+        root.render(
+            <NodeContextProvider>
+                <ProcessNodeContent node={nodeData as ProcessNode} container={container} />
+            </NodeContextProvider>
+        );
     } else {
-        console.error('Unknown node type:', nodeData.type);
+        console.error('Unknown node type:', nodeData);
         root.unmount(); // Clean up if we encounter an unknown node type
     }
 };

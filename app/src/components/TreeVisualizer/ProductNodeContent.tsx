@@ -29,9 +29,9 @@ const ProductNodeContent: React.FC<NodeContentProps> = ({ node, container }) => 
                     console.log('[ProductNodeContent] Process selected:', processId)
                 }
                 }
-                />
-                </div>
-            );
+            />
+        </div>
+    );
 
     return container ? ReactDOM.createPortal(content, container) : null;
 };
