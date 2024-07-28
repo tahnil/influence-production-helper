@@ -12,15 +12,16 @@ const fetchProcessesForProduct = async (productId: string) => {
 
 const handleProcessSelection = async (
     processId: string,
-    parentId: string,
+    node: ProductNode,
     processList: { [key: string]: InfluenceProcess[] }
-) => {
+): Promise<ProcessNode | null> => {
     const response = await fetch(`/api/inputs?processId=${processId}`);
     const inputs: ProcessInput[] = await response.json();
     const processesPromises = inputs.map(input => fetchProcessesForProduct(input.product.id));
     const productsWithProcesses = await Promise.all(processesPromises);
 
     const inputNodes = inputs.map((input, index) => ({
+        uniqueNodeId: generateUniqueId(),
         id: input.product.id,
         name: input.product.name,
         type: 'product',
@@ -32,7 +33,7 @@ const handleProcessSelection = async (
         processes: productsWithProcesses[index]
     }));
 
-    const selectedProcess = processList[parentId]?.find(p => p.id === processId);
+    const selectedProcess = processList[node.id]?.find(p => p.id === processId);
     if (!selectedProcess) {
         console.error('Selected process is undefined.');
         return null;
@@ -44,8 +45,8 @@ const handleProcessSelection = async (
         name: selectedProcess.name,
         type: 'process',
         influenceProcess: selectedProcess,
-        totalDuration: 0,
-        totalRuns: 0,
+        totalDuration: selectedProcess.duration,
+        totalRuns: selectedProcess.runs,
         children: inputNodes
     };
 

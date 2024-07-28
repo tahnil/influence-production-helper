@@ -10,13 +10,13 @@ interface NodeContentProps {
 }
 
 const ProductNodeContent: React.FC<NodeContentProps> = ({ node }) => {
-    const { processes } = useContext(HandleProcessSelectionContext); // Only use processes from context
+    const { processes, handleProcessSelection } = useContext(HandleProcessSelectionContext);
     const container = document.querySelector('.react-container');
     const nodeProcesses = processes.filter(process => process.outputs.some(output => output.productId === node.id));
     console.log("[ProductNodeContent] Available processes: ", processes);
 
     const content = (
-        <>
+        <div>
             <div><strong>{node.influenceProduct.name}</strong></div>
             <div>Type: {node.influenceProduct.type}</div>
             <div>Weight: {node.influenceProduct.massKilogramsPerUnit} kg</div>
@@ -24,10 +24,14 @@ const ProductNodeContent: React.FC<NodeContentProps> = ({ node }) => {
             <div>Units: {node.amount}</div>
             <ProcessSelector
                 processes={nodeProcesses}
-                onSelect={(processId) => console.log('Process selected:', processId)} // Simplified onSelect
-            />
-        </>
-    );
+                onSelect={(processId) => {
+                    handleProcessSelection(processId, node),
+                    console.log('[ProductNodeContent] Process selected:', processId)
+                }
+                }
+                />
+                </div>
+            );
 
     // Ensure the container exists before trying to use it as a portal target
     if (container) {

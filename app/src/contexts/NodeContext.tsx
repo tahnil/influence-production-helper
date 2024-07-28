@@ -3,6 +3,7 @@ import React, { createContext, useState, useContext, useEffect, useMemo } from '
 import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 import { globalState } from '@/globalState';
+import { ProductNode } from '@/types/d3Types';
 
 // Define the structure of the context's value for better TypeScript support
 interface NodeContextType {
@@ -11,6 +12,7 @@ interface NodeContextType {
   processes: InfluenceProcess[];
   processesLoading: boolean;
   processesError: string | null;
+  handleProcessSelection: (processId: string, node: ProductNode) => void;
 }
 
 const HandleProcessSelectionContext = createContext<NodeContextType>({
@@ -18,28 +20,30 @@ const HandleProcessSelectionContext = createContext<NodeContextType>({
   setSelectedProduct: () => {},
   processes: [],
   processesLoading: false,
-  processesError: null
+  processesError: null,
+  handleProcessSelection: () => {}
 });
 
 export const NodeContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [selectedProduct, setSelectedProduct] = useState<InfluenceProduct | null>(globalState.selectedProduct);
   const { processes, loading: processesLoading, error: processesError } = useProcessesByProductId(selectedProduct?.id || '');
 
-  // Sync global state with local state
-  useEffect(() => {
-    globalState.updateSelectedProduct(selectedProduct);
-  }, [selectedProduct]);
-
+  // Update global state whenever processes or selectedProduct change
   useEffect(() => {
     globalState.updateProcesses(processes);
-  }, [processes]);
+    if (selectedProduct) {
+      globalState.updateSelectedProduct(selectedProduct);
+    }
+  }, [processes, selectedProduct]);
 
+  // Memoize the context value to prevent unnecessary re-renders
   const value = useMemo(() => ({
     selectedProduct,
     setSelectedProduct,
     processes,
     processesLoading,
-    processesError
+    processesError,
+    handleProcessSelection: () => {}
   }), [selectedProduct, processes, processesLoading, processesError]);
 
   return (
