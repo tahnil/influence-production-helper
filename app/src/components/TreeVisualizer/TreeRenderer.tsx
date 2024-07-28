@@ -1,17 +1,13 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { useNodeContext } from '@/contexts/NodeContext';
-import { InfluenceProduct } from '@/types/influenceTypes';
 import { ExtendedD3HierarchyNode, ProductNode } from '@/types/d3Types';
 import useInfluenceProducts from '@/hooks/useInfluenceProducts';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import handleProcessSelection from '@/utils/handleProcessSelection';
 import addNodeToTree from '@/utils/addNodeToTree';
-import handleNodeClick from '@/utils/d3HandleNodeClick';
-import { prepareTreeData } from '@/utils/prepareTreeData';
 import { generateUniqueId } from '@/utils/generateUniqueId';
-import { createD3Tree } from '@/utils/d3CreateTree';
-import { updateD3Tree } from '@/utils/d3UpdateTree';
 import { globalState } from '@/globalState';
+import { unifiedD3Tree } from '@/utils/d3Tree';
 
 const TreeRenderer: React.FC = () => {
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -56,28 +52,9 @@ const TreeRenderer: React.FC = () => {
     useEffect(() => {
         if (containerRef.current && treeData) {
             console.log("[TreeRenderer] Creating D3 tree with treeData:", treeData);
-            const root = prepareTreeData(treeData);
-            createD3Tree(containerRef, root, rootRef, update);
+            unifiedD3Tree(containerRef, rootRef, treeData, updateRef);
         }
     }, [treeData]);
-
-    const update = useCallback((source: ExtendedD3HierarchyNode | null): void => {
-        if (source) {
-            updateD3Tree(
-                source,
-                containerRef,
-                rootRef,
-                { top: 20, right: 90, bottom: 30, left: 90 },
-                update,
-                handleNodeClick(updateRef)
-            );
-        }
-    }, []);
-
-    // Set the update function reference
-    useEffect(() => {
-        updateRef.current = update;
-    }, [update]);
 
     const contextValue = useMemo(() => ({
         handleProcessSelection: async (processId: string, parentId: string, source: ExtendedD3HierarchyNode) => {

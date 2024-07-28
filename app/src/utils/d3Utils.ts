@@ -1,8 +1,7 @@
 // utils/d3Utils.ts
 import * as d3 from 'd3';
-import { ExtendedD3HierarchyNode } from '@/types/d3Types';
+import { ExtendedD3HierarchyNode, D3TreeNode } from '@/types/d3Types';
 import { renderReactComponent } from '@/components/TreeVisualizer/reactDOM';
-import { InfluenceProcess } from '@/types/influenceTypes';
 
 export const createAndAppendNodes = (nodeEnter: d3.Selection<SVGGElement, ExtendedD3HierarchyNode, SVGGElement, unknown>) => {
     nodeEnter.each(function(d) {
@@ -21,7 +20,7 @@ export const createAndAppendNodes = (nodeEnter: d3.Selection<SVGGElement, Extend
     });
 };
 
-export const curvedLine = (s: ExtendedD3HierarchyNode, d: ExtendedD3HierarchyNode): string => {
+export const curvedLine = (s: { x: number, y: number }, d: { x: number, y: number }): string => {
     return `M ${s.y} ${s.x}
         C ${(s.y + d.y) / 2} ${s.x},
         ${(s.y + d.y) / 2} ${d.x},
