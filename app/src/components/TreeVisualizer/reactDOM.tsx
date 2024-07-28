@@ -23,7 +23,7 @@ export const renderReactComponent = (node: D3TreeNode, container: HTMLElement) =
             // Render a fallback if the node type is unknown
             const fallbackRoot = createRoot(container);  // Create root for fallback
             fallbackRoot.render(<div>Unknown Node Type</div>);
-            return;  // Stop further execution
+            return;
     }
 
     // Get or create a root instance for the container

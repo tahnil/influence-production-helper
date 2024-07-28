@@ -1,8 +1,8 @@
 // contexts/NodeContext.tsx
-import React, { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useMemo } from 'react';
 import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
-import { globalState } from '@/globalState';  // Ensure globalState is correctly imported
+import { globalState } from '@/globalState';
 
 // Define the structure of the context's value for better TypeScript support
 interface NodeContextType {
@@ -15,7 +15,7 @@ interface NodeContextType {
 
 const HandleProcessSelectionContext = createContext<NodeContextType>({
   selectedProduct: null,
-  setSelectedProduct: () => { },
+  setSelectedProduct: () => {},
   processes: [],
   processesLoading: false,
   processesError: null
