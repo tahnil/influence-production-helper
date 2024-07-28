@@ -12,8 +12,10 @@ interface NodeContextType {
   processes: InfluenceProcess[];
   processesLoading: boolean;
   processesError: string | null;
+  selectedProcessId: string | null;
+  setSelectedProcessId: (processId: string | null) => void;
   handleProcessSelection: (processId: string, node: ProductNode) => void;
-}
+  }
 
 const HandleProcessSelectionContext = createContext<NodeContextType>({
   selectedProduct: null,
@@ -21,12 +23,16 @@ const HandleProcessSelectionContext = createContext<NodeContextType>({
   processes: [],
   processesLoading: false,
   processesError: null,
-  handleProcessSelection: () => {}
+  selectedProcessId: null,
+  setSelectedProcessId: () => {},
+  handleProcessSelection: () => {},
 });
 
 export const NodeContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [selectedProduct, setSelectedProduct] = useState<InfluenceProduct | null>(globalState.selectedProduct);
   const { processes, loading: processesLoading, error: processesError } = useProcessesByProductId(selectedProduct?.id || '');
+  const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
+
 
   // Update global state whenever processes or selectedProduct change
   useEffect(() => {
@@ -34,7 +40,10 @@ export const NodeContextProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (selectedProduct) {
       globalState.updateSelectedProduct(selectedProduct);
     }
-  }, [processes, selectedProduct]);
+    if (selectedProcessId) {
+      globalState.updateSelectedProcessId(selectedProcessId);
+    }
+  }, [processes, selectedProduct, selectedProcessId]);
 
   // Memoize the context value to prevent unnecessary re-renders
   const value = useMemo(() => ({
@@ -43,8 +52,10 @@ export const NodeContextProvider: React.FC<{ children: React.ReactNode }> = ({ c
     processes,
     processesLoading,
     processesError,
-    handleProcessSelection: () => {}
-  }), [selectedProduct, processes, processesLoading, processesError]);
+    selectedProcessId,
+    setSelectedProcessId,
+    handleProcessSelection: (processId: string, node: ProductNode) => { setSelectedProcessId(processId)}
+  }), [selectedProduct, processes, processesLoading, processesError, selectedProcessId]);
 
   return (
     <HandleProcessSelectionContext.Provider value={value}>

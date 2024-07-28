@@ -4,12 +4,14 @@ import { InfluenceProduct, InfluenceProcess } from "@/types/influenceTypes";
 interface GlobalState {
   selectedProduct: InfluenceProduct | null;
   processes: InfluenceProcess[];
+  processId: string | null;
 }
 
 class GlobalState {
   private static instance: GlobalState;
   public selectedProduct: InfluenceProduct | null = null;
   public processes: InfluenceProcess[] = [];
+  public processId: string | null = null;
   private listeners: Function[] = [];
 
   private constructor() { }
@@ -35,6 +37,11 @@ class GlobalState {
 
   updateProcesses(processes: InfluenceProcess[]) {
     this.processes = processes;
+    this.listeners.forEach(listener => listener());
+  }
+
+  updateSelectedProcessId(processId: string | null) {
+    this.processId = processId
     this.listeners.forEach(listener => listener());
   }
 }
