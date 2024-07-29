@@ -25,7 +25,7 @@ const useProcessesByProductId = (productId: string) => {
 
   useEffect(() => {
     if (!productId) {
-      console.log('No productId provided');
+      console.log('[useProcessesByProductId] No productId provided');
       dispatch({ type: 'SET_PROCESSES', payload: [] });
       return;
     }
@@ -34,7 +34,7 @@ const useProcessesByProductId = (productId: string) => {
       dispatch({ type: 'SET_LOADING', payload: true });
       try {
         const response = await fetch(`/api/processes?outputProductId=${productId}`);
-        if (!response.ok) throw new Error('Failed to fetch processes');
+        if (!response.ok) throw new Error('[useProcessesByProductId] Failed to fetch processes');
         const data = await response.json();
         console.log(`[useProcessesByProductId] Fetched processes: `, data);
         dispatch({ type: 'SET_PROCESSES', payload: data });

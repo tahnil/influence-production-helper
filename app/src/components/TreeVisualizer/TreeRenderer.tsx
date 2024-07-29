@@ -17,7 +17,7 @@ const TreeRenderer: React.FC = () => {
     const updateRef = useRef<(source: ExtendedD3HierarchyNode | null) => void>(() => { });
     const [treeData, setTreeData] = useState<ProductNode | null>(null);
     const { influenceProducts, loading, error } = useInfluenceProducts();
-    const { setSelectedProduct, selectedProduct, processes } = useNodeContext();
+    const { setSelectedProduct, selectedProduct, processes, selectedProcessId } = useNodeContext();
 
     // Function to handle process selection and update the tree structure
     const handleProcessSelectionCallback = useCallback(async (processId: string, node: ProductNode) => {
