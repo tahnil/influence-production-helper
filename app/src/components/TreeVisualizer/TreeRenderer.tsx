@@ -17,7 +17,7 @@ const TreeRenderer: React.FC = () => {
     const updateRef = useRef<(source: ExtendedD3HierarchyNode | null) => void>(() => { });
     const [treeData, setTreeData] = useState<ProductNode | null>(null);
     const { influenceProducts, loading, error } = useInfluenceProducts();
-    const { setSelectedProduct, selectedProduct, processes, selectedProcessId } = useNodeContext();
+    const { setSelectedProduct, selectedProduct, processes, selectedProcess, setSelectedProcess } = useNodeContext();
 
     // Function to handle process selection and update the tree structure
     const handleProcessSelectionCallback = useCallback(async (processId: string, node: ProductNode) => {
@@ -60,6 +60,20 @@ const TreeRenderer: React.FC = () => {
     }, [selectedProduct, processes]);
 
     useEffect(() => {
+        if (selectedProcess && treeData) {
+            const updateTreeData = async () => {
+                const newProcessNode = await handleProcessSelection(selectedProcess.id, treeData, { [selectedProduct?.id || '']: processes });
+                if (newProcessNode) {
+                    const newTreeData = { ...treeData, children: [newProcessNode] };
+            setTreeData(newTreeData);
+                }
+            };
+
+            updateTreeData();
+        }
+    }, [selectedProcess]);
+
+    useEffect(() => {
         const containerRef = document.getElementById('d3-container');
         if (containerRef && treeData) {
             console.log("[TreeRenderer] Creating or updating D3 tree with treeData:", treeData);
@@ -85,6 +99,8 @@ const TreeRenderer: React.FC = () => {
         processes,
         processesLoading: false,
         processesError: null,
+        selectedProcess,
+        setSelectedProcess,
         handleProcessSelection: handleProcessSelectionCallback
     }), [selectedProduct, processes, handleProcessSelectionCallback]);
 

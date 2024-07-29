@@ -11,7 +11,7 @@ interface NodeContentProps {
 }
 
 const ProductNodeContent: React.FC<NodeContentProps> = ({ node, container }) => {
-    const { processes, handleProcessSelection } = useContext(HandleProcessSelectionContext);
+    const { processes, handleProcessSelection, setSelectedProcess } = useContext(HandleProcessSelectionContext);
     const nodeProcesses = processes.filter(process => process.outputs.some(output => output.productId === node.id));
     console.log("[ProductNodeContent] Available processes: ", processes);
 
@@ -25,10 +25,11 @@ const ProductNodeContent: React.FC<NodeContentProps> = ({ node, container }) => 
             <ProcessSelector
                 processes={nodeProcesses}
                 onSelect={(processId) => {
-                    handleProcessSelection(processId, node),
-                    console.log('[ProductNodeContent] Process selected:', processId)
-                }
-                }
+                    const selectedProcess = nodeProcesses.find(process => process.id === processId);
+                    setSelectedProcess(selectedProcess ? selectedProcess.id : null);
+                    handleProcessSelection(processId, node);
+                    console.log('[ProductNodeContent] Process selected:', processId);
+                }}
             />
         </div>
     );

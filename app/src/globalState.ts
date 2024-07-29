@@ -40,7 +40,7 @@ class GlobalState {
     this.listeners.forEach(listener => listener());
   }
 
-  updateSelectedProcessId(processId: string | null) {
+  updateSelectedProcess(processId: string | null) {
     this.processId = processId
     this.listeners.forEach(listener => listener());
   }
