@@ -1,4 +1,4 @@
-// src/hooks/useProducts.ts
+// src/hooks/useInfluenceProducts.ts
 
 import { useState, useEffect } from 'react';
 import { InfluenceProduct } from '@/types/influenceTypes';

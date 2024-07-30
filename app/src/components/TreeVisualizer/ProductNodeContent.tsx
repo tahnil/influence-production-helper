@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom';
 import { ProductNode } from '@/types/d3Types';
 import { HandleProcessSelectionContext } from '@/contexts/NodeContext';
 import ProcessSelector from '@/components/TreeVisualizer/ProcessSelector';
+import { eventEmitter } from '@/contexts/DataStore';
 
 interface NodeContentProps {
     node: ProductNode;
@@ -25,9 +26,7 @@ const ProductNodeContent: React.FC<NodeContentProps> = ({ node, container }) => 
             <ProcessSelector
                 processes={nodeProcesses}
                 onSelect={(processId) => {
-                    const selectedProcess = nodeProcesses.find(process => process.id === processId);
-                    setSelectedProcess(selectedProcess ? selectedProcess.id : null);
-                    handleProcessSelection(processId, node);
+                    eventEmitter.emit('d3SendProcessIdToDataStore', processId);
                     console.log('[ProductNodeContent] Process selected:', processId);
                 }}
             />

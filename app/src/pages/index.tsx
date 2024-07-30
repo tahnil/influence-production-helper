@@ -1,9 +1,9 @@
 // src/pages/index.tsx
 import React, { useState } from 'react';
-import useProducts from '../hooks/useProducts';
-import useConfigureProductionChain from '../hooks/useConfigureProductionChain';
-import ProductList from '../components/ProductList';
-import ProcessConfigurator from '../components/ProcessConfigurator/ProcessConfigurator';
+import useProducts from '@/hooks/useProducts';
+import useConfigureProductionChain from '@/hooks/useConfigureProductionChain';
+import ProductList from '@/components/ProcessConfigurator/ProductList';
+import ProcessConfigurator from '@/components/ProcessConfigurator/ProcessConfigurator';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,8 +18,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import AggregatedIngredientsTable from '../components/AggregatedIngredientsTable';
-import JsonOutputWithCopyButton from '../components/JsonOutputWithCopyButton';
+import AggregatedIngredientsTable from '@/components/ProcessConfigurator/AggregatedIngredientsTable';
+import JsonOutputWithCopyButton from '@/components/ProcessConfigurator/JsonOutputWithCopyButton';
 import { NumericFormat } from 'react-number-format';
 import { Product } from '@/types/types';
 import { generateUniqueId } from '@/lib/uniqueId';

@@ -2,6 +2,7 @@
 import { ExtendedD3HierarchyNode, ProcessNode, ProductNode } from '@/types/d3Types';
 import { ProcessInput, InfluenceProcess } from '@/types/influenceTypes';
 import { generateUniqueId } from '@/utils/generateUniqueId';
+import { useProcessId } from '@/contexts/DataStore';
 
 const fetchProcessesForProduct = async (productId: string) => {
     const response = await fetch(`/api/processes?outputProductId=${productId}`);
@@ -11,10 +12,15 @@ const fetchProcessesForProduct = async (productId: string) => {
 };
 
 const handleProcessSelection = async (
-    processId: string,
     node: ProductNode,
     processList: { [key: string]: InfluenceProcess[] }
 ): Promise<ProcessNode | null> => {
+    const processId = useProcessId();
+    if (!processId) {
+        console.error('[handleProcessSelection] No process selected');
+        return null;
+    }
+
     const response = await fetch(`/api/inputs?processId=${processId}`);
     const inputs: ProcessInput[] = await response.json();
     const processesPromises = inputs.map(input => fetchProcessesForProduct(input.product.id));

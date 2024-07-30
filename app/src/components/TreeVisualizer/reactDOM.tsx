@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { ProductNode, ProcessNode } from '@/types/d3Types';
 import ProductNodeContent from '@/components/TreeVisualizer/ProductNodeContent';
 import ProcessNodeContent from '@/components/TreeVisualizer/ProcessNodeContent';
-import { NodeContextProvider } from '@/contexts/NodeContext';
+import { DataStoreProvider } from '@/contexts/DataStore';
 
 export const renderReactComponent = (nodeData: ProductNode | ProcessNode, container: HTMLElement) => {
     const root = createRoot(container);
@@ -12,15 +12,15 @@ export const renderReactComponent = (nodeData: ProductNode | ProcessNode, contai
     
     if (nodeData.type === 'product') {
         root.render(
-            <NodeContextProvider>
+            <DataStoreProvider>
                 <ProductNodeContent node={nodeData as ProductNode} container={container} />
-            </NodeContextProvider>
+            </DataStoreProvider>
         );
     } else if (nodeData.type === 'process') {
         root.render(
-            <NodeContextProvider>
+            <DataStoreProvider>
                 <ProcessNodeContent node={nodeData as ProcessNode} container={container} />
-            </NodeContextProvider>
+            </DataStoreProvider>
         );
     } else {
         console.error('Unknown node type:', nodeData);

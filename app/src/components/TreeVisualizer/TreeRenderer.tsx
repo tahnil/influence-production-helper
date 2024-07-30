@@ -1,7 +1,6 @@
 // components/TreeVisualizer/TreeRenderer.tsx
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
-import { useNodeContext } from '@/contexts/NodeContext';
 import { ProductNode, ExtendedD3HierarchyNode, D3TreeNode } from '@/types/d3Types';
 import useInfluenceProducts from '@/hooks/useInfluenceProducts';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
@@ -9,26 +8,19 @@ import { generateUniqueId } from '@/utils/generateUniqueId';
 import { globalState } from '@/globalState';
 import { unifiedD3Tree } from '@/utils/d3Tree';
 import handleProcessSelection from '@/utils/handleProcessSelection';
+import ErrorBoundary from '@/components/TreeVisualizer/ErrorBoundary';
+import { useProcessData, useProcessId, useProductData } from '@/contexts/DataStore';
 import { HandleProcessSelectionContext } from '@/contexts/NodeContext';
-import ErrorBoundary from '@/components/ErrorBoundary';
 
 const TreeRenderer: React.FC = () => {
     const rootRef = useRef<ExtendedD3HierarchyNode | null>(null);
     const updateRef = useRef<(source: ExtendedD3HierarchyNode | null) => void>(() => { });
     const [treeData, setTreeData] = useState<ProductNode | null>(null);
     const { influenceProducts, loading, error } = useInfluenceProducts();
-    const { setSelectedProduct, selectedProduct, processes, selectedProcess, setSelectedProcess } = useNodeContext();
+    const selectedProcessId = useProcessId();
+    const { selectedProduct, setSelectedProduct } = useProductData();
+    const { processes, setProcesses } = useProcessData();
 
-    // Function to handle process selection and update the tree structure
-    const handleProcessSelectionCallback = useCallback(async (processId: string, node: ProductNode) => {
-        const newProcessNode = await handleProcessSelection(processId, node, { [selectedProduct?.id || '']: processes });
-        if (newProcessNode) {
-            node.children = [newProcessNode];
-        setTreeData({ ...treeData }); // Trigger a re-render
-        }
-    }, [processes, selectedProduct, treeData]);
-
-    // Fetch processes and set treeData when a product is selected
     useEffect(() => {
         console.log("[TreeRenderer] useEffect triggered by state change of 'selectedProduct' or 'processes'.");
         console.log("[TreeRenderer] selectedProduct:", selectedProduct);
@@ -60,18 +52,18 @@ const TreeRenderer: React.FC = () => {
     }, [selectedProduct, processes]);
 
     useEffect(() => {
-        if (selectedProcess && treeData) {
+        if (selectedProcessId && treeData) {
             const updateTreeData = async () => {
-                const newProcessNode = await handleProcessSelection(selectedProcess.id, treeData, { [selectedProduct?.id || '']: processes });
+                const newProcessNode = await handleProcessSelection(treeData, { [selectedProduct?.id || '']: processes });
                 if (newProcessNode) {
                     const newTreeData = { ...treeData, children: [newProcessNode] };
-            setTreeData(newTreeData);
+                    setTreeData(newTreeData);
                 }
             };
 
             updateTreeData();
         }
-    }, [selectedProcess]);
+    }, [selectedProcessId, treeData, selectedProduct, processes]);
 
     useEffect(() => {
         const containerRef = document.getElementById('d3-container');
@@ -99,17 +91,14 @@ const TreeRenderer: React.FC = () => {
         processes,
         processesLoading: false,
         processesError: null,
-        selectedProcess,
-        setSelectedProcess,
-        handleProcessSelection: handleProcessSelectionCallback
-    }), [selectedProduct, processes, handleProcessSelectionCallback]);
+    }), [selectedProduct, processes]);
 
     // Render the product selector and D3 tree container
     return (
         <ErrorBoundary>
-        <HandleProcessSelectionContext.Provider value={contextValue}>
-            <ProductSelector products={influenceProducts} onSelect={setSelectedProduct} />
-        </HandleProcessSelectionContext.Provider>
+            <HandleProcessSelectionContext.Provider value={contextValue}>
+                <ProductSelector products={influenceProducts} onSelect={setSelectedProduct} />
+            </HandleProcessSelectionContext.Provider>
         </ErrorBoundary>
     );
 };

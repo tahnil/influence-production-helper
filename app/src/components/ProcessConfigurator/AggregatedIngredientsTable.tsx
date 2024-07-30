@@ -1,8 +1,8 @@
 // src/components/AggregatedIngredientsTable.tsx
 import React from 'react';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table';
-import { ProductionChainProcess } from '../types/types';
-import { aggregateIngredients } from '../utils/aggregateIngredients';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { ProductionChainProcess } from '@/types/types';
+import { aggregateIngredients } from '@/utils/aggregateIngredients';
 import { NumericFormat } from 'react-number-format';
 
 interface AggregatedIngredientsTableProps {

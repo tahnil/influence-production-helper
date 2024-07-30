@@ -1,6 +1,6 @@
 // src/components/JsonOutputWithCopyButton.tsx
 import React from 'react';
-import CopyButton from './CopyButton';
+import CopyButton from '@/components/ProcessConfigurator/CopyButton';
 
 interface JsonOutputWithCopyButtonProps {
   json: object;

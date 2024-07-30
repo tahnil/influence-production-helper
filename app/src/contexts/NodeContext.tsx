@@ -4,6 +4,9 @@ import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 import { globalState } from '@/globalState';
 import { ProductNode } from '@/types/d3Types';
+import { EventEmitter } from 'events';
+
+export const eventEmitter = new EventEmitter();
 
 // Define the structure of the context's value for better TypeScript support
 interface NodeContextType {
@@ -15,24 +18,36 @@ interface NodeContextType {
   selectedProcess: string | null;
   setSelectedProcess: (processId: string | null) => void;
   handleProcessSelection: (processId: string, node: ProductNode) => void;
-  }
+  selectedProcessId: string | null;
+}
 
 const HandleProcessSelectionContext = createContext<NodeContextType>({
   selectedProduct: null,
-  setSelectedProduct: () => {},
+  setSelectedProduct: () => { },
   processes: [],
   processesLoading: false,
   processesError: null,
   selectedProcess: null,
-  setSelectedProcess: () => {},
-  handleProcessSelection: () => {},
+  setSelectedProcess: () => { },
+  handleProcessSelection: () => { },
+  selectedProcessId: null,
 });
 
 export const NodeContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [selectedProduct, setSelectedProduct] = useState<InfluenceProduct | null>(globalState.selectedProduct);
   const { processes, loading: processesLoading, error: processesError } = useProcessesByProductId(selectedProduct?.id || '');
   const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
+  const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
 
+  useEffect(() => {
+    const handleProcessSelection = (processId: string) => {
+      setSelectedProcessId(processId);
+    };
+    eventEmitter.on('d3SendProcessIdToDataStore', handleProcessSelection);
+    return () => {
+      eventEmitter.off('d3SendProcessIdToDataStore', handleProcessSelection);
+    };
+  }, []);
 
   // Update global state whenever processes or selectedProduct change
   useEffect(() => {
@@ -54,14 +69,23 @@ export const NodeContextProvider: React.FC<{ children: React.ReactNode }> = ({ c
     processesError,
     selectedProcess,
     setSelectedProcess,
-    handleProcessSelection: (processId: string, node: ProductNode) => { setSelectedProcess(processId)}
-  }), [selectedProduct, processes, processesLoading, processesError, selectedProcess]);
+    handleProcessSelection: (processId: string, node: ProductNode) => { setSelectedProcess(processId) },
+    selectedProcessId,
+  }), [selectedProduct, processes, processesLoading, processesError, selectedProcess, selectedProcessId]);
 
   return (
     <HandleProcessSelectionContext.Provider value={value}>
       {children}
     </HandleProcessSelectionContext.Provider>
   );
+};
+
+export const useProcessId = () => {
+  const context = useContext(HandleProcessSelectionContext);
+  if (!context) {
+    throw new Error('useProcessId must be used within a NodeContextProvider');
+  }
+  return context.selectedProcessId;
 };
 
 export const useNodeContext = () => useContext(HandleProcessSelectionContext);
