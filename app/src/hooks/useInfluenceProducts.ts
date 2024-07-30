@@ -1,22 +1,22 @@
-// src/hooks/useInfluenceProducts.ts
-
 import { useState, useEffect } from 'react';
 import { InfluenceProduct } from '@/types/influenceTypes';
 
 const useInfluenceProducts = () => {
-  const [influenceProducts, setProducts] = useState<InfluenceProduct[]>([]);
+  const [influenceProducts, setInfluenceProducts] = useState<InfluenceProduct[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const response = await fetch('/api/products');
         if (!response.ok) {
           throw new Error('Failed to fetch products');
         }
         const data: InfluenceProduct[] = await response.json();
-        setProducts(data);
+        setInfluenceProducts(data);
       } catch (error) {
         if (error instanceof Error) {
           setError(`Error: ${error.message}`);
@@ -27,11 +27,15 @@ const useInfluenceProducts = () => {
         setLoading(false);
       }
     };
-
     fetchProducts();
-  }, []);
+  }, [useInfluenceProducts]);
 
-  return { influenceProducts, loading, error };
+
+  return {
+    influenceProducts,
+    loading,
+    error,
+  };
 };
 
 export default useInfluenceProducts;
