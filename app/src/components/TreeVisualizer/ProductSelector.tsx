@@ -1,19 +1,23 @@
-import React from 'react'
-import { InfluenceProduct } from '@/types/influenceTypes'
+// components/ProductSelector.tsx
+
+import React from 'react';
+import { InfluenceProduct } from '@/types/influenceTypes';
 
 interface ProductSelectorProps {
-  products: InfluenceProduct[]
-  onSelect: (productId: string) => void
+    products: InfluenceProduct[];
+    selectedProductId: string | null;
+    onSelect: (productId: string | null) => void;
 }
 
-const ProductSelector: React.FC<ProductSelectorProps> = ({ products, onSelect }) => {
+const ProductSelector: React.FC<ProductSelectorProps> = ({ products, selectedProductId, onSelect }) => {
   const handleSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    onSelect(event.target.value)
-  }
+        const value = event.target.value;
+        onSelect(value || null);
+    };
 
   return (
     <div className="product-selector">
-      <select onChange={handleSelect}>
+            <select value={selectedProductId || ''} onChange={handleSelect}>
         <option value="">Select a product</option>
         {products.map((product) => (
           <option key={product.id} value={product.id}>
@@ -22,7 +26,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({ products, onSelect })
         ))}
       </select>
     </div>
-  )
-}
+    );
+};
 
-export default ProductSelector
+export default ProductSelector;

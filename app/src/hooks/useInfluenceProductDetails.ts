@@ -6,8 +6,18 @@ const useProductDetails = (id: string) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  console.log('[useProductDetails] Called with id:', id);
+
   useEffect(() => {
+    if (!id) {
+      console.log('No id provided to fetch product details');
+      setLoading(false);
+      setProductDetails(null);
+      return;
+    }
+
     const fetchProductDetails = async () => {
+      console.log(`Fetching product details for id: ${id}`);
       setLoading(true);
       setError(null);
       try {
@@ -29,6 +39,10 @@ const useProductDetails = (id: string) => {
     };
     fetchProductDetails();
   }, [id]);
+
+  useEffect(() => {
+    console.log('useProductDetails state changed:', { productDetails, loading, error });
+  }, [productDetails, loading, error]);
 
   return {
     productDetails,

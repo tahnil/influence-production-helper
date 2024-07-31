@@ -2,11 +2,11 @@
 export interface InfluenceProduct {
     category?: string;
     id: string;
-    massKilogramsPerUnit?: number;
+    massKilogramsPerUnit?: string;
     name: string;
     quantized?: boolean;
     type?: string;
-    volumeLitersPerUnit?: number;
+    volumeLitersPerUnit?: string;
 }
 
 export interface InfluenceProcess {

@@ -16,7 +16,7 @@ const reducer = (state: any, action: { type: any; payload: any; }) => {
   }
 };
 
-const useProcessesByProductId = (productId: string) => {
+const useProcessesByProductId = (productId: string | null) => {
   const [state, dispatch] = useReducer(reducer, {
     processes: [],
     loading: false,

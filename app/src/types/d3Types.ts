@@ -13,13 +13,20 @@ export interface BaseNode {
     uniqueNodeId: string;
     id?: string;
     name: string;
-    type: 'product' |'sideProduct' | 'process';
+    nodeType: 'product' |'sideProduct' | 'process';
 }
 
 // Define the ProductNode type
 export interface ProductNode extends BaseNode {
-    type: 'product';
-    influenceProduct: InfluenceProduct; // Reference to InfluenceProduct
+    id: string;
+    uniqueNodeId: string;
+    nodeType: 'product';
+    name: string;
+    category: string;
+    quantized: boolean;
+    massKgPerUnit: string;
+    volLitersPerUnit: string;
+    influenceType: string;
     amount: number;
     totalWeight: number; // Calculated total weight
     totalVolume: number; // Calculated total volume
@@ -29,17 +36,22 @@ export interface ProductNode extends BaseNode {
 
 // Define the SideProductNode type
 export interface SideProductNode extends BaseNode {
-    type: 'sideProduct';
-    influenceProduct: InfluenceProduct;
+    nodeType: 'sideProduct';
+    name: string;
+    category: string;
+    quantized: boolean;
+    massKgPerUnit: string;
+    volLitersPerUnit: string;
+    influenceType: string;
     amount: number;
     totalWeight: number; // Calculated total weight
     totalVolume: number; // Calculated total volume
+    processes?: InfluenceProcess[];
 }
 
 // Define the ProcessNode type
 export interface ProcessNode extends BaseNode {
-    type: 'process';
-    influenceProcess: InfluenceProcess; // Reference to InfluenceProcess
+    nodeType: 'process';
     totalDuration: number; // Calculated total duration
     totalRuns: number; // Calculated total number of standard runs
     sideProducts?: SideProductNode[]; // Add side products here
