@@ -10,22 +10,23 @@ interface ProductSelectorProps {
 }
 
 const ProductSelector: React.FC<ProductSelectorProps> = ({ products, selectedProductId, onSelect }) => {
-  const handleSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const value = event.target.value;
-        onSelect(value || null);
+    console.log('[ProductSelector] products:', products);
+    console.log('[ProductSelector] selectedProductId:', selectedProductId);
+
+    const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        const productId = event.target.value;
+        onSelect(productId || null);
     };
 
   return (
-    <div className="product-selector">
-            <select value={selectedProductId || ''} onChange={handleSelect}>
+        <select value={selectedProductId || ''} onChange={handleChange}>
         <option value="">Select a product</option>
-        {products.map((product) => (
+            {products.map(product => (
           <option key={product.id} value={product.id}>
             {product.name}
           </option>
         ))}
       </select>
-    </div>
     );
 };
 

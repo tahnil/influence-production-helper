@@ -1,57 +1,44 @@
 // src/hooks/useProcessesByProductId.ts
 
-import { useEffect, useReducer, useMemo } from 'react';
+import { useState, useCallback } from 'react';
+import { InfluenceProcess } from '@/types/influenceTypes';
 
-// Defining a reducer function for managing state
-const reducer = (state: any, action: { type: any; payload: any; }) => {
-  switch (action.type) {
-    case 'SET_LOADING':
-      return { ...state, loading: action.payload };
-    case 'SET_PROCESSES':
-      return { ...state, processes: action.payload, loading: false };
-    case 'SET_ERROR':
-      return { ...state, error: action.payload, loading: false };
-    default:
-      return state;
+const fetchProcessesByProductId = async (productId: string): Promise<InfluenceProcess[]> => {
+  const response = await fetch(`/api/processes?outputProductId=${productId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch processes');
   }
+  return response.json();
 };
 
-const useProcessesByProductId = (productId: string | null) => {
-  const [state, dispatch] = useReducer(reducer, {
-    processes: [],
-    loading: false,
-    error: null
-  });
+const useProcessesByProductId = () => {
+  const [processes, setProcesses] = useState<InfluenceProcess[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!productId) {
-      console.log('[useProcessesByProductId] No productId provided');
-      dispatch({ type: 'SET_PROCESSES', payload: [] });
-      return;
-    }
-
-    const fetchProcessesByProductId = async () => {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      try {
-        const response = await fetch(`/api/processes?outputProductId=${productId}`);
-        if (!response.ok) throw new Error('[useProcessesByProductId] Failed to fetch processes');
-        const data = await response.json();
-        console.log(`[useProcessesByProductId] Fetched processes: `, data);
-        dispatch({ type: 'SET_PROCESSES', payload: data });
-      } catch (e: any) {
-        dispatch({ type: 'SET_ERROR', payload: e.message });
+  const getProcesses = useCallback(async (productId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchProcessesByProductId(productId);
+      setProcesses(data);
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(`Error: ${error.message}`);
+      } else {
+        setError('Unexpected error occurred');
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    fetchProcessesByProductId();
-  }, [productId]);
-
-  // Memoizing the returned object to prevent unnecessary re-renders of consumers
-  return useMemo(() => ({
-    processes: state.processes,
-    loading: state.loading,
-    error: state.error
-  }), [state]);
+  return {
+    processes,
+    loading,
+    error,
+    getProcesses,
+  };
 };
 
 export default useProcessesByProductId;

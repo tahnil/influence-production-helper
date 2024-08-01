@@ -1,22 +1,23 @@
-// type for influence entities
+// types/influenceTypes.ts
+// types for influence entities
 export interface InfluenceProduct {
-    category?: string;
     id: string;
-    massKilogramsPerUnit?: string;
     name: string;
-    quantized?: boolean;
-    type?: string;
+    massKilogramsPerUnit?: string;
     volumeLitersPerUnit?: string;
+    type?: string;
+    category?: string;
+    quantized?: boolean;
 }
 
 export interface InfluenceProcess {
-    bAdalianHoursPerAction: string;
-    buildingId: string;
     id: string;
-    inputs: InfluenceProcessInputOutput[];
-    mAdalianHoursPerSR: string;
     name: string;
+    buildingId: string;
+    inputs: InfluenceProcessInputOutput[];
     outputs: InfluenceProcessInputOutput[];
+    bAdalianHoursPerAction: string;
+    mAdalianHoursPerSR: string;
 }
 
 export interface InfluenceProcessInputOutput {
