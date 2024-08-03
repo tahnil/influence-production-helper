@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import axios from 'axios';
-import { Input } from '../types/types';
+import { Input } from '@/types/types';
 
 const fetchInputsByProcessId = async (processId: string): Promise<Input[]> => {
   const response = await axios.get(`/api/processes`, { params: { processId } });
@@ -14,7 +14,7 @@ const fetchInputsByProcessId = async (processId: string): Promise<Input[]> => {
 
 const useInputsByProcessId = () => {
   const [inputs, setInputs] = useState<Input[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const getInputsByProcessId = useCallback(async (processId: string) => {

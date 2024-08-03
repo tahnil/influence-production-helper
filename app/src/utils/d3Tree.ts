@@ -2,7 +2,6 @@
 
 import * as d3 from 'd3';
 import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
-import useProcessNodeBuilder from '@/components/TreeVisualizer/useProcessNodeBuilder';
 
 // Function to clear the existing D3 tree
 export const clearD3Tree = (container: HTMLDivElement) => {
@@ -101,7 +100,7 @@ export const injectForeignObjects = (
     container: HTMLDivElement,
     rootRef: React.MutableRefObject<d3.HierarchyPointNode<D3TreeNode> | null>,
     setTreeData: React.Dispatch<React.SetStateAction<D3TreeNode | null>>,
-    buildProcessNode: (selectedProcessId: string) => Promise<ProcessNode | null>
+    buildProcessNode: (selectedProcessId: string | null) => Promise<void>
 ) => {
     const svg = d3.select(container).select('svg g');
     const nodeSelection = svg.selectAll<SVGGElement, d3.HierarchyPointNode<D3TreeNode>>('g.node');
@@ -134,20 +133,47 @@ export const injectForeignObjects = (
 
             foreignObject.select('select').on('change', async function () {
                 const selectedProcessId = (this as HTMLSelectElement).value;
+                try {
+                    await buildProcessNode(selectedProcessId);
                     const productNode = d.data as ProductNode;
+                    const selectedProcess = productNode.processes.find(p => p.id === selectedProcessId);
 
-                const newProcessNode = await buildProcessNode(selectedProcessId);
-                if (newProcessNode) {
+                    if (!selectedProcess) {
+                        console.error('[injectForeignObjects] Selected process not found:', selectedProcessId);
+                        return;
+                    }
+
+                    const processNode: ProcessNode = {
+                        id: `process-${selectedProcess.id}`,
+                        name: selectedProcess.name,
+                        nodeType: 'process',
+                        totalDuration: 0,
+                        totalRuns: 0,
+                        children: selectedProcess.inputs.map(input => ({
+                            id: input.productId,
+                            name: input.productId, // Replace with actual product name if available
+                            nodeType: 'product',
+                            productData: { id: input.productId, name: input.productId, category: '', massKilogramsPerUnit: '', type: '', volumeLitersPerUnit: '' }, // Replace with actual product data if available
+                            amount: 0,
+                            totalWeight: 0,
+                            totalVolume: 0,
+                            children: [],
+                            processes: []
+                        })),
+                        sideProducts: []
+                    };
+
                     if (productNode.children) {
-                        productNode.children.push(newProcessNode);
+                        productNode.children.push(processNode);
                     } else {
-                        productNode.children = [newProcessNode];
+                        productNode.children = [processNode];
                     }
 
                     console.log('[injectForeignObjects] Updated tree data with new process node:', rootRef.current!.data);
                     setTreeData({ ...rootRef.current!.data });
-                } else {
-                    console.error('[injectForeignObjects] Failed to build process node:', selectedProcessId);
+                    console.log('[injectForeignObjects] treeData after update:', rootRef.current!.data);
+                } catch (error) {
+                    console.error('[injectForeignObjects] Failed to build process node:', selectedProcessId, error);
                 }
             });
         } else {
