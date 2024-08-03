@@ -3,6 +3,11 @@
 import * as d3 from 'd3';
 import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
 
+// Function to clear the existing D3 tree
+export const clearD3Tree = (container: HTMLDivElement) => {
+    d3.select(container).selectAll('*').remove();
+};
+
 // Function to render the D3 tree
 export const renderD3Tree = (
     container: HTMLDivElement,

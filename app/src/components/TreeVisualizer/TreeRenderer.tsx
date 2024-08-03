@@ -5,7 +5,7 @@ import ProductSelector from './ProductSelector';
 import useInfluenceProducts from '@/hooks/useInfluenceProducts';
 import useRootNodeBuilder from './useRootNodeBuilder';
 import useProductNodeBuilder from './useProductNodeBuilder';
-import { renderD3Tree, injectForeignObjects } from '@/utils/d3Tree';
+import { renderD3Tree, injectForeignObjects, clearD3Tree } from '@/utils/d3Tree';
 import { D3TreeNode } from '@/types/d3Types';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 
@@ -40,14 +40,10 @@ const TreeRenderer: React.FC = () => {
     // Effect to render D3 tree when productNode is ready
     useEffect(() => {
         if (rootNode && d3RenderContainer.current) {
-            console.log('[TreeRenderer] Root Node:', rootNode);
-            renderD3Tree(
-                d3RenderContainer.current, 
-                rootNode, 
-                rootRef, 
-                updateRef
-            );
-            setTreeData(rootNode);  // Initialize treeData with the root node
+            console.log('[TreeRenderer] Initializing D3 Tree with Root Node:', rootNode);
+            clearD3Tree(d3RenderContainer.current); // Clear existing tree
+            renderD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef);
+            setTreeData(rootNode); // Initialize treeData with the root node
         }
     }, [rootNode]);
 
