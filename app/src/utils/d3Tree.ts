@@ -2,6 +2,7 @@
 
 import * as d3 from 'd3';
 import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
+import useProcessNodeBuilder from '@/components/TreeVisualizer/useProcessNodeBuilder';
 
 // Function to clear the existing D3 tree
 export const clearD3Tree = (container: HTMLDivElement) => {
@@ -99,7 +100,8 @@ export const renderD3Tree = (
 export const injectForeignObjects = (
     container: HTMLDivElement,
     rootRef: React.MutableRefObject<d3.HierarchyPointNode<D3TreeNode> | null>,
-    setTreeData: React.Dispatch<React.SetStateAction<D3TreeNode | null>>
+    setTreeData: React.Dispatch<React.SetStateAction<D3TreeNode | null>>,
+    buildProcessNode: (selectedProcessId: string) => Promise<ProcessNode | null>
 ) => {
     const svg = d3.select(container).select('svg g');
     const nodeSelection = svg.selectAll<SVGGElement, d3.HierarchyPointNode<D3TreeNode>>('g.node');
@@ -108,15 +110,15 @@ export const injectForeignObjects = (
         if (d.data.nodeType === 'product') {
             console.log('[injectForeignObjects] Injecting foreignObject for product node:', d);
 
-        const nodeElement = d3.select(this);
-        nodeElement.selectAll('foreignObject').remove();
+            const nodeElement = d3.select(this);
+            nodeElement.selectAll('foreignObject').remove();
 
-        const foreignObject = nodeElement.append('foreignObject')
+            const foreignObject = nodeElement.append('foreignObject')
                 .attr('width', 200)
-            .attr('height', 50)
+                .attr('height', 50)
                 .attr('x', -100) // Adjust positioning as necessary
                 .attr('y', -25) // Adjust positioning as necessary
-            .append('xhtml:div')
+                .append('xhtml:div')
                 .html(d => {
                     const productNode = d.data as ProductNode;
                     console.log('[injectForeignObjects] Rendering process options for node:', productNode);
@@ -130,45 +132,24 @@ export const injectForeignObjects = (
                 `;
                 });
 
-        foreignObject.select('select').on('change', function () {
+            foreignObject.select('select').on('change', async function () {
                 const selectedProcessId = (this as HTMLSelectElement).value;
-                const productNode = d.data as ProductNode;
-                const selectedProcess = productNode.processes.find(p => p.id === selectedProcessId);
+                    const productNode = d.data as ProductNode;
 
-                if (!selectedProcess) {
-                    console.error('[injectForeignObjects] Selected process not found:', selectedProcessId);
-                    return;
+                const newProcessNode = await buildProcessNode(selectedProcessId);
+                if (newProcessNode) {
+                    if (productNode.children) {
+                        productNode.children.push(newProcessNode);
+                    } else {
+                        productNode.children = [newProcessNode];
+                    }
+
+                    console.log('[injectForeignObjects] Updated tree data with new process node:', rootRef.current!.data);
+                    setTreeData({ ...rootRef.current!.data });
+                } else {
+                    console.error('[injectForeignObjects] Failed to build process node:', selectedProcessId);
                 }
-
-                const processNode: ProcessNode = {
-                    id: `process-${selectedProcess.id}`,
-                    name: selectedProcess.name,
-                nodeType: 'process',
-                totalDuration: 0,
-                totalRuns: 0,
-                    children: selectedProcess.inputs.map(input => ({
-                        id: input.productId,
-                        name: input.productId, // Replace with actual product name if available
-                        nodeType: 'product',
-                        productData: { id: input.productId, name: input.productId, category: '', massKilogramsPerUnit: '', type: '', volumeLitersPerUnit: '' }, // Replace with actual product data if available
-                        amount: 0,
-                        totalWeight: 0,
-                        totalVolume: 0,
-                children: [],
-                        processes: []
-                    })),
-                sideProducts: []
-            };
-
-                if (productNode.children) {
-                    productNode.children.push(processNode);
-    } else {
-                    productNode.children = [processNode];
-            }
-
-                console.log('[injectForeignObjects] Updated tree data with new process node:', rootRef.current!.data);
-            setTreeData({ ...rootRef.current!.data });
-        });
+            });
         } else {
             console.log('[injectForeignObjects] Skipping non-product node:', d);
         }

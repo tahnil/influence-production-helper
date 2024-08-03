@@ -1,3 +1,5 @@
+// components/TreeVisualizer/buildProductNode.ts
+
 import { ProductNode } from '@/types/d3Types';
 import { InfluenceProduct, InfluenceProcess } from '@/types/influenceTypes';
 import { generateUniqueId } from '@/utils/generateUniqueId';

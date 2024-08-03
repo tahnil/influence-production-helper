@@ -5,6 +5,7 @@ import ProductSelector from './ProductSelector';
 import useInfluenceProducts from '@/hooks/useInfluenceProducts';
 import useRootNodeBuilder from './useRootNodeBuilder';
 import useProductNodeBuilder from './useProductNodeBuilder';
+import useProcessNodeBuilder from './useProcessNodeBuilder';
 import { renderD3Tree, injectForeignObjects, clearD3Tree } from '@/utils/d3Tree';
 import { D3TreeNode } from '@/types/d3Types';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
@@ -49,14 +50,16 @@ const TreeRenderer: React.FC = () => {
 
     const { productNode, productLoading, productError, processesLoading, processesError } = useProductNodeBuilder({ selectedProductId });
 
+    const { buildProcessNode } = useProcessNodeBuilder();
+
     // Effect to inject foreign objects after D3 tree is rendered
     useEffect(() => {
         if (productNode && d3RenderContainer.current) {
             // console.log('[TreeRenderer] Injecting Foreign Objects:', productNode);
             // console.log('[TreeRenderer] setTreeData:', setTreeData);
-            injectForeignObjects(d3RenderContainer.current, rootRef, setTreeData);
+            injectForeignObjects(d3RenderContainer.current, rootRef, setTreeData, buildProcessNode);
         }
-    }, [productNode]);
+    }, [productNode, buildProcessNode]);
 
     // console.log('[TreeRenderer] Render:', { loading, productLoading, processesLoading, error, productError, processesError });
     // console.log('[TreeRenderer] Selected Product ID:', selectedProductId);

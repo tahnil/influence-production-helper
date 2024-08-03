@@ -1,33 +1,45 @@
 // src/hooks/useInputsByProcessId.ts
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import axios from 'axios';
 import { Input } from '../types/types';
 
-const useInputsByProcessId = (processId?: string) => {
+const fetchInputsByProcessId = async (processId: string): Promise<Input[]> => {
+  const response = await axios.get(`/api/processes`, { params: { processId } });
+  if (response.status !== 200) {
+    throw new Error('Failed to fetch inputs');
+  }
+  return response.data;
+};
+
+const useInputsByProcessId = () => {
   const [inputs, setInputs] = useState<Input[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchInputsByProcessId = async () => {
-      if (!processId) return;
-
-      try {
+  const getInputsByProcessId = useCallback(async (processId: string) => {
         setLoading(true);
-        const response = await axios.get(`/api/processes`, { params: { processId } });
-        setInputs(Array.isArray(response.data) ? response.data : []);
+    setError(null);
+    try {
+      const data = await fetchInputsByProcessId(processId);
+      setInputs(data);
       } catch (error) {
-        setError('Failed to fetch inputs');
+      if (error instanceof Error) {
+        setError(`Error: ${error.message}`);
+      } else {
+        setError('Unexpected error occurred');
+      }
       } finally {
         setLoading(false);
       }
-    };
+  }, []);
 
-    fetchInputsByProcessId();
-  }, [processId]);
-
-  return { inputs, loading, error };
+  return {
+    inputs,
+    loading,
+    error,
+    getInputsByProcessId,
+  };
 };
 
 export default useInputsByProcessId;
