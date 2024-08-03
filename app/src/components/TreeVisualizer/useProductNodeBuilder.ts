@@ -1,6 +1,6 @@
 // components/TreeVisualizer/useProductNodeBuilder.ts
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ProductNode } from '@/types/d3Types';
 import { buildProductNode } from '@/components/TreeVisualizer/buildProductNode';
 import useProductDetails from '@/hooks/useInfluenceProductDetails';
@@ -10,6 +10,12 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
     const [productNode, setProductNode] = useState<ProductNode | null>(null);
     const { productDetails, loading: productLoading, error: productError, getProductDetails } = useProductDetails();
     const { processes, loading: processesLoading, error: processesError, getProcesses } = useProcessesByProductId();
+
+    const getProductNode = useCallback(async (productId: string) => {
+        const details = await getProductDetails(productId);
+        const processList = await getProcesses(productId);
+        return buildProductNode(details, processList);
+    }, [getProductDetails, getProcesses]);
 
     useEffect(() => {
         if (selectedProductId) {
@@ -26,7 +32,7 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
         }
     }, [productDetails, productLoading, productError, processes, processesLoading, processesError]);
 
-    return { productNode, productLoading, productError, processesLoading, processesError };
+    return { productNode, getProductNode, productLoading, productError, processesLoading, processesError };
 };
 
 export default useProductNodeBuilder;

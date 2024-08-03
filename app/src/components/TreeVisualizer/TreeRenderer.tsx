@@ -23,6 +23,7 @@ const TreeRenderer: React.FC = () => {
     // Fetching influence products using a custom hook
     const { influenceProducts, loading, error } = useInfluenceProducts();
     const { processes, getProcesses } = useProcessesByProductId();
+    const { buildProcessNode } = useProcessNodeBuilder();
 
     // Callback function to handle product selection
     const handleSelectProduct = useCallback((productId: string | null) => {
@@ -49,7 +50,6 @@ const TreeRenderer: React.FC = () => {
     }, [rootNode]);
 
     const { productNode, productLoading, productError, processesLoading, processesError } = useProductNodeBuilder({ selectedProductId });
-    const { processNode, buildProcessNode, loading: processNodeLoading, error: processNodeError } = useProcessNodeBuilder();
 
     // Effect to inject foreign objects after D3 tree is rendered
     useEffect(() => {
@@ -63,9 +63,6 @@ const TreeRenderer: React.FC = () => {
     // console.log('[TreeRenderer] Render:', { loading, productLoading, processesLoading, error, productError, processesError });
     // console.log('[TreeRenderer] Selected Product ID:', selectedProductId);
     // console.log('[TreeRenderer] Influence Products:', influenceProducts);
-    useEffect(() => {
-        console.log('[TreeRenderer] treeData updated:', treeData);
-    }, [treeData]);
 
     if (loading) return <div>Loading products...</div>;
     if (error) return <div>Error: {error}</div>;

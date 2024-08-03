@@ -135,45 +135,10 @@ export const injectForeignObjects = (
                 const selectedProcessId = (this as HTMLSelectElement).value;
                 try {
                     await buildProcessNode(selectedProcessId);
-                    const productNode = d.data as ProductNode;
-                    const selectedProcess = productNode.processes.find(p => p.id === selectedProcessId);
-
-                    if (!selectedProcess) {
-                        console.error('[injectForeignObjects] Selected process not found:', selectedProcessId);
-                        return;
-                    }
-
-                    const processNode: ProcessNode = {
-                        id: `process-${selectedProcess.id}`,
-                        name: selectedProcess.name,
-                        nodeType: 'process',
-                        totalDuration: 0,
-                        totalRuns: 0,
-                        children: selectedProcess.inputs.map(input => ({
-                            id: input.productId,
-                            name: input.productId, // Replace with actual product name if available
-                            nodeType: 'product',
-                            productData: { id: input.productId, name: input.productId, category: '', massKilogramsPerUnit: '', type: '', volumeLitersPerUnit: '' }, // Replace with actual product data if available
-                            amount: 0,
-                            totalWeight: 0,
-                            totalVolume: 0,
-                            children: [],
-                            processes: []
-                        })),
-                        sideProducts: []
-                    };
-
-                    if (productNode.children) {
-                        productNode.children.push(processNode);
-                    } else {
-                        productNode.children = [processNode];
-                    }
-
-                    console.log('[injectForeignObjects] Updated tree data with new process node:', rootRef.current!.data);
                     setTreeData({ ...rootRef.current!.data });
-                    console.log('[injectForeignObjects] treeData after update:', rootRef.current!.data);
-                } catch (error) {
-                    console.error('[injectForeignObjects] Failed to build process node:', selectedProcessId, error);
+                    console.log('[injectForeignObjects] Updated tree data with new process node:', rootRef.current!.data);
+                } catch (err) {
+                    console.error('[injectForeignObjects] Failed to build process node:', err);
                 }
             });
         } else {

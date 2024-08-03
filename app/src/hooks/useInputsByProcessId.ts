@@ -7,7 +7,7 @@ import { Input } from '@/types/types';
 const fetchInputsByProcessId = async (processId: string): Promise<Input[]> => {
   const response = await axios.get(`/api/processes`, { params: { processId } });
   if (response.status !== 200) {
-    throw new Error('Failed to fetch inputs');
+    throw new Error('[useInputsByProcessId] Failed to fetch inputs');
   }
   return response.data;
 };
@@ -22,12 +22,13 @@ const useInputsByProcessId = () => {
     setError(null);
     try {
       const data = await fetchInputsByProcessId(processId);
+      console.log('[useInputsByProcessId] Fetched inputs for ', processId,': ', data);
       setInputs(data);
       } catch (error) {
       if (error instanceof Error) {
         setError(`Error: ${error.message}`);
       } else {
-        setError('Unexpected error occurred');
+        setError('[useInputsByProcessId] Unexpected error occurred');
       }
       } finally {
         setLoading(false);
