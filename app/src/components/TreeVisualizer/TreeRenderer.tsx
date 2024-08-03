@@ -7,6 +7,7 @@ import useRootNodeBuilder from './useRootNodeBuilder';
 import useProductNodeBuilder from './useProductNodeBuilder';
 import { renderD3Tree, injectForeignObjects } from '@/utils/d3Tree';
 import { D3TreeNode } from '@/types/d3Types';
+import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 
 const TreeRenderer: React.FC = () => {
     // State to keep track of the selected product ID and tree data
@@ -20,15 +21,21 @@ const TreeRenderer: React.FC = () => {
 
     // Fetching influence products using a custom hook
     const { influenceProducts, loading, error } = useInfluenceProducts();
+    const { processes, getProcesses } = useProcessesByProductId();
 
     // Callback function to handle product selection
     const handleSelectProduct = useCallback((productId: string | null) => {
-        console.log('[TreeRenderer] Product selected:', productId);
+        // console.log('[TreeRenderer] Product selected:', productId);
         setSelectedProduct(productId);
-    }, []);
+        if (productId) {
+            getProcesses(productId);
+        }
+    }, [getProcesses]);
 
     // Custom hook to build the product node based on selected product ID
-    const { rootNode } = useRootNodeBuilder({ selectedProductId, influenceProducts });
+    // console.log('[TreeRenderer] Right before useRootNodeBuilder.');
+    const { rootNode } = useRootNodeBuilder({ selectedProductId, influenceProducts, processes });
+    // console.log('[TreeRenderer] Right after useRootNodeBuilder, Root Node:', rootNode);
 
     // Effect to render D3 tree when productNode is ready
     useEffect(() => {
@@ -49,14 +56,15 @@ const TreeRenderer: React.FC = () => {
     // Effect to inject foreign objects after D3 tree is rendered
     useEffect(() => {
         if (productNode && d3RenderContainer.current) {
-            console.log('[TreeRenderer] Injecting Foreign Objects:', productNode);
+            // console.log('[TreeRenderer] Injecting Foreign Objects:', productNode);
+            // console.log('[TreeRenderer] setTreeData:', setTreeData);
             injectForeignObjects(d3RenderContainer.current, rootRef, setTreeData);
         }
     }, [productNode]);
 
-    console.log('[TreeRenderer] Render:', { loading, productLoading, processesLoading, error, productError, processesError });
-    console.log('[TreeRenderer] Selected Product ID:', selectedProductId);
-    console.log('[TreeRenderer] Influence Products:', influenceProducts);
+    // console.log('[TreeRenderer] Render:', { loading, productLoading, processesLoading, error, productError, processesError });
+    // console.log('[TreeRenderer] Selected Product ID:', selectedProductId);
+    // console.log('[TreeRenderer] Influence Products:', influenceProducts);
 
     if (loading) return <div>Loading products...</div>;
     if (error) return <div>Error: {error}</div>;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ProductNode } from '@/types/d3Types';
-import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
+import { buildProductNode } from '@/components/TreeVisualizer/buildProductNode';
 import useProductDetails from '@/hooks/useInfluenceProductDetails';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 
@@ -20,19 +20,9 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
 
     useEffect(() => {
         if (productDetails && !productLoading && !productError && !processesLoading && !processesError) {
-            const newNode: ProductNode = {
-                id: productDetails.id,
-                name: productDetails.name,
-                nodeType: 'product',
-                productData: productDetails,
-                amount: 0,
-                totalWeight: 0,
-                totalVolume: 0,
-                children: [],
-                processes
-            };
+            const newNode = buildProductNode(productDetails, processes);
             setProductNode(newNode);
-            console.log('[useProductNodeBuilder] newNode:', newNode);
+            // console.log('[useProductNodeBuilder] newNode:', newNode);
         }
     }, [productDetails, productLoading, productError, processes, processesLoading, processesError]);
 

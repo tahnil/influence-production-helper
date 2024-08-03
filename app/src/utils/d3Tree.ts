@@ -1,7 +1,7 @@
 // utils/d3Tree.ts
 
 import * as d3 from 'd3';
-import { D3TreeNode } from '@/types/d3Types';
+import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
 
 // Function to render the D3 tree
 export const renderD3Tree = (
@@ -100,32 +100,72 @@ export const injectForeignObjects = (
     const nodeSelection = svg.selectAll<SVGGElement, d3.HierarchyPointNode<D3TreeNode>>('g.node');
 
     nodeSelection.each(function (d) {
+        if (d.data.nodeType === 'product') {
+            console.log('[injectForeignObjects] Injecting foreignObject for product node:', d);
+
         const nodeElement = d3.select(this);
         nodeElement.selectAll('foreignObject').remove();
 
         const foreignObject = nodeElement.append('foreignObject')
-            .attr('width', 100)
+                .attr('width', 200)
             .attr('height', 50)
+                .attr('x', -100) // Adjust positioning as necessary
+                .attr('y', -25) // Adjust positioning as necessary
             .append('xhtml:div')
-            .html('<select><option>Process 1</option><option>Process 2</option></select>');
+                .html(d => {
+                    const productNode = d.data as ProductNode;
+                    console.log('[injectForeignObjects] Rendering process options for node:', productNode);
+                    return `
+                <div style="background-color: white; border: 1px solid black; border-radius: 5px; padding: 5px;">
+                        <label for="process-select-${productNode.id}">Select Process:</label>
+                        <select id="process-select-${productNode.id}" name="process-select">
+                            ${productNode.processes.map(process => `<option value="${process.id}">${process.name}</option>`).join('')}
+                    </select>
+                </div>
+                `;
+                });
 
         foreignObject.select('select').on('change', function () {
-            const selectedProcess = (this as HTMLSelectElement).value;
-            const processNode: D3TreeNode = {
-                id: `process-${selectedProcess}`,
-                name: selectedProcess,
+                const selectedProcessId = (this as HTMLSelectElement).value;
+                const productNode = d.data as ProductNode;
+                const selectedProcess = productNode.processes.find(p => p.id === selectedProcessId);
+
+                if (!selectedProcess) {
+                    console.error('[injectForeignObjects] Selected process not found:', selectedProcessId);
+                    return;
+                }
+
+                const processNode: ProcessNode = {
+                    id: `process-${selectedProcess.id}`,
+                    name: selectedProcess.name,
                 nodeType: 'process',
                 totalDuration: 0,
                 totalRuns: 0,
+                    children: selectedProcess.inputs.map(input => ({
+                        id: input.productId,
+                        name: input.productId, // Replace with actual product name if available
+                        nodeType: 'product',
+                        productData: { id: input.productId, name: input.productId, category: '', massKilogramsPerUnit: '', type: '', volumeLitersPerUnit: '' }, // Replace with actual product data if available
+                        amount: 0,
+                        totalWeight: 0,
+                        totalVolume: 0,
                 children: [],
+                        processes: []
+                    })),
                 sideProducts: []
             };
-            if (d.data.children) {
-                d.data.children.push(processNode);
+
+                if (productNode.children) {
+                    productNode.children.push(processNode);
     } else {
-                d.data.children = [processNode];
+                    productNode.children = [processNode];
             }
+
+                console.log('[injectForeignObjects] Updated tree data with new process node:', rootRef.current!.data);
             setTreeData({ ...rootRef.current!.data });
         });
+        } else {
+            console.log('[injectForeignObjects] Skipping non-product node:', d);
+        }
     });
 };
