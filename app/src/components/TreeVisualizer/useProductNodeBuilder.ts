@@ -11,12 +11,6 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
     const { productDetails, loading: productLoading, error: productError, getProductDetails } = useProductDetails();
     const { processes, loading: processesLoading, error: processesError, getProcesses } = useProcessesByProductId();
 
-    const getProductNode = useCallback(async (productId: string) => {
-        const details = await getProductDetails(productId);
-        const processList = await getProcesses(productId);
-        return buildProductNode(details, processList);
-    }, [getProductDetails, getProcesses]);
-
     useEffect(() => {
         if (selectedProductId) {
             getProductDetails(selectedProductId);
@@ -32,7 +26,17 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
         }
     }, [productDetails, productLoading, productError, processes, processesLoading, processesError]);
 
-    return { productNode, getProductNode, productLoading, productError, processesLoading, processesError };
+    const getProductNode = useCallback(async (productId: string) => {
+        await getProductDetails(productId);
+        await getProcesses(productId);
+        if (productDetails && !productLoading && !productError && !processesLoading && !processesError) {
+            const newNode = buildProductNode(productDetails, processes);
+            return newNode;
+        }
+        throw new Error('Failed to build product node');
+    }, [productDetails, productLoading, productError, processes, processesLoading, processesError, getProductDetails, getProcesses]);
+
+    return { productNode, productLoading, productError, processesLoading, processesError, getProductNode };
 };
 
 export default useProductNodeBuilder;

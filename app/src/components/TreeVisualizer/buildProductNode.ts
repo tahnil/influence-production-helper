@@ -8,6 +8,9 @@ export const buildProductNode = (
     productData: InfluenceProduct,
     processes: InfluenceProcess[]
 ): ProductNode => {
+    if (!productData) {
+        throw new Error('[buildProductNode] productData is undefined');
+    }
     return {
         id: generateUniqueId(),
         name: productData.name,

@@ -1,14 +1,15 @@
 // src/components/TreeVisualizer/useProcessNodeBuilder.ts
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { ProcessNode, ProductNode } from '@/types/d3Types';
 import useInputsByProcessId from '@/hooks/useInputsByProcessId';
 import useProductNodeBuilder from './useProductNodeBuilder';
 import { generateUniqueId } from '@/utils/generateUniqueId';
+import { ProcessInput } from '@/types/influenceTypes';
 
 const useProcessNodeBuilder = () => {
     const [processNode, setProcessNode] = useState<ProcessNode | null>(null);
-    const { inputs, loading: inputsLoading, error: inputsError, getInputsByProcessId } = useInputsByProcessId();
+    const { getInputsByProcessId } = useInputsByProcessId();
     const { getProductNode } = useProductNodeBuilder({ selectedProductId: null });
 
     const buildProcessNode = useCallback(async (selectedProcessId: string | null) => {
@@ -16,11 +17,13 @@ const useProcessNodeBuilder = () => {
 
         try {
             console.log('[useProcessNodeBuilder] Fetching Input products for process with id:', selectedProcessId);
-            await getInputsByProcessId(selectedProcessId);
+            const fetchedInputs = await getInputsByProcessId(selectedProcessId);
+            console.log('[useProcessNodeBuilder] Inputs fetched:', fetchedInputs);
 
             const inputNodes: ProductNode[] = await Promise.all(
-                inputs.map(async (input) => {
-                    const node = await getProductNode(input.productId);
+                fetchedInputs.map(async (input: ProcessInput) => {
+                    const node = await getProductNode(input.product.id);  // Accessing product.id
+                    console.log('[useProcessNodeBuilder]\nProcess Node:', node,'\nInput:', input);
                     return node;
                 })
             );
@@ -32,6 +35,7 @@ const useProcessNodeBuilder = () => {
                 totalDuration: 0,
                 totalRuns: 0,
                 children: inputNodes,
+                _children: [],
                 sideProducts: [] // Add side products if needed
             };
 
@@ -40,9 +44,9 @@ const useProcessNodeBuilder = () => {
         } catch (err) {
             console.error('[useProcessNodeBuilder] Error building process node:', err);
         }
-    }, [inputs, getProductNode, getInputsByProcessId]);
+    }, [getProductNode, getInputsByProcessId]);
 
-    return { processNode, buildProcessNode, loading: inputsLoading, error: inputsError };
+    return { processNode, buildProcessNode };
 };
 
 export default useProcessNodeBuilder;
