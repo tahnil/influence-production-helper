@@ -1,4 +1,9 @@
 // utils/d3Tree.ts
+// 
+// — clearD3Tree: Removes all elements within the D3 container.
+// — renderD3Tree: Initializes the D3 tree with the root node and renders nodes and links.
+// — injectForeignObjects: Injects interactive elements (process selection dropdowns) into 
+//    the D3 nodes and handles process selection changes.
 
 import * as d3 from 'd3';
 import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';

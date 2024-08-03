@@ -1,4 +1,45 @@
 // components/TreeRenderer.tsx
+// 
+// The TreeRenderer component is a React component that visualizes a hierarchical tree structure using D3.js. 
+// It allows users to select a product, which then populates the tree with nodes representing the product and 
+// its associated processes. Users can further interact with the tree by selecting processes for each product 
+// node, dynamically updating the tree with additional nodes representing the inputs required for the selected processes.
+// 
+// ########################
+// Key Components and Hooks
+// ########################
+// 
+// 1. TreeRenderer Component
+// — Manages the state for the selected product and the tree data.
+// — Renders the product selector and the D3 visualization container.
+// — Utilizes custom hooks to fetch data and build the tree nodes.
+// 2. Custom Hooks
+// — useInfluenceProducts: Fetches the list of products.
+// — useRootNodeBuilder: Builds the root node of the tree based on the selected product.
+// — useProductNodeBuilder: Builds product nodes including their details and associated processes.
+// — useProcessNodeBuilder: Builds process nodes including the required input products.
+// 3. D3 Utilities
+// — renderD3Tree: Renders the initial D3 tree.
+// — injectForeignObjects: Adds interactive elements (foreign objects) to D3 nodes, such as process selection dropdowns.
+// — clearD3Tree: Clears the existing D3 tree.
+// 
+// ########################
+// Detailed Explanation of Each Component and Function
+// ########################
+// 
+// — State Management: Uses useState to manage the selected product ID and tree data.
+// — Refs: Uses useRef to manage references to the D3 container, root node, and update function.
+// — Product Selection: handleSelectProduct updates the selected product ID and fetches associated processes.
+// — Tree Rendering: The useEffect hook listens for changes in the rootNode and initializes the D3 tree.
+// — Injecting Foreign Objects: Another useEffect hook injects foreign objects (process selection dropdowns) into the D3 nodes.
+//
+// ########################
+// The TreeRenderer component and its associated hooks and utilities manage a dynamic D3 tree visualization. 
+// It allows users to select a product, initializes the tree with the selected product as the root node, 
+// and dynamically updates the tree based on user interactions (such as selecting processes). The 
+// architecture is modular, with custom hooks handling data fetching and node building, and D3 utilities 
+// managing the rendering and updating of the tree visualization.
+// ########################
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ProductSelector from './ProductSelector';

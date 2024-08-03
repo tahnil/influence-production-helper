@@ -1,4 +1,9 @@
 // src/components/TreeVisualizer/useProcessNodeBuilder.ts
+// 
+// — State Management: Uses useState to manage the state of the process node being built.
+// — Fetching Inputs: Fetches the required inputs for a process using getInputsByProcessId.
+// — Building Product Nodes: Uses getProductNode to build nodes for each input product.
+// — Building Process Node: Constructs a new process node with the fetched input nodes as children.
 
 import { useState, useCallback } from 'react';
 import { ProcessNode, ProductNode } from '@/types/d3Types';

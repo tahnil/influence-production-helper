@@ -1,4 +1,11 @@
 // components/TreeVisualizer/useProductNodeBuilder.ts
+// 
+// — State Management: Uses useState to manage the state of the product node being built.
+// — Fetching Product Details and Processes: Uses useProductDetails and useProcessesByProductId to fetch the 
+//   necessary data.
+// — Building Product Node: Constructs a new product node with the fetched details and processes.
+// — getProductNode Function: An asynchronous function to fetch details and processes for a specific product 
+//   and build a product node.
 
 import { useState, useEffect, useCallback } from 'react';
 import { ProductNode } from '@/types/d3Types';
