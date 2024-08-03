@@ -5,7 +5,7 @@ import { InfluenceProduct } from '@/types/influenceTypes';
 
 const fetchProductDetails = async (id: string): Promise<InfluenceProduct> => {
   const response = await fetch(`/api/products?id=${id}`);
-  if (!response.ok) {
+  if (response.status !== 200) {
     throw new Error('Failed to fetch product details');
   }
   return response.json();

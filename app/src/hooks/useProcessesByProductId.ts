@@ -5,7 +5,7 @@ import { InfluenceProcess } from '@/types/influenceTypes';
 
 const fetchProcessesByProductId = async (productId: string): Promise<InfluenceProcess[]> => {
   const response = await fetch(`/api/processes?outputProductId=${productId}`);
-  if (!response.ok) {
+  if (response.status !== 200) {
     throw new Error('Failed to fetch processes');
   }
   return response.json();

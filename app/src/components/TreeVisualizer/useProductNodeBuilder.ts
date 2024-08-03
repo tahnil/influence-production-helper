@@ -22,7 +22,7 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
         if (productDetails && !productLoading && !productError && !processesLoading && !processesError) {
             const newNode = buildProductNode(productDetails, processes);
             setProductNode(newNode);
-            // console.log('[useProductNodeBuilder] newNode:', newNode);
+            console.log('[useProductNodeBuilder] newNode:', newNode);
         }
     }, [productDetails, productLoading, productError, processes, processesLoading, processesError]);
 
@@ -34,7 +34,7 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
             return newNode;
         }
         throw new Error('Failed to build product node');
-    }, [productDetails, productLoading, productError, processes, processesLoading, processesError, getProductDetails, getProcesses]);
+    }, [getProductDetails, getProcesses, productDetails, productLoading, productError, processes, processesLoading, processesError]);
 
     return { productNode, productLoading, productError, processesLoading, processesError, getProductNode };
 };
