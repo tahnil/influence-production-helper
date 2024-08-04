@@ -35,28 +35,16 @@ export const renderD3Tree = (
     const width = viewportWidth - margin.left - margin.right;
     const height = viewportHeight - margin.top - margin.bottom;
 
-    const zoom = d3.zoom().on("zoom", (event) => {
-        svg.attr("transform", event.transform);
-        setPreviousTransform(event.transform);
-    });
-
     const svg = d3.select(container)
         .append('svg')
         .attr('width', viewportWidth)
         .attr('height', viewportHeight)
-        .call(zoom)
+        .call(d3.zoom().on("zoom", (event) => {
+            svg.attr("transform", event.transform);
+            setPreviousTransform(event.transform);
+        }))
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
-
-    if (previousTransform) {
-        const transform = d3.zoomIdentity
-            .scale(previousTransform.k)
-            .translate(
-                previousTransform.x / previousTransform.k,
-                previousTransform.y / previousTransform.k
-            );
-        svg.attr("transform", transform);
-    }
 
     const root = d3.hierarchy(rootData);
 
@@ -120,6 +108,11 @@ export const renderD3Tree = (
             .attr('r', 10);
     };
 
+    if (previousTransform) {
+        svg.attr("transform", previousTransform);
+        d3.select(container).select('svg').call(d3.zoom().transform, previousTransform);
+    }
+
     rootRef.current = root;
 };
 
@@ -168,7 +161,7 @@ export const injectForeignObjects = (
                 console.log('[injectForeignObjects] Rendering process options for node:', productNode);
                 additionalHtml = `
                         <label for="process-select-${productNode.id}">Select Process:</label>
-                        <select id="process-select-${productNode.id}" name="process-select">
+                        <select style="width: 100%" id="process-select-${productNode.id}" name="process-select">
                                 <option value="">-- Select a Process --</option>
                             ${productNode.processes.map(process => `<option value="${process.id}">${process.name}</option>`).join('')}
                     </select>
