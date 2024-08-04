@@ -46,12 +46,12 @@ export const renderD3Tree = (
     const root = d3.hierarchy(rootData);
 
     // Define the size of each node
-    const nodeWidth = 600; // Example node width
-    const nodeHeight = 200; // Example node height
+    const nodeWidth = 240; // Example node width
+    const nodeHeight = 140; // Example node height
 
     // Set the node size for the tree layout
     const treeLayout = d3.tree<D3TreeNode>()
-        .nodeSize([nodeWidth, nodeHeight]);
+        .nodeSize([nodeHeight, nodeWidth]);
 
     treeLayout(root);
 
