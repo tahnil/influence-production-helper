@@ -22,12 +22,14 @@ const useProcessesByProductId = () => {
     try {
       const data = await fetchProcessesByProductId(productId);
       setProcesses(data);
+      return data; // Return the fetched data
     } catch (error) {
       if (error instanceof Error) {
         setError(`Error: ${error.message}`);
       } else {
         setError('Unexpected error occurred');
       }
+      throw error;
     } finally {
       setLoading(false);
     }

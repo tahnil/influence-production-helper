@@ -29,7 +29,7 @@ const useProcessNodeBuilder = () => {
                 fetchedInputs.map(async (input: ProcessInput) => {
                     try {
                         const node = await getProductNode(input.product.id);
-                        console.log('[useProcessNodeBuilder] Process Node:', node, 'Input:', input);
+                        console.log('[useProcessNodeBuilder] Product Node:', node, 'Input:', input);
                         return node;
                     } catch (error) {
                         console.error('[useProcessNodeBuilder] Error fetching product node for input:', error);

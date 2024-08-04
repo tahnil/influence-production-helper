@@ -22,12 +22,14 @@ const useProductDetails = () => {
     try {
       const data = await fetchProductDetails(id);
       setProductDetails(data);
+      return data; // Return the fetched data
     } catch (error) {
       if (error instanceof Error) {
         setError(`Error: ${error.message}`);
       } else {
         setError('Unexpected error occurred');
       }
+      throw error;
     } finally {
       setLoading(false);
     }

@@ -20,24 +20,13 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
 
     useEffect(() => {
         if (selectedProductId) {
-            // Fetch product details and processes in parallel
-            Promise.all([getProductDetails(selectedProductId), getProcesses(selectedProductId)])
-                .then(() => {
-                    // Build the product node after both fetches are complete
-                    if (productDetails && processes) {
-                        const newNode = buildProductNode(productDetails, processes);
-                        setProductNode(newNode);
-                        console.log('[useProductNodeBuilder] newNode:', newNode);
-                    }
-                })
-                .catch(err => {
-                    console.error('[useProductNodeBuilder] Error fetching details or processes:', err);
-                });
+            getProductDetails(selectedProductId);
+            getProcesses(selectedProductId);
         }
     }, [selectedProductId, getProductDetails, getProcesses]);
 
     useEffect(() => {
-        if (productDetails && !productLoading && !productError && !processesLoading && !processesError) {
+        if (productDetails && !productLoading && !productError && processes && !processesLoading && !processesError) {
             const newNode = buildProductNode(productDetails, processes);
             setProductNode(newNode);
             console.log('[useProductNodeBuilder] newNode:', newNode);
@@ -46,9 +35,9 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
 
     const getProductNode = useCallback(async (productId: string) => {
         try {
-            await Promise.all([getProductDetails(productId), getProcesses(productId)]);
-            if (productDetails && processes) {
-                const newNode = buildProductNode(productDetails, processes);
+            const [details, processList] = await Promise.all([getProductDetails(productId), getProcesses(productId)]);
+            if (details && processList) {
+                const newNode = buildProductNode(details, processList);
                 return newNode;
             }
             throw new Error('Product details or processes not available');
@@ -56,7 +45,7 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
             console.error('[useProductNodeBuilder] Error:', error);
             throw error;
         }
-    }, [getProductDetails, getProcesses, productDetails, processes]);
+    }, [getProductDetails, getProcesses]);
 
     return { productNode, productLoading, productError, processesLoading, processesError, getProductNode };
 };
