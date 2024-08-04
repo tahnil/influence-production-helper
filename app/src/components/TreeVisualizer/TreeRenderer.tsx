@@ -48,7 +48,7 @@ import useRootNodeBuilder from './useRootNodeBuilder';
 import useProductNodeBuilder from './useProductNodeBuilder';
 import useProcessNodeBuilder from './useProcessNodeBuilder';
 import { renderD3Tree, injectForeignObjects, clearD3Tree } from '@/utils/d3Tree';
-import { D3TreeNode } from '@/types/d3Types';
+import { D3TreeNode, ProductNode, ProcessNode } from '@/types/d3Types';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 
 const TreeRenderer: React.FC = () => {
@@ -101,6 +101,7 @@ const TreeRenderer: React.FC = () => {
     const buildProcessNodeCallback = useCallback(async (selectedProcessId: string | null, parentNode: D3TreeNode) => {
         try {
             const newProcessNode = await buildProcessNode(selectedProcessId);
+            // console.log('[TreeRenderer] New Process Node:', newProcessNode);
             if (!newProcessNode) {
                 throw new Error('Failed to build process node');
             }
@@ -108,22 +109,37 @@ const TreeRenderer: React.FC = () => {
             // Find the parent node in the current tree data
             const updateTreeData = (node: D3TreeNode): D3TreeNode => {
                 if (node.id === parentNode.id) {
+                    if (node.nodeType === 'product') {
+                        const productNode = node as ProductNode;
                     return {
-                        ...node,
-                        children: node.children ? [...node.children, newProcessNode] : [newProcessNode],
+                            ...productNode,
+                            children: [...productNode.children, newProcessNode as ProcessNode],
                     };
                 }
-                if (node.children) {
+                } else if (node.children) {
+                    if (node.nodeType === 'product') {
+                        const productNode = node as ProductNode;
                     return {
-                        ...node,
-                        children: node.children.map(updateTreeData),
-                    };
+                            ...productNode,
+                            children: productNode.children.map(updateTreeData) as ProcessNode[],
+                        };
+                    } else if (node.nodeType === 'process') {
+                        const processNode = node as ProcessNode;
+                        return {
+                            ...processNode,
+                            children: processNode.children.map(updateTreeData) as ProductNode[],
+                        };
+                    }
                 }
                 return node;
             };
 
-            setTreeData(prevTreeData => prevTreeData ? updateTreeData(prevTreeData) : null);
-            console.log('[TreeRenderer] Updated tree data with new process node:', treeData);
+            setTreeData(prevTreeData => {
+                console.log('[TreeRenderer] Previous tree data:', prevTreeData);
+                const updatedTreeData = prevTreeData ? updateTreeData(prevTreeData) : null;
+                console.log('[TreeRenderer] Updated tree data:', updatedTreeData);
+                return updatedTreeData;
+            });
         } catch (err) {
             console.error('[TreeRenderer] Failed to build process node:', err);
         }
