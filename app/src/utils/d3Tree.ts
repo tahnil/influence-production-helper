@@ -25,7 +25,9 @@ export const renderD3Tree = (
     container: HTMLDivElement,
     rootData: D3TreeNode,
     rootRef: React.MutableRefObject<d3.HierarchyPointNode<D3TreeNode> | null>,
-    updateRef: React.MutableRefObject<(source: d3.HierarchyPointNode<D3TreeNode> | null) => void>
+    updateRef: React.MutableRefObject<(source: d3.HierarchyPointNode<D3TreeNode> | null) => void>,
+    previousTransform: d3.ZoomTransform | null, // Add previous transform as a parameter
+    setPreviousTransform: (transform: d3.ZoomTransform) => void // Add setter for previous transform
 ) => {
     const margin = { top: 20, right: 90, bottom: 30, left: 90 };
     const viewportWidth = window.innerWidth;
@@ -33,15 +35,28 @@ export const renderD3Tree = (
     const width = viewportWidth - margin.left - margin.right;
     const height = viewportHeight - margin.top - margin.bottom;
 
+    const zoom = d3.zoom().on("zoom", (event) => {
+        svg.attr("transform", event.transform);
+        setPreviousTransform(event.transform);
+    });
+
     const svg = d3.select(container)
         .append('svg')
         .attr('width', viewportWidth)
         .attr('height', viewportHeight)
-        .call(d3.zoom().on("zoom", (event) => {
-            svg.attr("transform", event.transform);
-        }))
+        .call(zoom)
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    if (previousTransform) {
+        const transform = d3.zoomIdentity
+            .scale(previousTransform.k)
+            .translate(
+                previousTransform.x / previousTransform.k,
+                previousTransform.y / previousTransform.k
+            );
+        svg.attr("transform", transform);
+    }
 
     const root = d3.hierarchy(rootData);
 
