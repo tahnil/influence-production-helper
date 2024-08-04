@@ -13,11 +13,10 @@ import { generateUniqueId } from '@/utils/generateUniqueId';
 import { ProcessInput } from '@/types/influenceTypes';
 
 const useProcessNodeBuilder = () => {
-    const [processNode, setProcessNode] = useState<ProcessNode | null>(null);
     const { getInputsByProcessId } = useInputsByProcessId();
     const { getProductNode } = useProductNodeBuilder({ selectedProductId: null });
 
-    const buildProcessNode = useCallback(async (selectedProcessId: string | null) => {
+    const buildProcessNode = useCallback(async (selectedProcessId: string | null): Promise<ProcessNode | null> => {
         if (!selectedProcessId) return null;
 
         try {
@@ -49,7 +48,6 @@ const useProcessNodeBuilder = () => {
                 sideProducts: [] // Add side products if needed
             };
 
-            setProcessNode(newProcessNode);
             console.log('[useProcessNodeBuilder] New process node:', newProcessNode);
             return newProcessNode;
         } catch (err) {
@@ -58,7 +56,7 @@ const useProcessNodeBuilder = () => {
         }
     }, [getProductNode, getInputsByProcessId]);
 
-    return { processNode, buildProcessNode };
+    return { buildProcessNode };
 };
 
 export default useProcessNodeBuilder;
