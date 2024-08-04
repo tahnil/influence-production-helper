@@ -129,6 +129,7 @@ export const injectForeignObjects = (
                 <div style="background-color: white; border: 1px solid black; border-radius: 5px; padding: 5px;">
                         <label for="process-select-${productNode.id}">Select Process:</label>
                         <select id="process-select-${productNode.id}" name="process-select">
+                                <option value="">-- Select a Process --</option>
                             ${productNode.processes.map(process => `<option value="${process.id}">${process.name}</option>`).join('')}
                     </select>
                 </div>
@@ -138,7 +139,9 @@ export const injectForeignObjects = (
             foreignObject.select('select').on('change', async function () {
                 const selectedProcessId = (this as HTMLSelectElement).value;
                 try {
+                    if (selectedProcessId) {
                     await buildProcessNodeCallback(selectedProcessId, d.data);
+                    }
                 } catch (err) {
                     console.error('[injectForeignObjects] Failed to build process node:', err);
                 }
