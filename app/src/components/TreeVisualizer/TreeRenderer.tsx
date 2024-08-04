@@ -120,10 +120,22 @@ const TreeRenderer: React.FC = () => {
                 if (node.id === parentNode.id) {
                     if (node.nodeType === 'product') {
                         const productNode = node as ProductNode;
+                        const existingProcessIndex = productNode.children.findIndex(child => child.nodeType === 'process');
+                        if (existingProcessIndex !== -1) {
+                            // Replace the existing process node
+                            const updatedChildren = [...productNode.children];
+                            updatedChildren[existingProcessIndex] = newProcessNode as ProcessNode;
+                            return {
+                                ...productNode,
+                                children: updatedChildren,
+                            };
+                        } else {
+                            // Add the new process node
                     return {
                             ...productNode,
                             children: [...productNode.children, newProcessNode as ProcessNode],
                     };
+                        }
                 }
                 } else if (node.children) {
                     if (node.nodeType === 'product') {
