@@ -1,3 +1,5 @@
+// hooks/useInfluenceProducts.ts
+
 import { useState, useEffect } from 'react';
 import { InfluenceProduct } from '@/types/influenceTypes';
 

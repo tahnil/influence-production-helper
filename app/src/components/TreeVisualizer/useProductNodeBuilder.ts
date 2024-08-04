@@ -20,8 +20,19 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
 
     useEffect(() => {
         if (selectedProductId) {
-            getProductDetails(selectedProductId);
-            getProcesses(selectedProductId);
+            // Fetch product details and processes in parallel
+            Promise.all([getProductDetails(selectedProductId), getProcesses(selectedProductId)])
+                .then(() => {
+                    // Build the product node after both fetches are complete
+                    if (productDetails && processes) {
+                        const newNode = buildProductNode(productDetails, processes);
+                        setProductNode(newNode);
+                        console.log('[useProductNodeBuilder] newNode:', newNode);
+                    }
+                })
+                .catch(err => {
+                    console.error('[useProductNodeBuilder] Error fetching details or processes:', err);
+                });
         }
     }, [selectedProductId, getProductDetails, getProcesses]);
 
@@ -34,14 +45,18 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
     }, [productDetails, productLoading, productError, processes, processesLoading, processesError]);
 
     const getProductNode = useCallback(async (productId: string) => {
-        await getProductDetails(productId);
-        await getProcesses(productId);
-        if (productDetails && !productLoading && !productError && !processesLoading && !processesError) {
-            const newNode = buildProductNode(productDetails, processes);
-            return newNode;
+        try {
+            await Promise.all([getProductDetails(productId), getProcesses(productId)]);
+            if (productDetails && processes) {
+                const newNode = buildProductNode(productDetails, processes);
+                return newNode;
+            }
+            throw new Error('Product details or processes not available');
+        } catch (error) {
+            console.error('[useProductNodeBuilder] Error:', error);
+            throw error;
         }
-        throw new Error('Failed to build product node');
-    }, [getProductDetails, getProcesses, productDetails, productLoading, productError, processes, processesLoading, processesError]);
+    }, [getProductDetails, getProcesses, productDetails, processes]);
 
     return { productNode, productLoading, productError, processesLoading, processesError, getProductNode };
 };

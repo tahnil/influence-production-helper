@@ -14,11 +14,11 @@ const useRootNodeBuilder = ({ selectedProductId, influenceProducts, processes })
         console.log('[useRootNodeBuilder] selectedProductId:', selectedProductId);
         if (selectedProductId && influenceProducts) {
             const selectedProduct = influenceProducts.find(product => product.id === selectedProductId);
-            // console.log('[useRootNodeBuilder] selectedProduct:', selectedProduct);
+            console.log('[useRootNodeBuilder] selectedProduct:', selectedProduct);
             if (selectedProduct) {
                 const newNode = buildProductNode(selectedProduct, processes);
                 setRootNode(newNode);
-                // console.log('[useRootNodeBuilder] newNode:', newNode);
+                console.log('[useRootNodeBuilder] newNode:', newNode);
             }
         }
     }, [selectedProductId, influenceProducts, processes]);

@@ -27,9 +27,14 @@ const useProcessNodeBuilder = () => {
 
             const inputNodes: ProductNode[] = await Promise.all(
                 fetchedInputs.map(async (input: ProcessInput) => {
-                    const node = await getProductNode(input.product.id);  // Accessing product.id
-                    console.log('[useProcessNodeBuilder]\nProcess Node:', node,'\nInput:', input);
-                    return node;
+                    try {
+                        const node = await getProductNode(input.product.id);
+                        console.log('[useProcessNodeBuilder] Process Node:', node, 'Input:', input);
+                        return node;
+                    } catch (error) {
+                        console.error('[useProcessNodeBuilder] Error fetching product node for input:', error);
+                        throw error;
+                    }
                 })
             );
 
