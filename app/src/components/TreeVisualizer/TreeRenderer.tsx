@@ -170,16 +170,14 @@ const TreeRenderer: React.FC = () => {
     if (error) return <div>Error: {error}</div>;
 
     return (
-        <div className="tree-renderer">
+        <div className="tree-renderer" style={{ width: '100vw', height: '100vh', overflow: 'auto' }}>
             <ProductSelector
                 products={influenceProducts}
                 selectedProductId={selectedProductId}
                 onSelect={handleSelectProduct}
             />
             {(!loading && !error) && (
-            <div className="d3-render-area">
-                <div ref={d3RenderContainer} />
-            </div>
+                <div className="d3-render-area" ref={d3RenderContainer} style={{ width: '100%', height: '100%' }} />
             )}
         </div>
     );

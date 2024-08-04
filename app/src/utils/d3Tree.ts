@@ -13,6 +13,13 @@ export const clearD3Tree = (container: HTMLDivElement) => {
     d3.select(container).selectAll('*').remove();
 };
 
+export const curvedLine = (s: { x: number, y: number }, d: { x: number, y: number }): string => {
+    return `M ${s.y} ${s.x}
+        C ${(s.y + d.y) / 2} ${s.x},
+        ${(s.y + d.y) / 2} ${d.x},
+        ${d.y} ${d.x}`;
+};
+
 // Function to render the D3 tree
 export const renderD3Tree = (
     container: HTMLDivElement,
@@ -21,18 +28,31 @@ export const renderD3Tree = (
     updateRef: React.MutableRefObject<(source: d3.HierarchyPointNode<D3TreeNode> | null) => void>
 ) => {
     const margin = { top: 20, right: 90, bottom: 30, left: 90 };
-    const width = 960 - margin.left - margin.right;
-    const height = 500 - margin.top - margin.bottom;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const width = viewportWidth - margin.left - margin.right;
+    const height = viewportHeight - margin.top - margin.bottom;
 
     const svg = d3.select(container)
         .append('svg')
-        .attr('width', width + margin.left + margin.right)
-        .attr('height', height + margin.top + margin.bottom)
+        .attr('width', viewportWidth)
+        .attr('height', viewportHeight)
+        .call(d3.zoom().on("zoom", (event) => {
+            svg.attr("transform", event.transform);
+        }))
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
 
     const root = d3.hierarchy(rootData);
-    const treeLayout = d3.tree().size([height, width]);
+
+    // Define the size of each node
+    const nodeWidth = 600; // Example node width
+    const nodeHeight = 200; // Example node height
+
+    // Set the node size for the tree layout
+    const treeLayout = d3.tree<D3TreeNode>()
+        .nodeSize([nodeWidth, nodeHeight]);
+
     treeLayout(root);
 
     const nodes = root.descendants();
@@ -59,12 +79,6 @@ export const renderD3Tree = (
     node.append('circle')
         .attr('r', 10);
 
-    node.append('text')
-        .attr('dy', '.35em')
-        .attr('x', d => d.children ? -13 : 13)
-        .style('text-anchor', d => d.children ? 'end' : 'start')
-        .text(d => d.data.name);
-
     updateRef.current = (source: d3.HierarchyPointNode<D3TreeNode> | null) => {
         if (!source) return;
 
@@ -89,12 +103,6 @@ export const renderD3Tree = (
 
         updatedNode.select('circle')
             .attr('r', 10);
-
-        updatedNode.select('text')
-            .attr('dy', '.35em')
-            .attr('x', d => d.children ? -13 : 13)
-            .style('text-anchor', d => d.children ? 'end' : 'start')
-            .text(d => d.data.name);
     };
 
     rootRef.current = root;
@@ -110,37 +118,64 @@ export const injectForeignObjects = (
     const nodeSelection = svg.selectAll<SVGGElement, d3.HierarchyPointNode<D3TreeNode>>('g.node');
 
     nodeSelection.each(function (d) {
-        if (d.data.nodeType === 'product') {
-            console.log('[injectForeignObjects] Injecting foreignObject for product node:', d);
+        console.log('[injectForeignObjects] Injecting foreignObject for product node:', d);
 
-            const nodeElement = d3.select(this);
-            nodeElement.selectAll('foreignObject').remove();
+        const nodeElement = d3.select(this);
+        nodeElement.selectAll('foreignObject').remove();
 
-            const foreignObject = nodeElement.append('foreignObject')
-                .attr('width', 200)
-                .attr('height', 50)
-                .attr('x', -100) // Adjust positioning as necessary
-                .attr('y', -25) // Adjust positioning as necessary
-                .append('xhtml:div')
-                .html(d => {
-                    const productNode = d.data as ProductNode;
-                    console.log('[injectForeignObjects] Rendering process options for node:', productNode);
-                    return `
-                <div style="background-color: white; border: 1px solid black; border-radius: 5px; padding: 5px;">
+        // Ensure foreign object is placed correctly within the node
+        const foreignObjectWidth = 220;
+        const foreignObjectHeight = 120;
+
+        const foreignObject = nodeElement.append('foreignObject')
+            .attr('width', foreignObjectWidth)
+            .attr('height', foreignObjectHeight)
+            .attr('x', -foreignObjectWidth / 2) // Center the foreign object
+            .attr('y', -foreignObjectHeight / 2) // Center the foreign object
+            .style('overflow', 'visible')
+            .append('xhtml:div')
+            .style('display', 'flex')
+            .style('flex-direction', 'column')
+            .style('align-items', 'center')
+            .style('justify-content', 'center')
+            .style('background-color', 'white')
+            .style('border', '1px solid black')
+            .style('border-radius', '5px')
+            .style('padding', '5px')
+            .style('overflow', 'visible');
+
+        foreignObject.html(d => {
+            const nodeName = `<div style="font-weight: bold; margin-bottom: 5px;">${d.data.name}</div>`;
+            let additionalHtml = '';
+
+            if (d.data.nodeType === 'product') {
+                const productNode = d.data as ProductNode;
+                console.log('[injectForeignObjects] Rendering process options for node:', productNode);
+                additionalHtml = `
                         <label for="process-select-${productNode.id}">Select Process:</label>
                         <select id="process-select-${productNode.id}" name="process-select">
                                 <option value="">-- Select a Process --</option>
                             ${productNode.processes.map(process => `<option value="${process.id}">${process.name}</option>`).join('')}
                     </select>
-                </div>
                 `;
-                });
+            } else if (d.data.nodeType === 'process') {
+                const processNode = d.data as ProcessNode;
+                additionalHtml = `
+                    <div>Total Duration: ${processNode.totalDuration}</div>
+                    <div>Total Runs: ${processNode.totalRuns}</div>
+                `;
+            }
 
+            return nodeName + additionalHtml;
+        });
+
+        if (d.data.nodeType === 'product') {
+            const productNode = d.data as ProductNode;
             foreignObject.select('select').on('change', async function () {
                 const selectedProcessId = (this as HTMLSelectElement).value;
                 try {
                     if (selectedProcessId) {
-                    await buildProcessNodeCallback(selectedProcessId, d.data);
+                        await buildProcessNodeCallback(selectedProcessId, d.data);
                     }
                 } catch (err) {
                     console.error('[injectForeignObjects] Failed to build process node:', err);
