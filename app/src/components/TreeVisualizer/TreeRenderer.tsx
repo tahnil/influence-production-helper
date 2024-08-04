@@ -92,18 +92,42 @@ const TreeRenderer: React.FC = () => {
 
     const { productNode, productLoading, productError, processesLoading, processesError } = useProductNodeBuilder({ selectedProductId });
 
-    // Effect to inject foreign objects after D3 tree is rendered
     useEffect(() => {
         if (productNode && d3RenderContainer.current) {
-            // console.log('[TreeRenderer] Injecting Foreign Objects:', productNode);
-            // console.log('[TreeRenderer] setTreeData:', setTreeData);
-            injectForeignObjects(d3RenderContainer.current, rootRef, setTreeData, buildProcessNode);
+            injectForeignObjects(d3RenderContainer.current, rootRef, buildProcessNodeCallback);
         }
-    }, [productNode, buildProcessNode]);
+    }, [productNode]);
 
-    // console.log('[TreeRenderer] Render:', { loading, productLoading, processesLoading, error, productError, processesError });
-    // console.log('[TreeRenderer] Selected Product ID:', selectedProductId);
-    // console.log('[TreeRenderer] Influence Products:', influenceProducts);
+    const buildProcessNodeCallback = useCallback(async (selectedProcessId: string | null, parentNode: D3TreeNode) => {
+        try {
+            const newProcessNode = await buildProcessNode(selectedProcessId);
+            if (!newProcessNode) {
+                throw new Error('Failed to build process node');
+            }
+
+            // Find the parent node in the current tree data
+            const updateTreeData = (node: D3TreeNode): D3TreeNode => {
+                if (node.id === parentNode.id) {
+                    return {
+                        ...node,
+                        children: node.children ? [...node.children, newProcessNode] : [newProcessNode],
+                    };
+                }
+                if (node.children) {
+                    return {
+                        ...node,
+                        children: node.children.map(updateTreeData),
+                    };
+                }
+                return node;
+            };
+
+            setTreeData(prevTreeData => prevTreeData ? updateTreeData(prevTreeData) : null);
+            console.log('[TreeRenderer] Updated tree data with new process node:', treeData);
+        } catch (err) {
+            console.error('[TreeRenderer] Failed to build process node:', err);
+        }
+    }, [buildProcessNode]);
 
     if (loading) return <div>Loading products...</div>;
     if (error) return <div>Error: {error}</div>;

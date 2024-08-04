@@ -104,8 +104,7 @@ export const renderD3Tree = (
 export const injectForeignObjects = (
     container: HTMLDivElement,
     rootRef: React.MutableRefObject<d3.HierarchyPointNode<D3TreeNode> | null>,
-    setTreeData: React.Dispatch<React.SetStateAction<D3TreeNode | null>>,
-    buildProcessNode: (selectedProcessId: string | null) => Promise<void>
+    buildProcessNodeCallback: (selectedProcessId: string | null, parentNode: D3TreeNode) => Promise<void>
 ) => {
     const svg = d3.select(container).select('svg g');
     const nodeSelection = svg.selectAll<SVGGElement, d3.HierarchyPointNode<D3TreeNode>>('g.node');
@@ -139,9 +138,7 @@ export const injectForeignObjects = (
             foreignObject.select('select').on('change', async function () {
                 const selectedProcessId = (this as HTMLSelectElement).value;
                 try {
-                    await buildProcessNode(selectedProcessId);
-                    setTreeData({ ...rootRef.current!.data });
-                    console.log('[injectForeignObjects] Updated tree data with new process node:', rootRef.current!.data);
+                    await buildProcessNodeCallback(selectedProcessId, d.data);
                 } catch (err) {
                     console.error('[injectForeignObjects] Failed to build process node:', err);
                 }

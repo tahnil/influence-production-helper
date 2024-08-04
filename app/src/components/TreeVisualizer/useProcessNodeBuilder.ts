@@ -18,7 +18,7 @@ const useProcessNodeBuilder = () => {
     const { getProductNode } = useProductNodeBuilder({ selectedProductId: null });
 
     const buildProcessNode = useCallback(async (selectedProcessId: string | null) => {
-        if (!selectedProcessId) return;
+        if (!selectedProcessId) return null;
 
         try {
             console.log('[useProcessNodeBuilder] Fetching Input products for process with id:', selectedProcessId);
@@ -51,8 +51,10 @@ const useProcessNodeBuilder = () => {
 
             setProcessNode(newProcessNode);
             console.log('[useProcessNodeBuilder] New process node:', newProcessNode);
+            return newProcessNode;
         } catch (err) {
             console.error('[useProcessNodeBuilder] Error building process node:', err);
+            return null;
         }
     }, [getProductNode, getInputsByProcessId]);
 
