@@ -90,6 +90,15 @@ const TreeRenderer: React.FC = () => {
         }
     }, [rootNode]);
 
+    // UseEffect hook to re-render the D3 tree whenever treeData changes
+    useEffect(() => {
+        if (treeData && d3RenderContainer.current) {
+            clearD3Tree(d3RenderContainer.current);
+            renderD3Tree(d3RenderContainer.current, treeData, rootRef, updateRef);
+            injectForeignObjects(d3RenderContainer.current, rootRef, buildProcessNodeCallback);
+        }
+    }, [treeData]);
+
     const { productNode, productLoading, productError, processesLoading, processesError } = useProductNodeBuilder({ selectedProductId });
 
     useEffect(() => {
