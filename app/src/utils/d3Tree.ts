@@ -7,6 +7,7 @@
 
 import * as d3 from 'd3';
 import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
+import { MutableRefObject } from 'react';
 
 // Function to clear the existing D3 tree
 export const clearD3Tree = (container: HTMLDivElement) => {
@@ -24,8 +25,8 @@ export const curvedLine = (s: { x: number, y: number }, d: { x: number, y: numbe
 export const renderD3Tree = (
     container: HTMLDivElement,
     rootData: D3TreeNode,
-    rootRef: React.MutableRefObject<d3.HierarchyPointNode<D3TreeNode> | null>,
-    updateRef: React.MutableRefObject<(source: d3.HierarchyPointNode<D3TreeNode> | null) => void>,
+    rootRef: MutableRefObject<d3.HierarchyPointNode<D3TreeNode> | null>,
+    updateRef: MutableRefObject<(source: d3.HierarchyPointNode<D3TreeNode> | null) => void>,
     previousTransform: d3.ZoomTransform | null, // Add previous transform as a parameter
     setPreviousTransform: (transform: d3.ZoomTransform) => void // Add setter for previous transform
 ) => {
@@ -39,8 +40,8 @@ export const renderD3Tree = (
         .append('svg')
         .attr('width', viewportWidth)
         .attr('height', viewportHeight)
-        .call(d3.zoom().on("zoom", (event) => {
-            svg.attr("transform", event.transform);
+        .call(d3.zoom<SVGSVGElement, unknown>().on("zoom", (event) => {
+            svg.attr("transform", event.transform.toString());
             setPreviousTransform(event.transform);
         }))
         .append('g')
@@ -67,9 +68,9 @@ export const renderD3Tree = (
         .enter()
         .append('path')
         .attr('class', 'link')
-        .attr('d', d3.linkHorizontal()
-            .x(d => d.y)
-            .y(d => d.x));
+        .attr('d', d3.linkHorizontal<d3.HierarchyPointLink<D3TreeNode>, d3.HierarchyPointNode<D3TreeNode>>()
+            .x(d => (d as d3.HierarchyPointLink<D3TreeNode>).y)
+            .y(d => (d as d3.HierarchyPointLink<D3TreeNode>).x) as any);
 
     // Add nodes
     const node = svg.selectAll('g.node')
@@ -93,9 +94,9 @@ export const renderD3Tree = (
             .data(updatedLinks)
             .join('path')
             .attr('class', 'link')
-            .attr('d', d3.linkHorizontal()
-                .x(d => d.y)
-                .y(d => d.x));
+            .attr('d', d3.linkHorizontal<d3.HierarchyPointLink<D3TreeNode>, d3.HierarchyPointNode<D3TreeNode>>()
+                .x(d => (d as d3.HierarchyPointLink<D3TreeNode>).y)
+                .y(d => (d as d3.HierarchyPointLink<D3TreeNode>).x) as any);
 
         // Update nodes
         const updatedNode = svg.selectAll('g.node')
@@ -109,8 +110,8 @@ export const renderD3Tree = (
     };
 
     if (previousTransform) {
-        svg.attr("transform", previousTransform);
-        d3.select(container).select('svg').call(d3.zoom().transform, previousTransform);
+        svg.attr("transform", previousTransform.toString());
+        d3.select(container).select('svg').call(d3.zoom<SVGSVGElement, unknown>().transform, previousTransform as any);
     }
 
     rootRef.current = root;
