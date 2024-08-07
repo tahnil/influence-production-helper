@@ -9,14 +9,14 @@ import { useState, useCallback } from 'react';
 import { ProcessNode, ProductNode } from '@/types/d3Types';
 import useInputsByProcessId from '@/hooks/useInputsByProcessId';
 import useProductNodeBuilder from './useProductNodeBuilder';
-import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 import { generateUniqueId } from '@/utils/generateUniqueId';
-import { ProcessInput } from '@/types/influenceTypes';
+import { ProcessInput, InfluenceProcess } from '@/types/influenceTypes';
+import useProcessDetails from '@/hooks/useProcessDetails';
 
 const useProcessNodeBuilder = () => {
     const { getInputsByProcessId } = useInputsByProcessId();
     const { getProductNode } = useProductNodeBuilder({ selectedProductId: null });
-    const { getProcesses } = useProcessesByProductId();
+    const { getProcessDetails } = useProcessDetails();
 
     const buildProcessNode = useCallback(async (selectedProcessId: string | null): Promise<ProcessNode | null> => {
         if (!selectedProcessId) return null;
@@ -25,11 +25,8 @@ const useProcessNodeBuilder = () => {
             console.log('[useProcessNodeBuilder] Fetching process details and inputs for process with id:', selectedProcessId);
 
             // Fetch detailed process information
-            const processDetails = await getProcesses(selectedProcessId);
-            if (processDetails.length === 0) {
-                throw new Error('No process details found');
-            }
-            const processDetail = processDetails[0]; // Assuming we get a list and taking the first item
+            const processDetails: InfluenceProcess = await getProcessDetails(selectedProcessId);
+            console.log('[useProcessNodeBuilder] Process details fetched:', processDetails);
 
             // Fetch inputs for the process
             const fetchedInputs = await getInputsByProcessId(selectedProcessId);
@@ -52,7 +49,7 @@ const useProcessNodeBuilder = () => {
             // Create the new process node
             const newProcessNode: ProcessNode = {
                 id: generateUniqueId(),
-                name: processDetail.name, // Use detailed process name
+                name: processDetails.name, // Use detailed process name
                 nodeType: 'process',
                 totalDuration: 0,
                 totalRuns: 0,
@@ -67,7 +64,7 @@ const useProcessNodeBuilder = () => {
             console.error('[useProcessNodeBuilder] Error building process node:', err);
             return null;
         }
-    }, [getProductNode, getInputsByProcessId, getProcesses]);
+    }, [getProductNode, getInputsByProcessId, getProcessDetails]);
 
     return { buildProcessNode };
 };
