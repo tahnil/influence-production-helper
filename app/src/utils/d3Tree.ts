@@ -1,9 +1,42 @@
 // utils/d3Tree.ts
 // 
-// — clearD3Tree: Removes all elements within the D3 container.
-// — renderD3Tree: Initializes the D3 tree with the root node and renders nodes and links.
-// — injectForeignObjects: Injects interactive elements (process selection dropdowns) into 
-//    the D3 nodes and handles process selection changes.
+// This module provides utility functions for rendering and updating a D3 tree visualization. 
+// The functions include initialization of the tree, updating the tree, and injecting foreign 
+// objects for interactive elements within the tree nodes.
+// 
+// ########################
+// Key Functions
+// ########################
+// 
+// 1. clearD3Tree
+// — Removes all existing elements within the D3 container.
+// 2. initializeD3Tree
+// — Initializes the D3 tree with the root node, sets up the zoom behavior, and renders nodes and links.
+// 3. updateD3Tree
+// — Updates the existing D3 tree with new nodes and links, ensuring smooth transitions.
+// 4. injectForeignObjects
+// — Adds interactive elements (foreign objects) to D3 nodes, such as process selection dropdowns.
+// 
+// ########################
+// Detailed Explanation of Each Function
+// ########################
+// 
+// — clearD3Tree: Clears the D3 container by selecting and removing all child elements.
+// — initializeD3Tree: 
+//    - Sets up the SVG canvas with margins.
+//    - Creates groups for links and nodes.
+//    - Defines the tree layout and computes the positions of nodes and links.
+//    - Appends links and nodes to the respective groups.
+//    - Sets up zoom behavior and applies any previous transform.
+// — updateD3Tree: 
+//    - Recomputes the positions of nodes and links based on the updated tree data.
+//    - Updates the links and nodes with smooth transitions.
+//    - Applies the previous transform to maintain the zoom and pan state.
+// — injectForeignObjects: 
+//    - Iterates through the nodes and injects foreign objects for each node.
+//    - Dynamically sets the height of the foreign objects based on their content.
+//    - Adds event listeners to handle interactions within the foreign objects.
+// ########################
 
 import * as d3 from 'd3';
 import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
@@ -38,8 +71,6 @@ export const initializeD3Tree = (
     const margin = { top: 20, right: 90, bottom: 30, left: 90 };
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    // const width = viewportWidth - margin.left - margin.right;
-    // const height = viewportHeight - margin.top - margin.bottom;
 
     const svg = d3.select(container)
         .append('svg')
@@ -108,8 +139,8 @@ export const initializeD3Tree = (
 export const updateD3Tree = (
     container: HTMLDivElement,
     rootData: D3TreeNode,
-    rootRef: MutableRefObject<d3.HierarchyPointNode | null>,
-    updateRef: MutableRefObject<(source: d3.HierarchyPointNode | null) => void>,
+    rootRef: MutableRefObject<d3.HierarchyPointNode<D3TreeNode> | null>,
+    updateRef: MutableRefObject<(source: d3.HierarchyPointNode<D3TreeNode> | null) => void>,
     setTransform: (transform: d3.ZoomTransform) => void,
     previousTransform?: d3.ZoomTransform
 ) => {
@@ -250,7 +281,7 @@ export const injectForeignObjects = (
             .style('padding', '5px')
             .style('overflow', 'visible')
             .style('width', `${foreignObjectWidth}px`)
-            .style('box-sizing', 'border-box'); // Ensure padding is included in the width
+            .style('box-sizing', 'border-box');
 
         foreignObject.html(d => {
             const nodeName = `<div style="font-weight: bold; margin-bottom: 5px; text-align: center">${d.data.name}</div>`;
@@ -283,7 +314,7 @@ export const injectForeignObjects = (
 
         nodeElement.select('foreignObject')
             .attr('height', foreignObjectHeight)
-            .attr('y', -foreignObjectHeight / 2); // Center the foreign object vertically
+            .attr('y', -foreignObjectHeight / 2);
 
         if (d.data.nodeType === 'product') {
             const productNode = d.data as ProductNode;

@@ -19,15 +19,15 @@
 // — useProductNodeBuilder: Builds product nodes including their details and associated processes.
 // — useProcessNodeBuilder: Builds process nodes including the required input products.
 // 3. D3 Utilities
-// — renderD3Tree: Renders the initial D3 tree.
+// — initializeD3Tree: Initializes the D3 tree with the root node and renders nodes and links.
+// — updateD3Tree: Updates the existing D3 tree with new nodes and links.
 // — injectForeignObjects: Adds interactive elements (foreign objects) to D3 nodes, such as process selection dropdowns.
-// — clearD3Tree: Clears the existing D3 tree.
 // 
 // ########################
 // Detailed Explanation of Each Component and Function
 // ########################
 // 
-// — State Management: Uses useState to manage the selected product ID and tree data.
+// — State Management: Uses useState to manage the selected product ID, tree data, and the current transform state.
 // — Refs: Uses useRef to manage references to the D3 container, root node, and update function.
 // — Product Selection: handleSelectProduct updates the selected product ID and fetches associated processes.
 // — Tree Rendering: The useEffect hook listens for changes in the rootNode and initializes the D3 tree.
@@ -48,7 +48,7 @@ import useRootNodeBuilder from './useRootNodeBuilder';
 import useProductNodeBuilder from './useProductNodeBuilder';
 import useProcessNodeBuilder from './useProcessNodeBuilder';
 import { initializeD3Tree, updateD3Tree, injectForeignObjects } from '@/utils/d3Tree';
-import { D3TreeNode } from '@/types/d3Types';
+import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 
 const TreeRenderer: React.FC = () => {
