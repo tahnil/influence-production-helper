@@ -128,6 +128,14 @@ export const initializeD3Tree = (
 
     svg.call(zoom);
 
+    // Calculate the initial translation to center the root node
+    const initialTranslateX = viewportWidth / 2 - root.y;
+    const initialTranslateY = viewportHeight / 2 - root.x;
+    const initialTransform = d3.zoomIdentity.translate(initialTranslateX, initialTranslateY);
+
+    svg.call(zoom.transform, initialTransform);
+    setTransform(initialTransform);
+
     if (previousTransform) {
         svg.call(zoom.transform, previousTransform);
     }
