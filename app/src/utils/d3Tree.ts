@@ -154,6 +154,7 @@ export const injectForeignObjects = (
             .style('flex-direction', 'column')
             .style('align-items', 'center')
             .style('justify-content', 'center')
+            .style('height', '100%')
             .style('background-color', 'white')
             .style('border', '1px solid black')
             .style('border-radius', '5px')
