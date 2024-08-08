@@ -141,25 +141,23 @@ export const injectForeignObjects = (
 
         // Ensure foreign object is placed correctly within the node
         const foreignObjectWidth = 220;
-        const foreignObjectHeight = 120;
 
         const foreignObject = nodeElement.append('foreignObject')
             .attr('width', foreignObjectWidth)
-            .attr('height', foreignObjectHeight)
-            .attr('x', -foreignObjectWidth / 2) // Center the foreign object
-            .attr('y', -foreignObjectHeight / 2) // Center the foreign object
+            .attr('x', -foreignObjectWidth / 2)
             .style('overflow', 'visible')
             .append('xhtml:div')
             .style('display', 'flex')
             .style('flex-direction', 'column')
             .style('align-items', 'center')
             .style('justify-content', 'center')
-            .style('height', '100%')
             .style('background-color', 'white')
             .style('border', '1px solid black')
             .style('border-radius', '5px')
             .style('padding', '5px')
-            .style('overflow', 'visible');
+            .style('overflow', 'visible')
+            .style('width', `${foreignObjectWidth}px`)
+            .style('box-sizing', 'border-box'); // Ensure padding is included in the width
 
         foreignObject.html(d => {
             const nodeName = `<div style="font-weight: bold; margin-bottom: 5px;">${d.data.name}</div>`;
@@ -185,6 +183,14 @@ export const injectForeignObjects = (
 
             return nodeName + additionalHtml;
         });
+
+        // After appending the content, dynamically set the height of the foreignObject
+        const htmlElement = foreignObject.node() as HTMLElement;
+        const foreignObjectHeight = htmlElement.getBoundingClientRect().height;
+
+        nodeElement.select('foreignObject')
+            .attr('height', foreignObjectHeight)
+            .attr('y', -foreignObjectHeight / 2); // Center the foreign object vertically
 
         if (d.data.nodeType === 'product') {
             const productNode = d.data as ProductNode;
