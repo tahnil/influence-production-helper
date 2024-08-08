@@ -21,7 +21,7 @@ const useInputsByProcessId = () => {
     setError(null);
     try {
       const data = await fetchInputsByProcessId(processId);
-      console.log('[useInputsByProcessId] Fetched inputs for ', processId, ': ', data);
+      // console.log('[useInputsByProcessId] Fetched inputs for ', processId, ': ', data);
       setLoading(false);
       return data;
     } catch (error) {

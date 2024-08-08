@@ -29,7 +29,7 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
         if (productDetails && !productLoading && !productError && processes && !processesLoading && !processesError) {
             const newNode = buildProductNode(productDetails, processes);
             setProductNode(newNode);
-            console.log('[useProductNodeBuilder] newNode:', newNode);
+            // console.log('[useProductNodeBuilder] newNode:', newNode);
         }
     }, [productDetails, productLoading, productError, processes, processesLoading, processesError]);
 

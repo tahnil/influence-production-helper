@@ -9,7 +9,7 @@ const fetchProcessDetails = async (id: string): Promise<InfluenceProcess> => {
     throw new Error('Failed to fetch process details');
   }
     const data = await response.json();
-    console.log('[fetchProcessDetails] Fetched data:', data); // Add logging here
+    // console.log('[fetchProcessDetails] Fetched data:', data); // Add logging here
     return data[0]; // Adjust to return the first element of the array
 };
 
@@ -23,7 +23,7 @@ const useProcessDetails = () => {
     setError(null);
     try {
             const data = await fetchProcessDetails(id);
-            console.log('[useProcessDetails] Fetched process details:', data); // Add logging here
+            // console.log('[useProcessDetails] Fetched process details:', data); // Add logging here
       setProcessDetails(data);
       return data; // Return the fetched data
     } catch (error) {

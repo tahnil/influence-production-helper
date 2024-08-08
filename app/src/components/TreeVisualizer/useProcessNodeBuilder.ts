@@ -22,25 +22,25 @@ const useProcessNodeBuilder = () => {
         if (!selectedProcessId) return null;
 
         try {
-            console.log('[useProcessNodeBuilder] Fetching process details and inputs for process with id:', selectedProcessId);
+            // console.log('[useProcessNodeBuilder] Fetching process details and inputs for process with id:', selectedProcessId);
 
             // Fetch detailed process information
             const processDetails: InfluenceProcess = await getProcessDetails(selectedProcessId);
-            console.log('[useProcessNodeBuilder] Process details fetched:', processDetails);
+            // console.log('[useProcessNodeBuilder] Process details fetched:', processDetails);
 
             // Fetch inputs for the process
             const fetchedInputs = await getInputsByProcessId(selectedProcessId);
-            console.log('[useProcessNodeBuilder] Inputs fetched:', fetchedInputs);
+            // console.log('[useProcessNodeBuilder] Inputs fetched:', fetchedInputs);
 
             // Build input nodes
             const inputNodes: ProductNode[] = await Promise.all(
                 fetchedInputs.map(async (input: ProcessInput) => {
                     try {
                         const node = await getProductNode(input.product.id);
-                        console.log('[useProcessNodeBuilder] Product Node:', node, 'Input:', input);
+                        // console.log('[useProcessNodeBuilder] Product Node:', node, 'Input:', input);
                         return node;
                     } catch (error) {
-                        console.error('[useProcessNodeBuilder] Error fetching product node for input:', error);
+                        // console.error('[useProcessNodeBuilder] Error fetching product node for input:', error);
                         throw error;
                     }
                 })
@@ -58,10 +58,10 @@ const useProcessNodeBuilder = () => {
                 sideProducts: [] // Add side products if needed
             };
 
-            console.log('[useProcessNodeBuilder] New process node:', newProcessNode);
+            // console.log('[useProcessNodeBuilder] New process node:', newProcessNode);
             return newProcessNode;
         } catch (err) {
-            console.error('[useProcessNodeBuilder] Error building process node:', err);
+            // console.error('[useProcessNodeBuilder] Error building process node:', err);
             return null;
         }
     }, [getProductNode, getInputsByProcessId, getProcessDetails]);

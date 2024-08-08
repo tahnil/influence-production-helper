@@ -44,12 +44,9 @@ export const renderD3Tree = (
     const svg = d3.select(container)
         .append('svg')
         .attr('width', viewportWidth)
-        .attr('height', viewportHeight)
-        .call(d3.zoom<SVGSVGElement, unknown>().on("zoom", (event) => {
-            svg.attr("transform", event.transform.toString());
-            setPreviousTransform(event.transform);
-        }))
-        .append('g')
+        .attr('height', viewportHeight);
+
+    const g = svg.append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
 
     const root = d3.hierarchy(rootData);
@@ -68,7 +65,7 @@ export const renderD3Tree = (
     const links = root.links();
 
     // Add links    
-    svg.selectAll('path.link')
+    g.selectAll('path.link')
         .data(links)
         .enter()
         .append('path')
@@ -79,7 +76,7 @@ export const renderD3Tree = (
         .style('fill', 'none');
 
     // Add nodes
-    const node = svg.selectAll('g.node')
+    const node = g.selectAll('g.node')
         .data(nodes)
         .enter()
         .append('g')
@@ -96,7 +93,7 @@ export const renderD3Tree = (
         const updatedLinks = root.links();
 
         // Update links
-        svg.selectAll('path.link')
+        g.selectAll('path.link')
             .data(updatedLinks)
             .join('path')
             .attr('class', 'link')
@@ -106,7 +103,7 @@ export const renderD3Tree = (
             .style('fill', 'none');
 
         // Update nodes
-        const updatedNode = svg.selectAll('g.node')
+        const updatedNode = g.selectAll('g.node')
             .data(updatedNodes)
             .join('g')
             .attr('class', 'node')
@@ -116,9 +113,17 @@ export const renderD3Tree = (
             .attr('r', 10);
     };
 
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+        .scaleExtent([0.1, 10])
+        .on('zoom', (event) => {
+            g.attr('transform', event.transform);
+            setPreviousTransform(event.transform);
+        });
+
+    svg.call(zoom);
+
     if (previousTransform) {
-        svg.attr("transform", previousTransform.toString());
-        d3.select(container).select('svg').call(d3.zoom<SVGSVGElement, unknown>().transform, previousTransform as any);
+        svg.call(zoom.transform, previousTransform);
     }
 
     rootRef.current = root;
@@ -134,7 +139,7 @@ export const injectForeignObjects = (
     const nodeSelection = svg.selectAll<SVGGElement, d3.HierarchyPointNode<D3TreeNode>>('g.node');
 
     nodeSelection.each(function (d) {
-        console.log('[injectForeignObjects] Injecting foreignObject for product node:', d);
+        // console.log('[injectForeignObjects] Injecting foreignObject for product node:', d);
 
         const nodeElement = d3.select(this);
         nodeElement.selectAll('foreignObject').remove();
@@ -165,7 +170,7 @@ export const injectForeignObjects = (
 
             if (d.data.nodeType === 'product') {
                 const productNode = d.data as ProductNode;
-                console.log('[injectForeignObjects] Rendering process options for node:', productNode);
+                // console.log('[injectForeignObjects] Rendering process options for node:', productNode);
                 additionalHtml = `
                         <label for="process-select-${productNode.id}">Select Process:</label>
                         <select style="width: 100%" id="process-select-${productNode.id}" name="process-select">
@@ -205,7 +210,7 @@ export const injectForeignObjects = (
                 }
             });
         } else {
-            console.log('[injectForeignObjects] Skipping non-product node:', d);
+            // console.log('[injectForeignObjects] Skipping non-product node:', d);
         }
     });
 };

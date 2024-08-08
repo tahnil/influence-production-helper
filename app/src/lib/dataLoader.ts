@@ -13,7 +13,7 @@ export const loadProductionChains = (): ProductionChain => {
     try {
       const data = fs.readFileSync(productionChainsPath, 'utf8');
       productionChains = JSON.parse(data);
-      console.log('Production chains data loaded successfully.');
+      // console.log('Production chains data loaded successfully.');
     } catch (error) {
       console.error('Error reading or parsing productionChains.json:', error);
       throw new Error('Failed to load production chains data');

@@ -105,6 +105,7 @@ const TreeRenderer: React.FC = () => {
 
     useEffect(() => {
         if (productNode && d3RenderContainer.current) {
+            console.log('[TreeRenderer] something happened');
             injectForeignObjects(d3RenderContainer.current, rootRef, buildProcessNodeCallback);
         }
     }, [productNode]);
@@ -158,7 +159,7 @@ const TreeRenderer: React.FC = () => {
             };
 
             setTreeData(prevTreeData => {
-                console.log('[TreeRenderer] Previous tree data:', prevTreeData);
+                // console.log('[TreeRenderer] Previous tree data:', prevTreeData);
                 const updatedTreeData = prevTreeData ? updateTreeData(prevTreeData) : null;
                 console.log('[TreeRenderer] Updated tree data:', updatedTreeData);
                 return updatedTreeData;
