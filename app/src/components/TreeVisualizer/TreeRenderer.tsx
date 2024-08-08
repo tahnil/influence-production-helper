@@ -55,6 +55,7 @@ const TreeRenderer: React.FC = () => {
     // State to keep track of the selected product ID and tree data
     const [selectedProductId, setSelectedProduct] = useState<string | null>(null);
     const [treeData, setTreeData] = useState<D3TreeNode | null>(null);
+    const [transform, setTransform] = useState<d3.ZoomTransform | null>(null);
 
     // Refs for D3 container, root node, and update function
     const d3RenderContainer = useRef<HTMLDivElement | null>(null);
@@ -85,7 +86,7 @@ const TreeRenderer: React.FC = () => {
         if (rootNode && d3RenderContainer.current) {
             console.log('[TreeRenderer] Initializing D3 Tree with Root Node:', rootNode);
             clearD3Tree(d3RenderContainer.current);
-            renderD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef);
+            renderD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef, setTransform);
             setTreeData(rootNode);
         }
     }, [rootNode]);
@@ -94,7 +95,7 @@ const TreeRenderer: React.FC = () => {
     useEffect(() => {
         if (treeData && d3RenderContainer.current) {
             clearD3Tree(d3RenderContainer.current);
-            renderD3Tree(d3RenderContainer.current, treeData, rootRef, updateRef);
+            renderD3Tree(d3RenderContainer.current, treeData, rootRef, updateRef, setTransform, transform);
             injectForeignObjects(d3RenderContainer.current, rootRef, buildProcessNodeCallback);
         }
     }, [treeData]);

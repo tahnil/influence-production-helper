@@ -31,7 +31,9 @@ export const renderD3Tree = (
     container: HTMLDivElement,
     rootData: D3TreeNode,
     rootRef: MutableRefObject<d3.HierarchyPointNode<D3TreeNode> | null>,
-    updateRef: MutableRefObject<(source: d3.HierarchyPointNode<D3TreeNode> | null) => void>
+    updateRef: MutableRefObject<(source: d3.HierarchyPointNode<D3TreeNode> | null) => void>,
+    setTransform: (transform: d3.ZoomTransform) => void,
+    previousTransform?: d3.ZoomTransform
 ) => {
     const margin = { top: 20, right: 90, bottom: 30, left: 90 };
     const viewportWidth = window.innerWidth;
@@ -115,9 +117,14 @@ export const renderD3Tree = (
         .scaleExtent([0.1, 10])
         .on('zoom', (event) => {
             g.attr('transform', event.transform);
+            setTransform(event.transform);
         });
 
     svg.call(zoom);
+
+    if (previousTransform) {
+        svg.call(zoom.transform, previousTransform);
+    }
 
     rootRef.current = root;
 };
