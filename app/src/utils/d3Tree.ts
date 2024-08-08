@@ -26,8 +26,8 @@ const bezierCurveGenerator = (d: d3.HierarchyPointLink<D3TreeNode>) => {
     return path.toString();
 };
 
-// Function to render the D3 tree
-export const renderD3Tree = (
+// Initialize the D3 tree
+export const initializeD3Tree = (
     container: HTMLDivElement,
     rootData: D3TreeNode,
     rootRef: MutableRefObject<d3.HierarchyPointNode<D3TreeNode> | null>,
@@ -77,7 +77,7 @@ export const renderD3Tree = (
 
     // Add nodes
     const node = g.selectAll('g.node')
-        .data(nodes)
+        .data(nodes, d => d.id as string)
         .enter()
         .append('g')
         .attr('class', 'node')
@@ -85,33 +85,6 @@ export const renderD3Tree = (
 
     node.append('circle')
         .attr('r', 10);
-
-    updateRef.current = (source: d3.HierarchyPointNode<D3TreeNode> | null) => {
-        if (!source) return;
-
-        const updatedNodes = root.descendants();
-        const updatedLinks = root.links();
-
-        // Update links
-        g.selectAll('path.link')
-            .data(updatedLinks)
-            .join('path')
-            .attr('class', 'link')
-            .attr('d', bezierCurveGenerator)
-            .style('stroke', 'black')
-            .style('stroke-width', '1px')
-            .style('fill', 'none');
-
-        // Update nodes
-        const updatedNode = g.selectAll('g.node')
-            .data(updatedNodes)
-            .join('g')
-            .attr('class', 'node')
-            .attr('transform', d => `translate(${d.y},${d.x})`);
-
-        updatedNode.select('circle')
-            .attr('r', 10);
-    };
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
         .scaleExtent([0.1, 10])
@@ -124,6 +97,116 @@ export const renderD3Tree = (
 
     if (previousTransform) {
         svg.call(zoom.transform, previousTransform);
+    }
+
+    rootRef.current = root;
+};
+
+// Update the D3 tree
+export const updateD3Tree = (
+    container: HTMLDivElement,
+    rootData: D3TreeNode,
+    rootRef: MutableRefObject<d3.HierarchyPointNode | null>,
+    updateRef: MutableRefObject<(source: d3.HierarchyPointNode | null) => void>,
+    setTransform: (transform: d3.ZoomTransform) => void,
+    previousTransform?: d3.ZoomTransform
+) => {
+    const g = d3.select(container).select('svg g');
+    const root = d3.hierarchy(rootData);
+    const nodeWidth = 240;
+    const nodeHeight = 140;
+
+    const treeLayout = d3.tree<D3TreeNode>().nodeSize([nodeHeight, nodeWidth]);
+
+    treeLayout(root);
+
+    const nodes = root.descendants();
+    const links = root.links();
+
+    // Update links
+    const link = g.selectAll('path.link')
+        .data(links, d => d.target.id as string);
+
+    link.enter()
+        .append('path')
+        .attr('class', 'link')
+        .attr('d', bezierCurveGenerator)
+        .style('stroke', 'black')
+        .style('stroke-width', '1px')
+        .style('fill', 'none')
+        .merge(link)
+        .transition()
+        .duration(500)
+        .attr('d', bezierCurveGenerator);
+
+    link.exit().remove();
+
+    // Update nodes
+    const node = g.selectAll('g.node')
+        .data(nodes, d => d.id as string);
+
+    const nodeEnter = node.enter()
+        .append('g')
+        .attr('class', 'node')
+        .attr('transform', d => `translate(${d.y},${d.x})`);
+
+    nodeEnter.append('circle')
+        .attr('r', 10);
+
+    nodeEnter.merge(node)
+        .transition()
+        .duration(500)
+        .attr('transform', d => `translate(${d.y},${d.x})`);
+
+    node.exit().remove();
+
+    updateRef.current = (source: d3.HierarchyPointNode<D3TreeNode> | null) => {
+        if (!source) return;
+
+        const updatedNodes = root.descendants();
+        const updatedLinks = root.links();
+
+        // Update links
+        const linkUpdate = g.selectAll('path.link')
+            .data(updatedLinks, d => d.target.id as string);
+
+        linkUpdate.enter()
+            .append('path')
+            .attr('class', 'link')
+            .attr('d', bezierCurveGenerator)
+            .style('stroke', 'black')
+            .style('stroke-width', '1px')
+            .style('fill', 'none')
+            .merge(linkUpdate)
+            .transition()
+            .duration(500)
+            .attr('d', bezierCurveGenerator);
+
+        linkUpdate.exit().remove();
+
+        // Update nodes
+        const nodeUpdate = g.selectAll('g.node')
+            .data(updatedNodes, d => d.id as string);
+
+        const nodeEnterUpdate = nodeUpdate.enter()
+            .append('g')
+            .attr('class', 'node')
+            .attr('transform', d => `translate(${d.y},${d.x})`);
+
+        nodeEnterUpdate.append('circle')
+            .attr('r', 10);
+
+        nodeEnterUpdate.merge(nodeUpdate)
+            .transition()
+            .duration(500)
+            .attr('transform', d => `translate(${d.y},${d.x})`);
+
+        nodeUpdate.exit().remove();
+    };
+
+    if (previousTransform) {
+        const svg = d3.select(container).select('svg');
+        svg.call(d3.zoom<SVGSVGElement, unknown>().transform, previousTransform);
     }
 
     rootRef.current = root;

@@ -47,8 +47,8 @@ import useInfluenceProducts from '@/hooks/useInfluenceProducts';
 import useRootNodeBuilder from './useRootNodeBuilder';
 import useProductNodeBuilder from './useProductNodeBuilder';
 import useProcessNodeBuilder from './useProcessNodeBuilder';
-import { renderD3Tree, injectForeignObjects, clearD3Tree } from '@/utils/d3Tree';
-import { D3TreeNode, ProductNode, ProcessNode } from '@/types/d3Types';
+import { initializeD3Tree, updateD3Tree, injectForeignObjects } from '@/utils/d3Tree';
+import { D3TreeNode } from '@/types/d3Types';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 
 const TreeRenderer: React.FC = () => {
@@ -84,9 +84,7 @@ const TreeRenderer: React.FC = () => {
     // Effect to render D3 tree when productNode is ready
     useEffect(() => {
         if (rootNode && d3RenderContainer.current) {
-            console.log('[TreeRenderer] Initializing D3 Tree with Root Node:', rootNode);
-            clearD3Tree(d3RenderContainer.current);
-            renderD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef, setTransform);
+            initializeD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef, setTransform, transform);
             setTreeData(rootNode);
         }
     }, [rootNode]);
@@ -94,8 +92,7 @@ const TreeRenderer: React.FC = () => {
     // UseEffect hook to re-render the D3 tree whenever treeData changes
     useEffect(() => {
         if (treeData && d3RenderContainer.current) {
-            clearD3Tree(d3RenderContainer.current);
-            renderD3Tree(d3RenderContainer.current, treeData, rootRef, updateRef, setTransform, transform);
+            updateD3Tree(d3RenderContainer.current, treeData, rootRef, updateRef, setTransform, transform);
             injectForeignObjects(d3RenderContainer.current, rootRef, buildProcessNodeCallback);
         }
     }, [treeData]);
