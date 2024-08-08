@@ -61,8 +61,6 @@ const TreeRenderer: React.FC = () => {
     const rootRef = useRef<d3.HierarchyPointNode<D3TreeNode> | null>(null);
     const updateRef = useRef<(source: d3.HierarchyPointNode<D3TreeNode> | null) => void>(() => {});
 
-    const [previousTransform, setPreviousTransform] = useState<d3.ZoomTransform | null>(null);
-
     // Fetching influence products using a custom hook
     const { influenceProducts, loading, error } = useInfluenceProducts();
     const { processes, getProcesses } = useProcessesByProductId();
@@ -87,7 +85,7 @@ const TreeRenderer: React.FC = () => {
         if (rootNode && d3RenderContainer.current) {
             console.log('[TreeRenderer] Initializing D3 Tree with Root Node:', rootNode);
             clearD3Tree(d3RenderContainer.current);
-            renderD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef, previousTransform, setPreviousTransform);
+            renderD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef);
             setTreeData(rootNode);
         }
     }, [rootNode]);
@@ -96,12 +94,12 @@ const TreeRenderer: React.FC = () => {
     useEffect(() => {
         if (treeData && d3RenderContainer.current) {
             clearD3Tree(d3RenderContainer.current);
-            renderD3Tree(d3RenderContainer.current, treeData, rootRef, updateRef, previousTransform, setPreviousTransform);
+            renderD3Tree(d3RenderContainer.current, treeData, rootRef, updateRef);
             injectForeignObjects(d3RenderContainer.current, rootRef, buildProcessNodeCallback);
         }
-    }, [treeData, previousTransform]);
+    }, [treeData]);
 
-    const { productNode, productLoading, productError, processesLoading, processesError } = useProductNodeBuilder({ selectedProductId });
+    const { productNode } = useProductNodeBuilder({ selectedProductId });
 
     useEffect(() => {
         if (productNode && d3RenderContainer.current) {
