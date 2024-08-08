@@ -91,6 +91,7 @@ export const initializeD3Tree = (
         .nodeSize([nodeHeight, nodeWidth]);
 
     treeLayout(root);
+    const rootPointNode = root as d3.HierarchyPointNode<D3TreeNode>;
 
     const nodes = root.descendants();
     const links = root.links();
@@ -98,11 +99,11 @@ export const initializeD3Tree = (
     // Add links first to ensure they are rendered behind the nodes
     const linkGroup = g.append('g').attr('class', 'links');
     linkGroup.selectAll('path.link')
-        .data(links, d => d.target.id as string)
+        .data(links, d => (d as d3.HierarchyPointLink<D3TreeNode>).target.id as string)
         .enter()
         .append('path')
         .attr('class', 'link')
-        .attr('d', bezierCurveGenerator)
+        .attr('d', d => bezierCurveGenerator(d as d3.HierarchyPointLink<D3TreeNode>))
         .style('stroke', 'black')
         .style('stroke-width', '1px')
         .style('fill', 'none');
@@ -110,7 +111,7 @@ export const initializeD3Tree = (
     // Add nodes
     const nodeGroup = g.append('g').attr('class', 'nodes');
     const node = nodeGroup.selectAll('g.node')
-        .data(nodes, d => d.id as string)
+        .data(nodes, d => (d as d3.HierarchyPointNode<D3TreeNode>).id as string)
         .enter()
         .append('g')
         .attr('class', 'node')
@@ -129,8 +130,8 @@ export const initializeD3Tree = (
     svg.call(zoom);
 
     // Calculate the initial translation to center the root node
-    const initialTranslateX = viewportWidth / 2 - root.y;
-    const initialTranslateY = viewportHeight / 2 - root.x;
+    const initialTranslateX = viewportWidth / 2 - (root.y ?? 0);
+    const initialTranslateY = viewportHeight / 2 - (root.x ?? 0);
     const initialTransform = d3.zoomIdentity.translate(initialTranslateX, initialTranslateY);
 
     svg.call(zoom.transform, initialTransform);
@@ -140,7 +141,7 @@ export const initializeD3Tree = (
         svg.call(zoom.transform, previousTransform);
     }
 
-    rootRef.current = root;
+    rootRef.current = rootPointNode;
 };
 
 // Update the D3 tree
@@ -161,33 +162,35 @@ export const updateD3Tree = (
     const treeLayout = d3.tree<D3TreeNode>().nodeSize([nodeHeight, nodeWidth]);
 
     treeLayout(root);
+    const rootPointNode = root as d3.HierarchyPointNode<D3TreeNode>;
+
 
     const nodes = root.descendants();
     const links = root.links();
 
     // Update links
     const linkGroup = g.select('g.links');
-    const link = linkGroup.selectAll('path.link')
-        .data(links, d => d.target.id as string);
+    const link = linkGroup.selectAll<SVGPathElement, d3.HierarchyPointLink<D3TreeNode>>('path.link')
+        .data(links, d => (d as d3.HierarchyPointLink<D3TreeNode>).target.id as string)
 
     link.enter()
         .append('path')
         .attr('class', 'link')
-        .attr('d', bezierCurveGenerator)
+        .attr('d', d => bezierCurveGenerator(d as d3.HierarchyPointLink<D3TreeNode>))
         .style('stroke', 'black')
         .style('stroke-width', '1px')
         .style('fill', 'none')
         .merge(link)
         .transition()
         .duration(500)
-        .attr('d', bezierCurveGenerator);
+        .attr('d', d => bezierCurveGenerator(d as d3.HierarchyPointLink<D3TreeNode>));
 
     link.exit().remove();
 
     // Update nodes
     const nodeGroup = g.select('g.nodes');
-    const node = nodeGroup.selectAll('g.node')
-        .data(nodes, d => d.id as string);
+    const node = nodeGroup.selectAll<SVGGElement, d3.HierarchyNode<D3TreeNode>>('g.node')
+        .data(nodes, d => (d as d3.HierarchyPointNode<D3TreeNode>).id as string);
 
     const nodeEnter = node.enter()
         .append('g')
@@ -212,19 +215,19 @@ export const updateD3Tree = (
 
         // Update links
         const linkUpdate = linkGroup.selectAll('path.link')
-            .data(updatedLinks, d => d.target.id as string);
+            .data(updatedLinks, d => (d as d3.HierarchyPointLink<D3TreeNode>).target.id as string)
 
         linkUpdate.enter()
             .append('path')
             .attr('class', 'link')
-            .attr('d', bezierCurveGenerator)
+            .attr('d', d => bezierCurveGenerator(d as d3.HierarchyPointLink<D3TreeNode>))
             .style('stroke', 'black')
             .style('stroke-width', '1px')
             .style('fill', 'none')
             .merge(linkUpdate)
             .transition()
             .duration(500)
-            .attr('d', bezierCurveGenerator);
+            .attr('d', d => bezierCurveGenerator(d as d3.HierarchyPointLink<D3TreeNode>))
 
         linkUpdate.exit().remove();
 
@@ -253,7 +256,7 @@ export const updateD3Tree = (
         svg.call(d3.zoom<SVGSVGElement, unknown>().transform, previousTransform);
     }
 
-    rootRef.current = root;
+    rootRef.current = rootPointNode;
 };
 
 // Function to inject foreign objects into the D3 nodes
