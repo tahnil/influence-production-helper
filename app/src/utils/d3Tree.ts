@@ -64,9 +64,10 @@ export const initializeD3Tree = (
     const nodes = root.descendants();
     const links = root.links();
 
-    // Add links    
-    g.selectAll('path.link')
-        .data(links)
+    // Add links first to ensure they are rendered behind the nodes
+    const linkGroup = g.append('g').attr('class', 'links');
+    linkGroup.selectAll('path.link')
+        .data(links, d => d.target.id as string)
         .enter()
         .append('path')
         .attr('class', 'link')
@@ -76,7 +77,8 @@ export const initializeD3Tree = (
         .style('fill', 'none');
 
     // Add nodes
-    const node = g.selectAll('g.node')
+    const nodeGroup = g.append('g').attr('class', 'nodes');
+    const node = nodeGroup.selectAll('g.node')
         .data(nodes, d => d.id as string)
         .enter()
         .append('g')
@@ -113,6 +115,7 @@ export const updateD3Tree = (
 ) => {
     const g = d3.select(container).select('svg g');
     const root = d3.hierarchy(rootData);
+
     const nodeWidth = 240;
     const nodeHeight = 140;
 
@@ -124,7 +127,8 @@ export const updateD3Tree = (
     const links = root.links();
 
     // Update links
-    const link = g.selectAll('path.link')
+    const linkGroup = g.select('g.links');
+    const link = linkGroup.selectAll('path.link')
         .data(links, d => d.target.id as string);
 
     link.enter()
@@ -142,7 +146,8 @@ export const updateD3Tree = (
     link.exit().remove();
 
     // Update nodes
-    const node = g.selectAll('g.node')
+    const nodeGroup = g.select('g.nodes');
+    const node = nodeGroup.selectAll('g.node')
         .data(nodes, d => d.id as string);
 
     const nodeEnter = node.enter()
@@ -167,7 +172,7 @@ export const updateD3Tree = (
         const updatedLinks = root.links();
 
         // Update links
-        const linkUpdate = g.selectAll('path.link')
+        const linkUpdate = linkGroup.selectAll('path.link')
             .data(updatedLinks, d => d.target.id as string);
 
         linkUpdate.enter()
@@ -185,7 +190,7 @@ export const updateD3Tree = (
         linkUpdate.exit().remove();
 
         // Update nodes
-        const nodeUpdate = g.selectAll('g.node')
+        const nodeUpdate = nodeGroup.selectAll('g.node')
             .data(updatedNodes, d => d.id as string);
 
         const nodeEnterUpdate = nodeUpdate.enter()
