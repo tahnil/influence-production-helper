@@ -14,11 +14,16 @@ export const clearD3Tree = (container: HTMLDivElement) => {
     d3.select(container).selectAll('*').remove();
 };
 
-export const curvedLine = (s: { x: number, y: number }, d: { x: number, y: number }): string => {
-    return `M ${s.y} ${s.x}
-        C ${(s.y + d.y) / 2} ${s.x},
-        ${(s.y + d.y) / 2} ${d.x},
-        ${d.y} ${d.x}`;
+// Custom link generator function to create Bezier curves
+const bezierCurveGenerator = (d: d3.HierarchyPointLink<D3TreeNode>) => {
+    const path = d3.path();
+    path.moveTo(d.source.y, d.source.x);
+    path.bezierCurveTo(
+        (d.source.y + d.target.y) / 2, d.source.x,
+        (d.source.y + d.target.y) / 2, d.target.x,
+        d.target.y, d.target.x
+    );
+    return path.toString();
 };
 
 // Function to render the D3 tree
@@ -27,8 +32,8 @@ export const renderD3Tree = (
     rootData: D3TreeNode,
     rootRef: MutableRefObject<d3.HierarchyPointNode<D3TreeNode> | null>,
     updateRef: MutableRefObject<(source: d3.HierarchyPointNode<D3TreeNode> | null) => void>,
-    previousTransform: d3.ZoomTransform | null, // Add previous transform as a parameter
-    setPreviousTransform: (transform: d3.ZoomTransform) => void // Add setter for previous transform
+    previousTransform: d3.ZoomTransform | null,
+    setPreviousTransform: (transform: d3.ZoomTransform) => void
 ) => {
     const margin = { top: 20, right: 90, bottom: 30, left: 90 };
     const viewportWidth = window.innerWidth;
@@ -50,8 +55,8 @@ export const renderD3Tree = (
     const root = d3.hierarchy(rootData);
 
     // Define the size of each node
-    const nodeWidth = 240; // Example node width
-    const nodeHeight = 140; // Example node height
+    const nodeWidth = 240;
+    const nodeHeight = 140;
 
     // Set the node size for the tree layout
     const treeLayout = d3.tree<D3TreeNode>()
@@ -62,15 +67,16 @@ export const renderD3Tree = (
     const nodes = root.descendants();
     const links = root.links();
 
-    // Add links
+    // Add links    
     svg.selectAll('path.link')
         .data(links)
         .enter()
         .append('path')
         .attr('class', 'link')
-        .attr('d', d3.linkHorizontal<d3.HierarchyPointLink<D3TreeNode>, d3.HierarchyPointNode<D3TreeNode>>()
-            .x(d => (d as d3.HierarchyPointLink<D3TreeNode>).y)
-            .y(d => (d as d3.HierarchyPointLink<D3TreeNode>).x) as any);
+        .attr('d', bezierCurveGenerator)
+        .style('stroke', 'black')
+        .style('stroke-width', '1px')
+        .style('fill', 'none');
 
     // Add nodes
     const node = svg.selectAll('g.node')
@@ -94,9 +100,10 @@ export const renderD3Tree = (
             .data(updatedLinks)
             .join('path')
             .attr('class', 'link')
-            .attr('d', d3.linkHorizontal<d3.HierarchyPointLink<D3TreeNode>, d3.HierarchyPointNode<D3TreeNode>>()
-                .x(d => (d as d3.HierarchyPointLink<D3TreeNode>).y)
-                .y(d => (d as d3.HierarchyPointLink<D3TreeNode>).x) as any);
+            .attr('d', bezierCurveGenerator)
+            .style('stroke', 'black')
+            .style('stroke-width', '1px')
+            .style('fill', 'none');
 
         // Update nodes
         const updatedNode = svg.selectAll('g.node')
