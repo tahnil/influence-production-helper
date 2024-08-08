@@ -144,7 +144,7 @@ export const injectForeignObjects = (
 
         const foreignObject = nodeElement.append('foreignObject')
             .attr('width', foreignObjectWidth)
-            .attr('x', -foreignObjectWidth / 2)
+            .attr('x', -foreignObjectWidth / 10)
             .style('overflow', 'visible')
             .append('xhtml:div')
             .style('display', 'flex')
@@ -160,7 +160,7 @@ export const injectForeignObjects = (
             .style('box-sizing', 'border-box'); // Ensure padding is included in the width
 
         foreignObject.html(d => {
-            const nodeName = `<div style="font-weight: bold; margin-bottom: 5px;">${d.data.name}</div>`;
+            const nodeName = `<div style="font-weight: bold; margin-bottom: 5px; text-align: center">${d.data.name}</div>`;
             let additionalHtml = '';
 
             if (d.data.nodeType === 'product') {
