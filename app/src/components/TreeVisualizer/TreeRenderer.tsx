@@ -44,9 +44,9 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ProductSelector from './ProductSelector';
 import useInfluenceProducts from '@/hooks/useInfluenceProducts';
-import useRootNodeBuilder from './useRootNodeBuilder';
-import useProductNodeBuilder from './useProductNodeBuilder';
-import useProcessNodeBuilder from './useProcessNodeBuilder';
+import useRootNodeBuilder from '@/utils/TreeVisualizer/useRootNodeBuilder';
+import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
+import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
 import { initializeD3Tree, updateD3Tree, injectForeignObjects } from '@/utils/d3Tree';
 import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';

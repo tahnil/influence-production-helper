@@ -5,20 +5,26 @@
 
 import { useState, useEffect } from 'react';
 import { ProductNode } from '@/types/d3Types';
-import { buildProductNode } from '@/components/TreeVisualizer/buildProductNode';
+import { buildProductNode } from '@/utils/TreeVisualizer/buildProductNode';
+import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 
-const useRootNodeBuilder = ({ selectedProductId, influenceProducts, processes }) => {
+const useRootNodeBuilder = ({ 
+    selectedProductId, 
+    influenceProducts, 
+    processes 
+}: { 
+    selectedProductId: string | null, 
+    influenceProducts: InfluenceProduct[], 
+    processes: InfluenceProcess[] 
+}) => {
     const [rootNode, setRootNode] = useState<ProductNode | null>(null);
 
     useEffect(() => {
-        // console.log('[useRootNodeBuilder] selectedProductId:', selectedProductId);
         if (selectedProductId && influenceProducts) {
-            const selectedProduct = influenceProducts.find(product => product.id === selectedProductId);
-            // console.log('[useRootNodeBuilder] selectedProduct:', selectedProduct);
+            const selectedProduct = influenceProducts.find((product: InfluenceProduct) => product.id === selectedProductId);
             if (selectedProduct) {
                 const newNode = buildProductNode(selectedProduct, processes);
                 setRootNode(newNode);
-                // console.log('[useRootNodeBuilder] newNode:', newNode);
             }
         }
     }, [selectedProductId, influenceProducts, processes]);

@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ProductNode } from '@/types/d3Types';
-import { buildProductNode } from '@/components/TreeVisualizer/buildProductNode';
+import { buildProductNode } from '@/utils/TreeVisualizer/buildProductNode';
 import useProductDetails from '@/hooks/useInfluenceProductDetails';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 
