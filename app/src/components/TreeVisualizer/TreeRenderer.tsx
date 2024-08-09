@@ -84,7 +84,7 @@ const TreeRenderer: React.FC = () => {
     // Effect to render D3 tree when productNode is ready
     useEffect(() => {
         if (rootNode && d3RenderContainer.current) {
-            initializeD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef, setTransform, transform);
+            initializeD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef, setTransform, transform ?? undefined);
             setTreeData(rootNode);
         }
     }, [rootNode]);
@@ -92,7 +92,7 @@ const TreeRenderer: React.FC = () => {
     // UseEffect hook to re-render the D3 tree whenever treeData changes
     useEffect(() => {
         if (treeData && d3RenderContainer.current) {
-            updateD3Tree(d3RenderContainer.current, treeData, rootRef, updateRef, setTransform, transform);
+            updateD3Tree(d3RenderContainer.current, treeData, rootRef, updateRef, setTransform, transform ?? undefined);
             injectForeignObjects(d3RenderContainer.current, rootRef, buildProcessNodeCallback);
         }
     }, [treeData]);

@@ -214,7 +214,7 @@ export const updateD3Tree = (
         const updatedLinks = root.links();
 
         // Update links
-        const linkUpdate = linkGroup.selectAll('path.link')
+        const linkUpdate = linkGroup.selectAll<SVGPathElement, d3.HierarchyPointLink<D3TreeNode>>('path.link')
             .data(updatedLinks, d => (d as d3.HierarchyPointLink<D3TreeNode>).target.id as string)
 
         linkUpdate.enter()
@@ -232,8 +232,8 @@ export const updateD3Tree = (
         linkUpdate.exit().remove();
 
         // Update nodes
-        const nodeUpdate = nodeGroup.selectAll('g.node')
-            .data(updatedNodes, d => d.id as string);
+        const nodeUpdate = nodeGroup.selectAll<SVGGElement, d3.HierarchyNode<D3TreeNode>>('g.node')
+            .data(updatedNodes, d => (d as d3.HierarchyPointNode<D3TreeNode>).id as string);
 
         const nodeEnterUpdate = nodeUpdate.enter()
             .append('g')
@@ -252,7 +252,7 @@ export const updateD3Tree = (
     };
 
     if (previousTransform) {
-        const svg = d3.select(container).select('svg');
+        const svg = d3.select(container).select<SVGSVGElement>('svg');
         svg.call(d3.zoom<SVGSVGElement, unknown>().transform, previousTransform);
     }
 
@@ -295,11 +295,12 @@ export const injectForeignObjects = (
             .style('box-sizing', 'border-box');
 
         foreignObject.html(d => {
-            const nodeName = `<div style="font-weight: bold; margin-bottom: 5px; text-align: center">${d.data.name}</div>`;
+            const node = d as d3.HierarchyPointNode<D3TreeNode>
+            const nodeName = `<div style="font-weight: bold; margin-bottom: 5px; text-align: center">${node.data.name}</div>`;
             let additionalHtml = '';
 
-            if (d.data.nodeType === 'product') {
-                const productNode = d.data as ProductNode;
+            if (node.data.nodeType === 'product') {
+                const productNode = node.data as ProductNode;
                 // console.log('[injectForeignObjects] Rendering process options for node:', productNode);
                 additionalHtml = `
                         <label for="process-select-${productNode.id}">Select Process:</label>
@@ -308,8 +309,8 @@ export const injectForeignObjects = (
                             ${productNode.processes.map(process => `<option value="${process.id}">${process.name}</option>`).join('')}
                     </select>
                 `;
-            } else if (d.data.nodeType === 'process') {
-                const processNode = d.data as ProcessNode;
+            } else if (node.data.nodeType === 'process') {
+                const processNode = node.data as ProcessNode;
                 additionalHtml = `
                     <div>Total Duration: ${processNode.totalDuration}</div>
                     <div>Total Runs: ${processNode.totalRuns}</div>
