@@ -18,7 +18,7 @@ const useProcessNodeBuilder = () => {
     const { getProductNode } = useProductNodeBuilder({ selectedProductId: null });
     const { getProcessDetails } = useProcessDetails();
 
-    const buildProcessNode = useCallback(async (selectedProcessId: string | null): Promise<ProcessNode | null> => {
+    const buildProcessNode = useCallback(async (selectedProcessId: string | null, parentAmount: number, parentId: string): Promise<ProcessNode | null> => {
         if (!selectedProcessId) return null;
 
         try {
@@ -31,12 +31,29 @@ const useProcessNodeBuilder = () => {
             // Fetch inputs for the process
             const fetchedInputs = await getInputsByProcessId(selectedProcessId);
             // console.log('[useProcessNodeBuilder] Inputs fetched:', fetchedInputs);
+            
+            // Calculate the required runs based on parentAmount
+            console.log('[useProcessNodeBuilder] parentId: ',parentId);
+            console.log('[useProcessNodeBuilder] processDetails: ',processDetails);
+            console.log('[useProcessNodeBuilder] outputs: ',processDetails.outputs);
+            const output = processDetails.outputs.find(output => output.productId === parentId);
+            console.log('[useProcessNodeBuilder] output: ',output);
+            if (!output) {
+            throw new Error(`No matching output found for product ID: ${parentId}`);
+            }
+
+            const unitsPerSR = parseFloat(output.unitsPerSR || '1');
+            console.log('[useProcessNodeBuilder] unitsPerSR: ',output?.unitsPerSR);
+            const totalRuns = Math.ceil(parentAmount / unitsPerSR);
+            console.log('[useProcessNodeBuilder] totalRuns: ',totalRuns);
+            const totalDuration = totalRuns * parseFloat(processDetails.bAdalianHoursPerAction);
+            console.log('[useProcessNodeBuilder] totalDuration: ',totalDuration);
 
             // Build input nodes
             const inputNodes: ProductNode[] = await Promise.all(
                 fetchedInputs.map(async (input: ProcessInput) => {
                     try {
-                        const node = await getProductNode(input.product.id);
+                        const node = await getProductNode(input.product.id, totalRuns * parseFloat(input.unitsPerSR));
                         // console.log('[useProcessNodeBuilder] Product Node:', node, 'Input:', input);
                         return node;
                     } catch (error) {
@@ -49,13 +66,13 @@ const useProcessNodeBuilder = () => {
             // Create the new process node
             const newProcessNode: ProcessNode = {
                 id: generateUniqueId(),
-                name: processDetails.name, // Use detailed process name
+                name: processDetails.name,
                 nodeType: 'process',
-                totalDuration: 0,
-                totalRuns: 0,
+                totalDuration,
+                totalRuns,
                 children: inputNodes,
                 _children: [],
-                sideProducts: [] // Add side products if needed
+                sideProducts: [] 
             };
 
             // console.log('[useProcessNodeBuilder] New process node:', newProcessNode);

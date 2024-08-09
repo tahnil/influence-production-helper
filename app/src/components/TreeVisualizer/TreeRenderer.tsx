@@ -57,10 +57,13 @@ const TreeRenderer: React.FC = () => {
     const [treeData, setTreeData] = useState<D3TreeNode | null>(null);
     const [transform, setTransform] = useState<d3.ZoomTransform | null>(null);
 
+    // State to keep track of desired end product amount
+    const [desiredAmount, setDesiredAmount] = useState<number>(1);
+
     // Refs for D3 container, root node, and update function
     const d3RenderContainer = useRef<HTMLDivElement | null>(null);
     const rootRef = useRef<d3.HierarchyPointNode<D3TreeNode> | null>(null);
-    const updateRef = useRef<(source: d3.HierarchyPointNode<D3TreeNode> | null) => void>(() => {});
+    const updateRef = useRef<(source: d3.HierarchyPointNode<D3TreeNode> | null) => void>(() => { });
 
     // Fetching influence products using a custom hook
     const { influenceProducts, loading, error } = useInfluenceProducts();
@@ -76,9 +79,14 @@ const TreeRenderer: React.FC = () => {
         }
     }, [getProcesses]);
 
+    // Callback function to handle setting of desired end product amount
+    const handleAmountChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setDesiredAmount(Number(event.target.value));
+    };
+
     // Custom hook to build the product node based on selected product ID
     // console.log('[TreeRenderer] Right before useRootNodeBuilder.');
-    const { rootNode } = useRootNodeBuilder({ selectedProductId, influenceProducts, processes });
+    const { rootNode } = useRootNodeBuilder({ selectedProductId, influenceProducts, processes, desiredAmount });
     // console.log('[TreeRenderer] Right after useRootNodeBuilder, Root Node:', rootNode);
 
     // Effect to render D3 tree when productNode is ready
@@ -87,7 +95,7 @@ const TreeRenderer: React.FC = () => {
             initializeD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef, setTransform, transform ?? undefined);
             setTreeData(rootNode);
         }
-    }, [rootNode]);
+    }, [rootNode, desiredAmount]);
 
     // UseEffect hook to re-render the D3 tree whenever treeData changes
     useEffect(() => {
@@ -106,14 +114,17 @@ const TreeRenderer: React.FC = () => {
         }
     }, [productNode]);
 
-    const buildProcessNodeCallback = useCallback(async (selectedProcessId: string | null, parentNode: D3TreeNode) => {
+    const buildProcessNodeCallback = useCallback(async (selectedProcessId: string | null, parentNode: D3TreeNode, parentId: string | null): Promise<void> => {
         try {
-            const newProcessNode = await buildProcessNode(selectedProcessId);
-            // console.log('[TreeRenderer] New Process Node:', newProcessNode);
+            if (!selectedProcessId || parentNode.nodeType !== 'product') return;
+    
+            const parentProductNode = parentNode as ProductNode;
+            const newProcessNode = await buildProcessNode(selectedProcessId, parentProductNode.amount, parentProductNode.productData.id);
+    
             if (!newProcessNode) {
                 throw new Error('Failed to build process node');
             }
-
+            
             // Find the parent node in the current tree data
             const updateTreeData = (node: D3TreeNode): D3TreeNode => {
                 if (node.id === parentNode.id) {
@@ -130,16 +141,16 @@ const TreeRenderer: React.FC = () => {
                             };
                         } else {
                             // Add the new process node
-                    return {
-                            ...productNode,
-                            children: [...productNode.children, newProcessNode as ProcessNode],
-                    };
+                            return {
+                                ...productNode,
+                                children: [...productNode.children, newProcessNode as ProcessNode],
+                            };
                         }
-                }
+                    }
                 } else if (node.children) {
                     if (node.nodeType === 'product') {
                         const productNode = node as ProductNode;
-                    return {
+                        return {
                             ...productNode,
                             children: productNode.children.map(updateTreeData) as ProcessNode[],
                         };
@@ -174,6 +185,13 @@ const TreeRenderer: React.FC = () => {
                 products={influenceProducts}
                 selectedProductId={selectedProductId}
                 onSelect={handleSelectProduct}
+            />
+            <input
+                type="number"
+                value={desiredAmount}
+                onChange={handleAmountChange}
+                placeholder="Desired Amount"
+                style={{ margin: '10px' }}
             />
             {(!loading && !error) && (
                 <div className="d3-render-area" ref={d3RenderContainer} style={{ width: '100%', height: '100%' }} />

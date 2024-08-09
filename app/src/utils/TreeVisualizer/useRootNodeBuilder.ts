@@ -11,11 +11,13 @@ import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 const useRootNodeBuilder = ({ 
     selectedProductId, 
     influenceProducts, 
-    processes 
+    processes,
+    desiredAmount
 }: { 
     selectedProductId: string | null, 
     influenceProducts: InfluenceProduct[], 
-    processes: InfluenceProcess[] 
+    processes: InfluenceProcess[],
+    desiredAmount: number | 0
 }) => {
     const [rootNode, setRootNode] = useState<ProductNode | null>(null);
 
@@ -23,11 +25,11 @@ const useRootNodeBuilder = ({
         if (selectedProductId && influenceProducts) {
             const selectedProduct = influenceProducts.find((product: InfluenceProduct) => product.id === selectedProductId);
             if (selectedProduct) {
-                const newNode = buildProductNode(selectedProduct, processes);
+                const newNode = buildProductNode(selectedProduct, processes, desiredAmount);
                 setRootNode(newNode);
             }
         }
-    }, [selectedProductId, influenceProducts, processes]);
+    }, [selectedProductId, influenceProducts, processes, desiredAmount]);
 
     return { rootNode };
 };

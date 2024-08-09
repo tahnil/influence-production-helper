@@ -27,17 +27,17 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
 
     useEffect(() => {
         if (productDetails && !productLoading && !productError && processes && !processesLoading && !processesError) {
-            const newNode = buildProductNode(productDetails, processes);
+            const newNode = buildProductNode(productDetails, processes, 0);
             setProductNode(newNode);
             // console.log('[useProductNodeBuilder] newNode:', newNode);
         }
     }, [productDetails, productLoading, productError, processes, processesLoading, processesError]);
 
-    const getProductNode = useCallback(async (productId: string) => {
+    const getProductNode = useCallback(async (productId: string, requiredAmount: number) => {
         try {
             const [details, processList] = await Promise.all([getProductDetails(productId), getProcesses(productId)]);
             if (details && processList) {
-                const newNode = buildProductNode(details, processList);
+                const newNode = buildProductNode(details, processList, requiredAmount);
                 return newNode;
             }
             throw new Error('Product details or processes not available');

@@ -157,7 +157,7 @@ export const updateD3Tree = (
     const root = d3.hierarchy(rootData);
 
     const nodeWidth = 240;
-    const nodeHeight = 140;
+    const nodeHeight = 200;
 
     const treeLayout = d3.tree<D3TreeNode>().nodeSize([nodeHeight, nodeWidth]);
 
@@ -263,7 +263,7 @@ export const updateD3Tree = (
 export const injectForeignObjects = (
     container: HTMLDivElement,
     rootRef: React.MutableRefObject<d3.HierarchyPointNode<D3TreeNode> | null>,
-    buildProcessNodeCallback: (selectedProcessId: string | null, parentNode: D3TreeNode) => Promise<void>
+    buildProcessNodeCallback: (selectedProcessId: string | null, parentNode: D3TreeNode, parentId: string | null) => Promise<void>
 ) => {
     const svg = d3.select(container).select('svg g');
     const nodeSelection = svg.selectAll<SVGGElement, d3.HierarchyPointNode<D3TreeNode>>('g.node');
@@ -303,10 +303,13 @@ export const injectForeignObjects = (
                 const productNode = node.data as ProductNode;
                 // console.log('[injectForeignObjects] Rendering process options for node:', productNode);
                 additionalHtml = `
-                        <label for="process-select-${productNode.id}">Select Process:</label>
-                        <select style="width: 100%" id="process-select-${productNode.id}" name="process-select">
-                                <option value="">-- Select a Process --</option>
-                            ${productNode.processes.map(process => `<option value="${process.id}">${process.name}</option>`).join('')}
+                    <div>Amount: ${productNode.amount}</div>
+                    <div>Total Weight: ${productNode.totalWeight} kg</div>
+                    <div>Total Volume: ${productNode.totalVolume} L</div>
+                    <label for="process-select-${productNode.id}">Select Process:</label>
+                    <select style="width: 100%" id="process-select-${productNode.id}" name="process-select">
+                        <option value="">-- Select a Process --</option>
+                        ${productNode.processes.map(process => `<option value="${process.id}">${process.name}</option>`).join('')}
                     </select>
                 `;
             } else if (node.data.nodeType === 'process') {
@@ -334,7 +337,7 @@ export const injectForeignObjects = (
                 const selectedProcessId = (this as HTMLSelectElement).value;
                 try {
                     if (selectedProcessId) {
-                        await buildProcessNodeCallback(selectedProcessId, d.data);
+                        await buildProcessNodeCallback(selectedProcessId, d.data, d.data.id);
                     }
                 } catch (err) {
                     console.error('[injectForeignObjects] Failed to build process node:', err);
