@@ -164,7 +164,6 @@ export const updateD3Tree = (
     treeLayout(root);
     const rootPointNode = root as d3.HierarchyPointNode<D3TreeNode>;
 
-
     const nodes = root.descendants();
     const links = root.links();
 

@@ -114,6 +114,15 @@ const TreeRenderer: React.FC = () => {
         }
     }, [productNode]);
 
+    useEffect(() => {
+        if (rootNode) {
+            recalculateTreeValues(rootNode, desiredAmount);
+            if (d3RenderContainer.current) {
+                updateD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef, setTransform, transform ?? undefined);
+            }
+        }
+    }, [desiredAmount]);
+
     const buildProcessNodeCallback = useCallback(async (selectedProcessId: string | null, parentNode: D3TreeNode, parentId: string | null): Promise<void> => {
         try {
             if (!selectedProcessId || parentNode.nodeType !== 'product') return;
@@ -178,19 +187,23 @@ const TreeRenderer: React.FC = () => {
 
     const recalculateTreeValues = (rootNode: ProductNode, desiredAmount: number) => {
         const updateNodeValues = (node: d3.HierarchyPointNode<D3TreeNode>) => {
+            if (!node.data) {
+                return;
+            }
             if (node.data.nodeType === 'product') {
                 const productNode = node.data as ProductNode;
-                if (node.parent && node.parent.data.nodeType === 'product') {
+                if (node.parent && node.parent.data && node.parent.data.nodeType === 'product') {
                     const parentProductNode = node.parent.data as ProductNode;
-                    // Example logic for recalculation
-                    productNode.amount = (parentProductNode.amount / parentProductNode.totalWeight) * productNode.totalWeight;
+                    if (parentProductNode.totalWeight > 0) {
+                        productNode.amount = (parentProductNode.amount / parentProductNode.totalWeight) * productNode.totalWeight;
+                    }
                 }
                 // Recalculate totalWeight, totalVolume, etc.
             } else if (node.data.nodeType === 'process') {
                 const processNode = node as d3.HierarchyPointNode<D3TreeNode>;
 
                 // Ensure that the parent is a ProductNode before accessing it
-                if (processNode.parent && processNode.parent?.data.nodeType === 'product') {
+                if (processNode.parent && processNode.parent.data && processNode.parent.data.nodeType === 'product') {
                     const parentProductNode = processNode.parent.data as ProductNode;
                     const currentProcesNode = processNode.data as ProcessNode;
 
@@ -199,7 +212,7 @@ const TreeRenderer: React.FC = () => {
                     if (output) {
                         const unitsPerSR = parseFloat(output.unitsPerSR || '0');
                         currentProcesNode.totalRuns = Math.ceil(parentProductNode.amount / unitsPerSR);
-                        currentProcesNode.totalDuration = currentProcesNode.totalRuns * parseFloat(currentProcesNode.processData.bAdalianHoursPerAction || '0');    
+                        currentProcesNode.totalDuration = currentProcesNode.totalRuns * parseFloat(currentProcesNode.processData.bAdalianHoursPerAction || '0');
                     }
                 }
             }
