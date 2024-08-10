@@ -9,11 +9,11 @@ export const buildProductNode = (
     processes: InfluenceProcess[],
     desiredAmount: number | 0
 ): ProductNode => {
-    console.log('[buildProductNode] Product data: ',productData,'\nMassKgPerUnit: ',productData.massKilogramsPerUnit,'\nVolPerUnit: ',productData.volumeLitersPerUnit);
+    // console.log('[buildProductNode] Product data: ',productData,'\nMassKgPerUnit: ',productData.massKilogramsPerUnit,'\nVolPerUnit: ',productData.volumeLitersPerUnit);
     const amount = desiredAmount;
     const totalWeight = amount * parseFloat(productData.massKilogramsPerUnit || '0');
     const totalVolume = amount * parseFloat(productData.volumeLitersPerUnit || '0');
-    console.log('[buildProductNode]\nTotal weight: ',totalWeight,'\nTotal volume: ',totalVolume);
+    // console.log('[buildProductNode]\nTotal weight: ',totalWeight,'\nTotal volume: ',totalVolume);
 
     if (!productData) {
         throw new Error('[buildProductNode] productData is undefined');

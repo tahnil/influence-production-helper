@@ -33,21 +33,21 @@ const useProcessNodeBuilder = () => {
             // console.log('[useProcessNodeBuilder] Inputs fetched:', fetchedInputs);
             
             // Calculate the required runs based on parentAmount
-            console.log('[useProcessNodeBuilder] parentId: ',parentId);
-            console.log('[useProcessNodeBuilder] processDetails: ',processDetails);
-            console.log('[useProcessNodeBuilder] outputs: ',processDetails.outputs);
+            // console.log('[useProcessNodeBuilder] parentId: ',parentId);
+            // console.log('[useProcessNodeBuilder] processDetails: ',processDetails);
+            // console.log('[useProcessNodeBuilder] outputs: ',processDetails.outputs);
             const output = processDetails.outputs.find(output => output.productId === parentId);
-            console.log('[useProcessNodeBuilder] output: ',output);
+            // console.log('[useProcessNodeBuilder] output: ',output);
             if (!output) {
             throw new Error(`No matching output found for product ID: ${parentId}`);
             }
 
             const unitsPerSR = parseFloat(output.unitsPerSR || '0');
-            console.log('[useProcessNodeBuilder] unitsPerSR: ',output?.unitsPerSR);
+            // console.log('[useProcessNodeBuilder] unitsPerSR: ',output?.unitsPerSR);
             const totalRuns = Math.ceil(parentAmount / unitsPerSR);
-            console.log('[useProcessNodeBuilder] totalRuns: ',totalRuns);
+            // console.log('[useProcessNodeBuilder] totalRuns: ',totalRuns);
             const totalDuration = totalRuns * parseFloat(processDetails.bAdalianHoursPerAction);
-            console.log('[useProcessNodeBuilder] totalDuration: ',totalDuration);
+            // console.log('[useProcessNodeBuilder] totalDuration: ',totalDuration);
 
             // Build input nodes
             const inputNodes: ProductNode[] = await Promise.all(
@@ -76,7 +76,7 @@ const useProcessNodeBuilder = () => {
                 sideProducts: [] 
             };
 
-            console.log('[useProcessNodeBuilder] New process node:', newProcessNode);
+            // console.log('[useProcessNodeBuilder] New process node:', newProcessNode);
             return newProcessNode;
         } catch (err) {
             // console.error('[useProcessNodeBuilder] Error building process node:', err);

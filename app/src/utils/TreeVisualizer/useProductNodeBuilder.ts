@@ -12,7 +12,11 @@ import { buildProductNode } from '@/utils/TreeVisualizer/buildProductNode';
 import useProductDetails from '@/hooks/useInfluenceProductDetails';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 
-const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: string | null }) => {
+const useProductNodeBuilder = ({ 
+    selectedProductId 
+}: { 
+    selectedProductId: string | null 
+}) => {
     const { productDetails, loading: productLoading, error: productError, getProductDetails } = useProductDetails();
     const { processesByProductId, loading: processesLoading, error: processesError, getProcessesByProductId } = useProcessesByProductId();
 

@@ -92,6 +92,7 @@ const TreeRenderer: React.FC = () => {
     // Effect to render D3 tree when productNode is ready
     useEffect(() => {
         if (rootNode && d3RenderContainer.current) {
+            console.log('[TreeRenderer] useEffect `rootNode` triggered');
             initializeD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef, setTransform, transform ?? undefined);
             setTreeData(rootNode);
         }
@@ -109,14 +110,8 @@ const TreeRenderer: React.FC = () => {
     const productNode = buildCurrentProductNode();
 
     useEffect(() => {
-        if (productNode && d3RenderContainer.current) {
-            console.log('[TreeRenderer] something happened');
-            injectForeignObjects(d3RenderContainer.current, rootRef, buildProcessNodeCallback);
-        }
-    }, [productNode]);
-
-    useEffect(() => {
         if (rootNode) {
+            console.log('[TreeRenderer] useEffect `desiredAmount` triggered');
             recalculateTreeValues(rootNode, desiredAmount);
             if (d3RenderContainer.current) {
                 updateD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef, setTransform, transform ?? undefined);
@@ -178,7 +173,7 @@ const TreeRenderer: React.FC = () => {
             setTreeData(prevTreeData => {
                 // console.log('[TreeRenderer] Previous tree data:', prevTreeData);
                 const updatedTreeData = prevTreeData ? updateTreeData(prevTreeData) : null;
-                console.log('[TreeRenderer] Updated tree data:', updatedTreeData);
+                // console.log('[TreeRenderer] Updated tree data:', updatedTreeData);
                 return updatedTreeData;
             });
         } catch (err) {
