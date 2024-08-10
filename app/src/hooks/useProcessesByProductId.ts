@@ -12,11 +12,11 @@ const fetchProcessesByProductId = async (productId: string): Promise<InfluencePr
 };
 
 const useProcessesByProductId = () => {
-  const [processes, setProcesses] = useState<InfluenceProcess[]>([]);
+  const [processesByProductId, setProcesses] = useState<InfluenceProcess[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getProcesses = useCallback(async (productId: string) => {
+  const getProcessesByProductId = useCallback(async (productId: string) => {
     setLoading(true);
     setError(null);
     try {
@@ -36,10 +36,10 @@ const useProcessesByProductId = () => {
   }, []);
 
   return {
-    processes,
+    processesByProductId,
     loading,
     error,
-    getProcesses,
+    getProcessesByProductId,
   };
 };
 

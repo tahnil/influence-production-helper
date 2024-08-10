@@ -67,7 +67,7 @@ const TreeRenderer: React.FC = () => {
 
     // Fetching influence products using a custom hook
     const { influenceProducts, loading, error } = useInfluenceProducts();
-    const { processes, getProcesses } = useProcessesByProductId();
+    const { processesByProductId, getProcessesByProductId } = useProcessesByProductId();
     const { buildProcessNode } = useProcessNodeBuilder();
 
     // Callback function to handle product selection
@@ -75,9 +75,9 @@ const TreeRenderer: React.FC = () => {
         // console.log('[TreeRenderer] Product selected:', productId);
         setSelectedProduct(productId);
         if (productId) {
-            getProcesses(productId);
+            getProcessesByProductId(productId);
         }
-    }, [getProcesses]);
+    }, [getProcessesByProductId]);
 
     // Callback function to handle setting of desired end product amount
     const handleAmountChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,7 +86,7 @@ const TreeRenderer: React.FC = () => {
 
     // Custom hook to build the product node based on selected product ID
     // console.log('[TreeRenderer] Right before useRootNodeBuilder.');
-    const { rootNode } = useRootNodeBuilder({ selectedProductId, influenceProducts, processes, desiredAmount });
+    const { rootNode } = useRootNodeBuilder({ selectedProductId, influenceProducts, processesByProductId, desiredAmount });
     // console.log('[TreeRenderer] Right after useRootNodeBuilder, Root Node:', rootNode);
 
     // Effect to render D3 tree when productNode is ready
@@ -105,7 +105,8 @@ const TreeRenderer: React.FC = () => {
         }
     }, [treeData]);
 
-    const { productNode } = useProductNodeBuilder({ selectedProductId });
+    const { buildCurrentProductNode, productLoading, productError, processesLoading, processesError } = useProductNodeBuilder({ selectedProductId });
+    const productNode = buildCurrentProductNode();
 
     useEffect(() => {
         if (productNode && d3RenderContainer.current) {
