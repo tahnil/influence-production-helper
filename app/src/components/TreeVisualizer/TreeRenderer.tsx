@@ -95,7 +95,7 @@ const TreeRenderer: React.FC = () => {
             initializeD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef, setTransform, transform ?? undefined);
             setTreeData(rootNode);
         }
-    }, [rootNode, desiredAmount]);
+    }, [rootNode]);
 
     // UseEffect hook to re-render the D3 tree whenever treeData changes
     useEffect(() => {
@@ -117,14 +117,14 @@ const TreeRenderer: React.FC = () => {
     const buildProcessNodeCallback = useCallback(async (selectedProcessId: string | null, parentNode: D3TreeNode, parentId: string | null): Promise<void> => {
         try {
             if (!selectedProcessId || parentNode.nodeType !== 'product') return;
-    
+
             const parentProductNode = parentNode as ProductNode;
             const newProcessNode = await buildProcessNode(selectedProcessId, parentProductNode.amount, parentProductNode.productData.id);
-    
+
             if (!newProcessNode) {
                 throw new Error('Failed to build process node');
             }
-            
+
             // Find the parent node in the current tree data
             const updateTreeData = (node: D3TreeNode): D3TreeNode => {
                 if (node.id === parentNode.id) {
@@ -175,6 +175,43 @@ const TreeRenderer: React.FC = () => {
             console.error('[TreeRenderer] Failed to build process node:', err);
         }
     }, [buildProcessNode]);
+
+    const recalculateTreeValues = (rootNode: ProductNode, desiredAmount: number) => {
+        const updateNodeValues = (node: d3.HierarchyPointNode<D3TreeNode>) => {
+            if (node.data.nodeType === 'product') {
+                const productNode = node.data as ProductNode;
+                if (node.parent && node.parent.data.nodeType === 'product') {
+                    const parentProductNode = node.parent.data as ProductNode;
+                    // Example logic for recalculation
+                    productNode.amount = (parentProductNode.amount / parentProductNode.totalWeight) * productNode.totalWeight;
+                }
+                // Recalculate totalWeight, totalVolume, etc.
+            } else if (node.data.nodeType === 'process') {
+                const processNode = node as d3.HierarchyPointNode<D3TreeNode>;
+
+                // Ensure that the parent is a ProductNode before accessing it
+                if (processNode.parent && processNode.parent?.data.nodeType === 'product') {
+                    const parentProductNode = processNode.parent.data as ProductNode;
+                    const currentProcesNode = processNode.data as ProcessNode;
+
+                    const output = currentProcesNode.processData.outputs.find(output => output.productId === parentProductNode.productData.id);
+
+                    if (output) {
+                        const unitsPerSR = parseFloat(output.unitsPerSR || '0');
+                        currentProcesNode.totalRuns = Math.ceil(parentProductNode.amount / unitsPerSR);
+                        currentProcesNode.totalDuration = currentProcesNode.totalRuns * parseFloat(currentProcesNode.processData.bAdalianHoursPerAction || '0');    
+                    }
+                }
+            }
+
+            if (node.children) {
+                node.children.forEach(child => updateNodeValues(child as d3.HierarchyPointNode<D3TreeNode>));
+            }
+        };
+
+        updateNodeValues(rootNode);
+    };
+
 
     if (loading) return <div>Loading products...</div>;
     if (error) return <div>Error: {error}</div>;

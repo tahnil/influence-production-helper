@@ -33,6 +33,7 @@ export interface SideProductNode extends BaseNode {
 // Define the ProcessNode type
 export interface ProcessNode extends BaseNode {
     nodeType: 'process';
+    processData: InfluenceProcess;
     totalDuration: number; // Calculated total duration
     totalRuns: number; // Calculated total number of standard runs
     sideProducts: SideProductNode[]; // Add side products here

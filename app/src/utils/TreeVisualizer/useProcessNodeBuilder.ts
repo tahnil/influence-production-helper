@@ -42,7 +42,7 @@ const useProcessNodeBuilder = () => {
             throw new Error(`No matching output found for product ID: ${parentId}`);
             }
 
-            const unitsPerSR = parseFloat(output.unitsPerSR || '1');
+            const unitsPerSR = parseFloat(output.unitsPerSR || '0');
             console.log('[useProcessNodeBuilder] unitsPerSR: ',output?.unitsPerSR);
             const totalRuns = Math.ceil(parentAmount / unitsPerSR);
             console.log('[useProcessNodeBuilder] totalRuns: ',totalRuns);
@@ -68,6 +68,7 @@ const useProcessNodeBuilder = () => {
                 id: generateUniqueId(),
                 name: processDetails.name,
                 nodeType: 'process',
+                processData: processDetails,
                 totalDuration,
                 totalRuns,
                 children: inputNodes,
@@ -75,7 +76,7 @@ const useProcessNodeBuilder = () => {
                 sideProducts: [] 
             };
 
-            // console.log('[useProcessNodeBuilder] New process node:', newProcessNode);
+            console.log('[useProcessNodeBuilder] New process node:', newProcessNode);
             return newProcessNode;
         } catch (err) {
             // console.error('[useProcessNodeBuilder] Error building process node:', err);
