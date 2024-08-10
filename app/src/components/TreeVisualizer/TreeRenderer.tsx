@@ -107,7 +107,6 @@ const TreeRenderer: React.FC = () => {
     }, [treeData]);
 
     const { buildCurrentProductNode, productLoading, productError, processesLoading, processesError } = useProductNodeBuilder({ selectedProductId });
-    const productNode = buildCurrentProductNode();
 
     useEffect(() => {
         if (rootNode) {
