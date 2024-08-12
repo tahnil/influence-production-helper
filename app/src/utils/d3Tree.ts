@@ -68,15 +68,20 @@ export const initializeD3Tree = (
     setTransform: (transform: d3.ZoomTransform) => void,
     previousTransform?: d3.ZoomTransform
 ) => {
+    // Check if an SVG already exists in the container
+    let svg = d3.select(container).select<SVGSVGElement>('svg');
+    if (svg.empty()) {
+        // If no SVG exists, create a new one
+        svg = d3.select(container)
+            .append('svg')
+            .attr('width', window.innerWidth)
+            .attr('height', window.innerHeight);
+    } else {
+        // If an SVG exists, clear its contents
+        svg.selectAll('*').remove();
+    }
+
     const margin = { top: 20, right: 90, bottom: 30, left: 90 };
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
-    const svg = d3.select(container)
-        .append('svg')
-        .attr('width', viewportWidth)
-        .attr('height', viewportHeight);
-
     const g = svg.append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
 
@@ -87,19 +92,22 @@ export const initializeD3Tree = (
     const nodeHeight = 140;
 
     // Set the node size for the tree layout
-    const treeLayout = d3.tree<D3TreeNode>()
-        .nodeSize([nodeHeight, nodeWidth]);
-
+    const treeLayout = d3.tree<D3TreeNode>().nodeSize([nodeHeight, nodeWidth]);
     treeLayout(root);
-    const rootPointNode = root as d3.HierarchyPointNode<D3TreeNode>;
 
+    const rootPointNode = root as d3.HierarchyPointNode<D3TreeNode>;
     const nodes = root.descendants();
     const links = root.links();
 
     // Add links first to ensure they are rendered behind the nodes
     const linkGroup = g.append('g').attr('class', 'links');
-    linkGroup.selectAll('path.link')
-        .data(links, d => (d as d3.HierarchyPointLink<D3TreeNode>).target.id as string)
+    linkGroup.selectAll<SVGPathElement, d3.HierarchyPointLink<D3TreeNode>>('path.link')
+        .data(links, d => {
+            // Create a unique ID for each link based on source and target node IDs
+            const linkId = `${d.source.data.id}-${d.target.data.id}`;
+            console.log('[d3Tree] initializing with link id: ', linkId);
+            return linkId;
+        })
         .enter()
         .append('path')
         .attr('class', 'link')
@@ -110,15 +118,17 @@ export const initializeD3Tree = (
 
     // Add nodes
     const nodeGroup = g.append('g').attr('class', 'nodes');
-    const node = nodeGroup.selectAll('g.node')
-        .data(nodes, d => (d as d3.HierarchyPointNode<D3TreeNode>).id as string)
+    const node = nodeGroup.selectAll<SVGGElement, d3.HierarchyNode<D3TreeNode>>('g.node')
+        .data(nodes, d => {
+            console.log('[d3Tree] initializing with node id: ',d.data.id);
+            return d.data.id as string;
+        })
         .enter()
         .append('g')
         .attr('class', 'node')
         .attr('transform', d => `translate(${d.y},${d.x})`);
 
-    node.append('circle')
-        .attr('r', 10);
+    node.append('circle').attr('r', 10);
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
         .scaleExtent([0.1, 10])
@@ -130,8 +140,8 @@ export const initializeD3Tree = (
     svg.call(zoom);
 
     // Calculate the initial translation to center the root node
-    const initialTranslateX = viewportWidth / 2 - (root.y ?? 0);
-    const initialTranslateY = viewportHeight / 2 - (root.x ?? 0);
+    const initialTranslateX = window.innerWidth / 2 - (root.y ?? 0);
+    const initialTranslateY = window.innerHeight / 2 - (root.x ?? 0);
     const initialTransform = d3.zoomIdentity.translate(initialTranslateX, initialTranslateY);
 
     svg.call(zoom.transform, initialTransform);
@@ -171,7 +181,12 @@ export const updateD3Tree = (
     // --- Update Links ---
     const linkGroup = g.select('g.links');
     const linkSelection = linkGroup.selectAll<SVGPathElement, d3.HierarchyPointLink<D3TreeNode>>('path.link')
-        .data(links, d => d.target.id as string);
+        .data(links, d => {
+            // Create a unique ID for each link based on source and target node IDs
+            const linkId = `${d.source.data.id}-${d.target.data.id}`;
+            console.log('[d3Tree] used link id: ', linkId);
+            return linkId;
+        });
 
     // Enter new links
     const linkEnter = linkSelection.enter()
@@ -194,7 +209,10 @@ export const updateD3Tree = (
     // --- Update Nodes ---
     const nodeGroup = g.select('g.nodes');
     const nodeSelection = nodeGroup.selectAll<SVGGElement, d3.HierarchyNode<D3TreeNode>>('g.node')
-        .data(nodes, d => d.id as string);
+        .data(nodes, d => {
+            console.log('[d3Tree] used node id: ',d.data.id);
+            return d.data.id as string;
+        });
 
     // Enter new nodes
     const nodeEnter = nodeSelection.enter()

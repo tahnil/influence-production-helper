@@ -15,7 +15,6 @@
 // — Utilizes custom hooks to fetch data and build the tree nodes.
 // 2. Custom Hooks
 // — useInfluenceProducts: Fetches the list of products.
-// — useRootNodeBuilder: Builds the root node of the tree based on the selected product.
 // — useProductNodeBuilder: Builds product nodes including their details and associated processes.
 // — useProcessNodeBuilder: Builds process nodes including the required input products.
 // 3. D3 Utilities
@@ -44,16 +43,16 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ProductSelector from './ProductSelector';
 import useInfluenceProducts from '@/hooks/useInfluenceProducts';
-import useRootNodeBuilder from '@/utils/TreeVisualizer/useRootNodeBuilder';
-import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
 import { initializeD3Tree, updateD3Tree, injectForeignObjects } from '@/utils/d3Tree';
 import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
+import { buildProductNode } from '@/utils/TreeVisualizer/buildProductNode';
 
 const TreeRenderer: React.FC = () => {
     // State to keep track of the selected product ID and tree data
     const [selectedProductId, setSelectedProduct] = useState<string | null>(null);
+    const [rootNode, setRootNode] = useState<D3TreeNode | null>(null);
     const [treeData, setTreeData] = useState<D3TreeNode | null>(null);
     const [transform, setTransform] = useState<d3.ZoomTransform | null>(null);
 
@@ -71,30 +70,55 @@ const TreeRenderer: React.FC = () => {
     const { buildProcessNode } = useProcessNodeBuilder();
 
     // Callback function to handle product selection
-    const handleSelectProduct = useCallback((productId: string | null) => {
-        // console.log('[TreeRenderer] Product selected:', productId);
+    const handleSelectProduct = useCallback(async (productId: string | null) => {
         setSelectedProduct(productId);
         if (productId) {
-            getProcessesByProductId(productId);
-        }
-    }, [getProcessesByProductId]);
+            // Fetch processes for the selected product
+            const processes = await getProcessesByProductId(productId);
 
-    // Callback function to handle setting of desired end product amount
+            // Find the selected product
+            const selectedProduct = influenceProducts.find(product => product.id === productId);
+
+            if (selectedProduct) {
+                // Build the root node directly when the product is selected
+                const newRootNode = buildProductNode(selectedProduct, processes, desiredAmount);
+                setRootNode(newRootNode);
+
+                // Initialize the D3 tree with the new root node
+                if (d3RenderContainer.current) {
+                    initializeD3Tree(d3RenderContainer.current, newRootNode, rootRef, updateRef, setTransform, transform ?? undefined);
+                }
+
+                // Set the tree data for further updates
+                setTreeData(newRootNode);
+            }
+        }
+    }, [influenceProducts, desiredAmount, getProcessesByProductId, transform]);
+
+    // Handle changes in the desired amount
     const handleAmountChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setDesiredAmount(Number(event.target.value));
+        const newDesiredAmount = Number(event.target.value);
+        setDesiredAmount(newDesiredAmount);
+
+        if (rootNode) {
+            const updatedRootNode = JSON.parse(JSON.stringify(rootNode)) as ProductNode; // Deep clone to ensure immutability
+            recalculateTreeValues(updatedRootNode, newDesiredAmount);
+
+            // Update the root node in state to trigger re-rendering
+            setRootNode(updatedRootNode);
+        }
     };
 
-    // Custom hook to build the product node based on selected product ID
-    // console.log('[TreeRenderer] Right before useRootNodeBuilder.');
-    const { rootNode } = useRootNodeBuilder({ selectedProductId, influenceProducts, processesByProductId, desiredAmount });
-    // console.log('[TreeRenderer] Right after useRootNodeBuilder, Root Node:', rootNode);
-
-    // Effect to render D3 tree when productNode is ready
+    // Update treeData when the rootNode is updated
     useEffect(() => {
-        if (rootNode && d3RenderContainer.current) {
-            console.log('[TreeRenderer] useEffect `rootNode` triggered');
-            initializeD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef, setTransform, transform ?? undefined);
+        if (rootNode) {
+            // Set the updated root node as tree data to trigger re-rendering in the D3 tree
             setTreeData(rootNode);
+
+            // Also trigger an update in the D3 tree
+            if (d3RenderContainer.current) {
+                updateD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef, setTransform, transform ?? undefined);
+            }
         }
     }, [rootNode]);
 
@@ -105,18 +129,6 @@ const TreeRenderer: React.FC = () => {
             injectForeignObjects(d3RenderContainer.current, rootRef, buildProcessNodeCallback);
         }
     }, [treeData]);
-
-    const { buildCurrentProductNode, productLoading, productError, processesLoading, processesError } = useProductNodeBuilder({ selectedProductId });
-
-    useEffect(() => {
-        if (rootNode) {
-            console.log('[TreeRenderer] useEffect `desiredAmount` triggered');
-            recalculateTreeValues(rootNode, desiredAmount);
-            if (d3RenderContainer.current) {
-                updateD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef, setTransform, transform ?? undefined);
-            }
-        }
-    }, [desiredAmount]);
 
     const buildProcessNodeCallback = useCallback(async (selectedProcessId: string | null, parentNode: D3TreeNode, parentId: string | null): Promise<void> => {
         try {
@@ -129,7 +141,7 @@ const TreeRenderer: React.FC = () => {
                 throw new Error('Failed to build process node');
             }
 
-            // Find the parent node in the current tree data
+            // Update the tree with the new process node
             const updateTreeData = (node: D3TreeNode): D3TreeNode => {
                 if (node.id === parentNode.id) {
                     if (node.nodeType === 'product') {
@@ -181,45 +193,38 @@ const TreeRenderer: React.FC = () => {
     }, [buildProcessNode]);
 
     const recalculateTreeValues = (rootNode: ProductNode, desiredAmount: number) => {
-        const updateNodeValues = (node: d3.HierarchyPointNode<D3TreeNode>) => {
-            if (!node.data) {
-                return;
-            }
-            if (node.data.nodeType === 'product') {
-                const productNode = node.data as ProductNode;
-                if (node.parent && node.parent.data && node.parent.data.nodeType === 'product') {
-                    const parentProductNode = node.parent.data as ProductNode;
-                    if (parentProductNode.totalWeight > 0) {
-                        productNode.amount = (parentProductNode.amount / parentProductNode.totalWeight) * productNode.totalWeight;
+        const updateNodeValues = (node: ProductNode | ProcessNode, parentNode?: ProductNode) => {
+            if (node.nodeType === 'product') {
+                const productNode = node as ProductNode;
+                if (!parentNode) {
+                    productNode.amount = desiredAmount;
+                } else {
+                    if (parentNode.totalWeight > 0) {
+                        productNode.amount = (parentNode.amount / parentNode.totalWeight) * productNode.totalWeight;
                     }
                 }
                 // Recalculate totalWeight, totalVolume, etc.
-            } else if (node.data.nodeType === 'process') {
-                const processNode = node as d3.HierarchyPointNode<D3TreeNode>;
-
-                // Ensure that the parent is a ProductNode before accessing it
-                if (processNode.parent && processNode.parent.data && processNode.parent.data.nodeType === 'product') {
-                    const parentProductNode = processNode.parent.data as ProductNode;
-                    const currentProcesNode = processNode.data as ProcessNode;
-
-                    const output = currentProcesNode.processData.outputs.find(output => output.productId === parentProductNode.productData.id);
-
+                productNode.totalWeight = productNode.amount * parseFloat(productNode.productData.massKilogramsPerUnit || '0');
+                productNode.totalVolume = productNode.amount * parseFloat(productNode.productData.volumeLitersPerUnit || '0');
+            } else if (node.nodeType === 'process') {
+                const processNode = node as ProcessNode;
+                if (parentNode) {
+                    const output = processNode.processData.outputs.find(output => output.productId === parentNode.productData.id);
                     if (output) {
                         const unitsPerSR = parseFloat(output.unitsPerSR || '0');
-                        currentProcesNode.totalRuns = Math.ceil(parentProductNode.amount / unitsPerSR);
-                        currentProcesNode.totalDuration = currentProcesNode.totalRuns * parseFloat(currentProcesNode.processData.bAdalianHoursPerAction || '0');
+                        processNode.totalRuns = Math.ceil(parentNode.amount / unitsPerSR);
+                        processNode.totalDuration = processNode.totalRuns * parseFloat(processNode.processData.bAdalianHoursPerAction || '0');
                     }
                 }
             }
 
             if (node.children) {
-                node.children.forEach(child => updateNodeValues(child as d3.HierarchyPointNode<D3TreeNode>));
+                node.children.forEach(child => updateNodeValues(child, node.nodeType === 'product' ? node as ProductNode : parentNode));
             }
         };
 
         updateNodeValues(rootNode);
     };
-
 
     if (loading) return <div>Loading products...</div>;
     if (error) return <div>Error: {error}</div>;
