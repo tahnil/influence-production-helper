@@ -10,9 +10,10 @@ interface ProductSelectorProps {
     products: InfluenceProduct[];
     selectedProductId: string | null;
     onSelect: (productId: string | null) => void;
+    className?: string;
 }
 
-const ProductSelector: React.FC<ProductSelectorProps> = ({ products, selectedProductId, onSelect }) => {
+const ProductSelector: React.FC<ProductSelectorProps> = ({ products, selectedProductId, onSelect, className }) => {
     // console.log('[ProductSelector] products:', products);
     // console.log('[ProductSelector] selectedProductId:', selectedProductId);
 
@@ -22,7 +23,11 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({ products, selectedPro
     };
 
   return (
-        <select value={selectedProductId || ''} onChange={handleChange}>
+        <select
+          value={selectedProductId || ''}
+          onChange={handleChange}
+          className={className}
+        >
         <option value="">Select a product</option>
             {products.map(product => (
           <option key={product.id} value={product.id}>

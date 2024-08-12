@@ -255,21 +255,33 @@ const TreeRenderer: React.FC = () => {
     if (error) return <div>Error: {error}</div>;
 
     return (
-        <div className="tree-renderer" style={{ width: '100vw', height: '100vh', overflow: 'auto' }}>
+    <div className="flex flex-col md:flex-row h-screen p-4 bg-gray-100">
+        {/* Product Selector and Amount Input */}
+        <div className="mb-4 md:mb-0 md:w-1/4 flex flex-col space-y-4">
             <ProductSelector
                 products={influenceProducts}
                 selectedProductId={selectedProductId}
                 onSelect={handleSelectProduct}
+                className="p-2 border rounded bg-white"
             />
             <input
                 type="number"
                 value={desiredAmount}
                 onChange={handleAmountChange}
                 placeholder="Desired Amount"
-                style={{ margin: '10px' }}
+                className="p-2 border rounded bg-white"
             />
-            <div className="content-area" style={{ display: 'flex', flexDirection: 'row' }}>
-                <div className="d3-render-area" ref={d3RenderContainer} style={{ width: '70%', height: '100%' }} />
+        </div>
+
+        {/* D3 Diagram Area */}
+        <div className="md:w-2/4 flex-grow bg-white shadow rounded overflow-hidden">
+            {(!loading && !error) && (
+                <div ref={d3RenderContainer} className="w-full h-full" />
+            )}
+        </div>
+
+        {/* Production Inputs */}
+        <div className="md:w-1/4 mt-4 md:mt-0 md:ml-4 p-4 bg-white shadow rounded overflow-y-auto">
                 <ProductionInputs treeData={treeData} />
             </div>
         </div>
