@@ -201,13 +201,19 @@ const TreeRenderer: React.FC = () => {
                 if (!parentNode) {
                     // This is the root node, set its amount based on the desired amount
                     productNode.amount = desiredAmount;
+                    console.log('Setting desired amount in root node to ',desiredAmount);
                 } else if (parentNode.nodeType === 'process') {
                     // Parent node is a process node; calculate the product amount based on the process
                     const processNode = parentNode as ProcessNode;
-                    const output = processNode.processData.outputs.find(output => output.productId === productNode.productData.id);
-                    if (output) {
-                        const unitsPerSR = parseFloat(output.unitsPerSR || '0');
+                    console.log('This is the parent process node: ',processNode);
+                    console.log('And this is the productId we`re looking for: ',productNode.productData.id);
+                    const input = processNode.processData.inputs.find(input => input.productId === productNode.productData.id);
+                    console.log('This is the currently processed input of parent process node: ',input);
+                    if (input) {
+                        const unitsPerSR = parseFloat(input.unitsPerSR || '0');
+                        console.log('This is the parent process node`s unitsPerSR: ',unitsPerSR);
                         productNode.amount = processNode.totalRuns * unitsPerSR;
+                        console.log('Setting product node`s amount to: ',productNode.amount);
                     }
                 }
     
