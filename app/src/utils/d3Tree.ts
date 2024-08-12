@@ -192,16 +192,22 @@ export const updateD3Tree = (
     const linkEnter = linkSelection.enter()
         .append('path')
         .attr('class', 'link')
-        .attr('d', d => bezierCurveGenerator(d as d3.HierarchyPointLink<D3TreeNode>))
+        // Initially draw the new links as a line between the source and target positions
+        .attr('d', d => {
+            const initialPosition = d.source ? { x: d.source.x, y: d.source.y } : { x: root.x, y: root.y };
+            const targetPosition = d.target ? { x: d.target.x, y: d.target.y } : { x: root.x, y: root.y };
+            const initialLink = { source: initialPosition, target: initialPosition };
+            return bezierCurveGenerator(initialLink as d3.HierarchyPointLink<D3TreeNode>);
+        })
         .style('stroke', 'black')
         .style('stroke-width', '1px')
         .style('fill', 'none');
 
-    // Update existing links
-    linkEnter.merge(linkSelection)
+    // Apply the transition to the entering links
+    linkEnter.merge(linkSelection) // Merge the enter selection with the update selection
         .transition()
-        .duration(500)
-        .attr('d', d => bezierCurveGenerator(d as d3.HierarchyPointLink<D3TreeNode>));
+        .duration(500) // Duration of the transition
+        .attr('d', d => bezierCurveGenerator(d as d3.HierarchyPointLink<D3TreeNode>)); // Transition to the final link shape
 
     // Exit old links
     linkSelection.exit().remove();
@@ -218,21 +224,27 @@ export const updateD3Tree = (
     const nodeEnter = nodeSelection.enter()
         .append('g')
         .attr('class', 'node')
-        .attr('transform', d => `translate(${d.y},${d.x})`);
+        // Initially place the new nodes at their parent's position (or root position if no parent)
+        .attr('transform', d => {
+            const initialPosition = d.parent ? { x: d.parent.x, y: d.parent.y } : { x: root.x, y: root.y };
+            return `translate(${initialPosition.y},${initialPosition.x})`;
+        });
 
+    // Append circle to the entering nodes
     nodeEnter.append('circle')
         .attr('r', 10);
 
+    // Append text to the entering nodes
     nodeEnter.append('text')
         .attr('dy', '.35em')
         .attr('x', d => d.children ? -10 : 10)
         .style('text-anchor', d => d.children ? 'end' : 'start');
 
-    // Update existing nodes
-    nodeEnter.merge(nodeSelection)
+    // Apply the transition to the newly added nodes
+    nodeEnter.merge(nodeSelection)  // Merge the enter selection with the update selection
         .transition()
-        .duration(500)
-        .attr('transform', d => `translate(${d.y},${d.x})`);
+        .duration(500) // Duration of the transition
+        .attr('transform', d => `translate(${d.y},${d.x})`); // Transition to the final position
 
     // Exit old nodes
     nodeSelection.exit().remove();
