@@ -42,6 +42,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ProductSelector from './ProductSelector';
+import ProductionInputs from './ProductionInputs';
 import useInfluenceProducts from '@/hooks/useInfluenceProducts';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
 import { initializeD3Tree, updateD3Tree, injectForeignObjects } from '@/utils/d3Tree';
@@ -267,9 +268,10 @@ const TreeRenderer: React.FC = () => {
                 placeholder="Desired Amount"
                 style={{ margin: '10px' }}
             />
-            {(!loading && !error) && (
-                <div className="d3-render-area" ref={d3RenderContainer} style={{ width: '100%', height: '100%' }} />
-            )}
+            <div className="content-area" style={{ display: 'flex', flexDirection: 'row' }}>
+                <div className="d3-render-area" ref={d3RenderContainer} style={{ width: '70%', height: '100%' }} />
+                <ProductionInputs treeData={treeData} />
+            </div>
         </div>
     );
 };
