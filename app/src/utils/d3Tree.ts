@@ -105,7 +105,7 @@ export const initializeD3Tree = (
         .data(links, d => {
             // Create a unique ID for each link based on source and target node IDs
             const linkId = `${d.source.data.id}-${d.target.data.id}`;
-            console.log('[d3Tree] initializing with link id: ', linkId);
+            // console.log('[d3Tree] initializing with link id: ', linkId);
             return linkId;
         })
         .enter()
@@ -120,7 +120,7 @@ export const initializeD3Tree = (
     const nodeGroup = g.append('g').attr('class', 'nodes');
     const node = nodeGroup.selectAll<SVGGElement, d3.HierarchyNode<D3TreeNode>>('g.node')
         .data(nodes, d => {
-            console.log('[d3Tree] initializing with node id: ',d.data.id);
+            // console.log('[d3Tree] initializing with node id: ',d.data.id);
             return d.data.id as string;
         })
         .enter()
@@ -184,7 +184,7 @@ export const updateD3Tree = (
         .data(links, d => {
             // Create a unique ID for each link based on source and target node IDs
             const linkId = `${d.source.data.id}-${d.target.data.id}`;
-            console.log('[d3Tree] used link id: ', linkId);
+            // console.log('[d3Tree] used link id: ', linkId);
             return linkId;
         });
 
@@ -210,7 +210,7 @@ export const updateD3Tree = (
     const nodeGroup = g.select('g.nodes');
     const nodeSelection = nodeGroup.selectAll<SVGGElement, d3.HierarchyNode<D3TreeNode>>('g.node')
         .data(nodes, d => {
-            console.log('[d3Tree] used node id: ',d.data.id);
+            // console.log('[d3Tree] used node id: ',d.data.id);
             return d.data.id as string;
         });
 

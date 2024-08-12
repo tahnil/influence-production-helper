@@ -100,12 +100,12 @@ const TreeRenderer: React.FC = () => {
         const newDesiredAmount = Number(event.target.value);
         setDesiredAmount(newDesiredAmount);
 
-        if (rootNode) {
-            const updatedRootNode = JSON.parse(JSON.stringify(rootNode)) as ProductNode; // Deep clone to ensure immutability
-            recalculateTreeValues(updatedRootNode, newDesiredAmount);
+        if (treeData && rootNode) {
+            const updatedTreeData = JSON.parse(JSON.stringify(treeData)); // Deep clone to ensure immutability
+            recalculateTreeValues(updatedTreeData as ProductNode, newDesiredAmount);
 
-            // Update the root node in state to trigger re-rendering
-            setRootNode(updatedRootNode);
+            // Update the tree data in state
+            setTreeData(updatedTreeData);
         }
     };
 
@@ -193,39 +193,57 @@ const TreeRenderer: React.FC = () => {
     }, [buildProcessNode]);
 
     const recalculateTreeValues = (rootNode: ProductNode, desiredAmount: number) => {
-        const updateNodeValues = (node: ProductNode | ProcessNode, parentNode?: ProductNode) => {
+        const updateNodeValues = (node: ProductNode | ProcessNode, parentNode?: ProductNode | ProcessNode) => {
+            console.log("Processing node:", node.name, "with parent:", parentNode ? parentNode.name : "None");
             if (node.nodeType === 'product') {
                 const productNode = node as ProductNode;
+    
                 if (!parentNode) {
+                    // This is the root node, set its amount based on the desired amount
                     productNode.amount = desiredAmount;
-                } else {
-                    if (parentNode.totalWeight > 0) {
-                        productNode.amount = (parentNode.amount / parentNode.totalWeight) * productNode.totalWeight;
-                    }
-                }
-                // Recalculate totalWeight, totalVolume, etc.
-                productNode.totalWeight = productNode.amount * parseFloat(productNode.productData.massKilogramsPerUnit || '0');
-                productNode.totalVolume = productNode.amount * parseFloat(productNode.productData.volumeLitersPerUnit || '0');
-            } else if (node.nodeType === 'process') {
-                const processNode = node as ProcessNode;
-                if (parentNode) {
-                    const output = processNode.processData.outputs.find(output => output.productId === parentNode.productData.id);
+                } else if (parentNode.nodeType === 'process') {
+                    // Parent node is a process node; calculate the product amount based on the process
+                    const processNode = parentNode as ProcessNode;
+                    const output = processNode.processData.outputs.find(output => output.productId === productNode.productData.id);
                     if (output) {
                         const unitsPerSR = parseFloat(output.unitsPerSR || '0');
-                        processNode.totalRuns = Math.ceil(parentNode.amount / unitsPerSR);
+                        productNode.amount = processNode.totalRuns * unitsPerSR;
+                    }
+                }
+    
+                // Recalculate totalWeight and totalVolume
+                productNode.totalWeight = productNode.amount * parseFloat(productNode.productData.massKilogramsPerUnit || '0');
+                productNode.totalVolume = productNode.amount * parseFloat(productNode.productData.volumeLitersPerUnit || '0');
+    
+                // Continue with child nodes, passing the current product node as the parent
+                if (productNode.children) {
+                    productNode.children.forEach(child => updateNodeValues(child, productNode));
+                }
+            } else if (node.nodeType === 'process') {
+                const processNode = node as ProcessNode;
+    
+                if (parentNode && parentNode.nodeType === 'product') {
+                    // Parent node is a product node; calculate the total runs and duration for the process node
+                    const parentProductNode = parentNode as ProductNode;
+                    const output = processNode.processData.outputs.find(output => output.productId === parentProductNode.productData.id);
+                    if (output) {
+                        const unitsPerSR = parseFloat(output.unitsPerSR || '0');
+                        processNode.totalRuns = Math.ceil(parentProductNode.amount / unitsPerSR);
                         processNode.totalDuration = processNode.totalRuns * parseFloat(processNode.processData.bAdalianHoursPerAction || '0');
+                    }
+    
+                    // Now, correctly process the children of the process node, which are ProductNodes
+                    if (processNode.children) {
+                        processNode.children.forEach(child => updateNodeValues(child, processNode));
                     }
                 }
             }
-
-            if (node.children) {
-                node.children.forEach(child => updateNodeValues(child, node.nodeType === 'product' ? node as ProductNode : parentNode));
-            }
         };
-
+    
+        // Start the update from the root node
         updateNodeValues(rootNode);
     };
-
+    
     if (loading) return <div>Loading products...</div>;
     if (error) return <div>Error: {error}</div>;
 
