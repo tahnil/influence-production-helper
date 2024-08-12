@@ -278,7 +278,10 @@ const TreeRenderer: React.FC = () => {
             <div className="h-full w-full bg-gray-100">
                 {/* D3 Diagram Area */}
                 {(!loading && !error) && (
-                    <div ref={d3RenderContainer} className="w-full h-full" />
+                    <div 
+                        ref={d3RenderContainer} 
+                        className="flex justify-center items-center w-full h-full" 
+                    />
                 )}
             </div>
 

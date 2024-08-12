@@ -78,8 +78,7 @@ export const initializeD3Tree = (
         // If no SVG exists, create a new one
         svg = d3.select(container)
             .append('svg')
-            .attr('width', window.innerWidth)
-            .attr('height', window.innerHeight);
+            .attr('class', 'w-full h-full');
     } else {
         // If an SVG exists, clear its contents
         svg.selectAll('*').remove();
@@ -102,6 +101,29 @@ export const initializeD3Tree = (
     const rootPointNode = root as d3.HierarchyPointNode<D3TreeNode>;
     const nodes = root.descendants();
     const links = root.links();
+
+    // Calculate the initial translation to center the root node
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+    const initialTranslateX = containerWidth / 2;
+    const initialTranslateY = containerHeight / 2;
+    const initialTransform = d3.zoomIdentity.translate(initialTranslateX, initialTranslateY);
+
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+        .scaleExtent([0.1, 10])
+        .on('zoom', (event) => {
+            g.attr('transform', event.transform);
+            setTransform(event.transform);
+        });
+
+    svg.call(zoom);
+
+    svg.call(zoom.transform, initialTransform);
+    setTransform(initialTransform);
+
+    if (previousTransform) {
+        svg.call(zoom.transform, previousTransform);
+    }
 
     // Add links first to ensure they are rendered behind the nodes
     const linkGroup = g.append('g').attr('class', 'links');
@@ -133,27 +155,6 @@ export const initializeD3Tree = (
         .attr('transform', d => `translate(${d.y},${d.x})`);
 
     node.append('circle').attr('r', 10);
-
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-        .scaleExtent([0.1, 10])
-        .on('zoom', (event) => {
-            g.attr('transform', event.transform);
-            setTransform(event.transform);
-        });
-
-    svg.call(zoom);
-
-    // Calculate the initial translation to center the root node
-    const initialTranslateX = window.innerWidth / 2 - (root.y ?? 0);
-    const initialTranslateY = window.innerHeight / 2 - (root.x ?? 0);
-    const initialTransform = d3.zoomIdentity.translate(initialTranslateX, initialTranslateY);
-
-    svg.call(zoom.transform, initialTransform);
-    setTransform(initialTransform);
-
-    if (previousTransform) {
-        svg.call(zoom.transform, previousTransform);
-    }
 
     rootRef.current = rootPointNode;
 };
