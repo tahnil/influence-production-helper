@@ -198,37 +198,37 @@ const TreeRenderer: React.FC = () => {
             console.log("Processing node:", node.name, "with parent:", parentNode ? parentNode.name : "None");
             if (node.nodeType === 'product') {
                 const productNode = node as ProductNode;
-    
+
                 if (!parentNode) {
                     // This is the root node, set its amount based on the desired amount
                     productNode.amount = desiredAmount;
-                    console.log('Setting desired amount in root node to ',desiredAmount);
+                    console.log('Setting desired amount in root node to ', desiredAmount);
                 } else if (parentNode.nodeType === 'process') {
                     // Parent node is a process node; calculate the product amount based on the process
                     const processNode = parentNode as ProcessNode;
-                    console.log('This is the parent process node: ',processNode);
-                    console.log('And this is the productId we`re looking for: ',productNode.productData.id);
+                    console.log('This is the parent process node: ', processNode);
+                    console.log('And this is the productId we`re looking for: ', productNode.productData.id);
                     const input = processNode.processData.inputs.find(input => input.productId === productNode.productData.id);
-                    console.log('This is the currently processed input of parent process node: ',input);
+                    console.log('This is the currently processed input of parent process node: ', input);
                     if (input) {
                         const unitsPerSR = parseFloat(input.unitsPerSR || '0');
-                        console.log('This is the parent process node`s unitsPerSR: ',unitsPerSR);
+                        console.log('This is the parent process node`s unitsPerSR: ', unitsPerSR);
                         productNode.amount = processNode.totalRuns * unitsPerSR;
-                        console.log('Setting product node`s amount to: ',productNode.amount);
+                        console.log('Setting product node`s amount to: ', productNode.amount);
                     }
                 }
-    
+
                 // Recalculate totalWeight and totalVolume
                 productNode.totalWeight = productNode.amount * parseFloat(productNode.productData.massKilogramsPerUnit || '0');
                 productNode.totalVolume = productNode.amount * parseFloat(productNode.productData.volumeLitersPerUnit || '0');
-    
+
                 // Continue with child nodes, passing the current product node as the parent
                 if (productNode.children) {
                     productNode.children.forEach(child => updateNodeValues(child, productNode));
                 }
             } else if (node.nodeType === 'process') {
                 const processNode = node as ProcessNode;
-    
+
                 if (parentNode && parentNode.nodeType === 'product') {
                     // Parent node is a product node; calculate the total runs and duration for the process node
                     const parentProductNode = parentNode as ProductNode;
@@ -238,7 +238,7 @@ const TreeRenderer: React.FC = () => {
                         processNode.totalRuns = Math.ceil(parentProductNode.amount / unitsPerSR);
                         processNode.totalDuration = processNode.totalRuns * parseFloat(processNode.processData.bAdalianHoursPerAction || '0');
                     }
-    
+
                     // Now, correctly process the children of the process node, which are ProductNodes
                     if (processNode.children) {
                         processNode.children.forEach(child => updateNodeValues(child, processNode));
@@ -246,44 +246,41 @@ const TreeRenderer: React.FC = () => {
                 }
             }
         };
-    
+
         // Start the update from the root node
         updateNodeValues(rootNode);
     };
-    
+
     if (loading) return <div>Loading products...</div>;
     if (error) return <div>Error: {error}</div>;
 
     return (
-    <div className="flex flex-col md:flex-row h-screen p-4 bg-gray-100">
-        {/* Product Selector and Amount Input */}
-        <div className="mb-4 md:mb-0 md:w-1/4 flex flex-col space-y-4">
-            <ProductSelector
-                products={influenceProducts}
-                selectedProductId={selectedProductId}
-                onSelect={handleSelectProduct}
-                className="p-2 border rounded bg-white"
-            />
-            <input
-                type="number"
-                value={desiredAmount}
-                onChange={handleAmountChange}
-                placeholder="Desired Amount"
-                className="p-2 border rounded bg-white"
-            />
-        </div>
-
-        {/* D3 Diagram Area */}
-        <div className="md:w-2/4 flex-grow bg-white shadow rounded overflow-hidden">
-            {(!loading && !error) && (
-                <div ref={d3RenderContainer} className="w-full h-full" />
-            )}
-        </div>
-
-        {/* Production Inputs */}
-        <div className="md:w-1/4 mt-4 md:mt-0 md:ml-4 p-4 bg-white shadow rounded overflow-y-auto">
+        <div className="w-full h-full relative">
+            <div className="absolute top-4 left-4 bg-white p-4 shadow-lg rounded-lg z-10 max-h-[90vh] overflow-y-auto">
+                <ProductSelector
+                    products={influenceProducts}
+                    selectedProductId={selectedProductId}
+                    onSelect={handleSelectProduct}
+                    className="mb-4"
+                />
+                <input
+                    type="number"
+                    value={desiredAmount}
+                    onChange={handleAmountChange}
+                    placeholder="Desired Amount"
+                    className="p-2 border rounded mb-4 w-full"
+                />
+                {/* Production Inputs */}
                 <ProductionInputs treeData={treeData} />
             </div>
+
+            {/* D3 Diagram Area */}
+            <div className="h-full w-full bg-gray-100">
+                {(!loading && !error) && (
+                    <div ref={d3RenderContainer} className="w-full h-full" />
+                )}
+            </div>
+
         </div>
     );
 };
