@@ -5,7 +5,7 @@ import TreeRenderer from '@/components/TreeVisualizer/TreeRenderer'
 
 const TreeViewPage: React.FC = () => {
     return (
-        <div className="relative w-full h-full">
+        <div className="flex flex-col h-full">
             <TreeRenderer />
         </div>
     );

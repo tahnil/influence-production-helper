@@ -57,8 +57,8 @@ const ProductionInputs: React.FC<ProductionInputsProps> = ({ treeData }) => {
     }, [treeData]);
 
     return (
-        <div className="production-inputs" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-            <h3>Required Inputs</h3>
+        <div className="production-inputs">
+            <h2 className="text-xl font-semibold mb-4">Required Inputs</h2>
             <ul>
                 {Object.entries(aggregatedInputs).map(([productId, { name, amount }]) => (
                     <li key={productId}>

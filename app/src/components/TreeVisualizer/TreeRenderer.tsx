@@ -256,26 +256,27 @@ const TreeRenderer: React.FC = () => {
 
     return (
         <div className="w-full h-full relative">
-            <div className="absolute top-4 left-4 bg-white p-4 shadow-lg rounded-lg z-10 max-h-[90vh] overflow-y-auto">
+            <div className="absolute top-4 left-4 bg-white p-4 shadow-lg rounded-lg z-10 max-h-[90vh] overflow-y-auto w-[35ch]">
+                <h2 className="text-xl font-semibold mb-4">Controls</h2>
                 <ProductSelector
                     products={influenceProducts}
                     selectedProductId={selectedProductId}
                     onSelect={handleSelectProduct}
-                    className="mb-4"
+                    className="p-2 border rounded border-gray-300 mb-4 w-full"
                 />
                 <input
                     type="number"
                     value={desiredAmount}
                     onChange={handleAmountChange}
                     placeholder="Desired Amount"
-                    className="p-2 border rounded mb-4 w-full"
+                    className="p-2 border rounded border-gray-300 mb-4 w-full"
                 />
                 {/* Production Inputs */}
                 <ProductionInputs treeData={treeData} />
             </div>
 
-            {/* D3 Diagram Area */}
             <div className="h-full w-full bg-gray-100">
+                {/* D3 Diagram Area */}
                 {(!loading && !error) && (
                     <div ref={d3RenderContainer} className="w-full h-full" />
                 )}

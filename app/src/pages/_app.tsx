@@ -5,16 +5,14 @@ import Link from 'next/link';
 
 function InfluenceProductionHelper({ Component, pageProps }: AppProps) {
   return (
-    <div className="h-screen w-screen flex flex-col">
-      <nav className="bg-gray-800 text-white p-4">
-        <div className="max-w-7xl mx-auto flex justify-around">
-          <Link href="/" className="text-lg font-semibold hover:text-gray-400">Home</Link>
-          <Link href="/treeView" className="text-lg font-semibold hover:text-gray-400">Tree View</Link>
-        </div>
+    <div className="flex flex-col h-screen">
+      <nav className="p-7 h-7 bg-gray-800 text-white flex items-center space-x-4">
+        <Link href="/" className="hover:underline">Home</Link>
+        <Link href="/treeView" className="hover:underline">Tree View</Link>
       </nav>
-      <div className="flex-grow relative">
-      <Component {...pageProps} />
-    </div>
+      <div className="flex-1">
+        <Component {...pageProps} />
+      </div>
     </div>
   );
 }
