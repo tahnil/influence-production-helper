@@ -59,6 +59,10 @@ const bezierCurveGenerator = (d: d3.HierarchyPointLink<D3TreeNode>) => {
     return path.toString();
 };
 
+const formatNumber = (num: number): string => {
+    return num % 1 === 0 ? num.toString() : num.toFixed(2).replace(/\.00$/, '');
+};
+
 // Initialize the D3 tree
 export const initializeD3Tree = (
     container: HTMLDivElement,
@@ -311,8 +315,8 @@ export const injectForeignObjects = (
                 // console.log('[injectForeignObjects] Rendering process options for node:', productNode);
                 additionalHtml = `
                     <div>Amount: ${productNode.amount}</div>
-                    <div>Total Weight: ${productNode.totalWeight} kg</div>
-                    <div>Total Volume: ${productNode.totalVolume} L</div>
+                    <div>Total Weight: ${formatNumber(productNode.totalWeight)} kg</div>
+                    <div>Total Volume: ${formatNumber(productNode.totalVolume)} L</div>
                     <label for="process-select-${productNode.id}">Select Process:</label>
                     <select style="width: 100%" id="process-select-${productNode.id}" name="process-select">
                         <option value="">-- Select a Process --</option>
