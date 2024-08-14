@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { D3TreeNode, ProductNode, ProcessNode } from '@/types/d3Types';
+import { NumericFormat } from 'react-number-format';
 
 interface ProductionInputsProps {
     treeData: D3TreeNode | null;
@@ -62,7 +63,14 @@ const ProductionInputs: React.FC<ProductionInputsProps> = ({ treeData }) => {
             <ul>
                 {Object.entries(aggregatedInputs).map(([productId, { name, amount }]) => (
                     <li key={productId}>
-                        {name}: {amount}
+                        {name}:&nbsp;
+                        <NumericFormat
+                            value={amount}
+                            displayType={'text'}
+                            thousandSeparator={true}
+                            decimalScale={2}
+                            fixedDecimalScale={false}
+                        />
                     </li>
                 ))}
             </ul>

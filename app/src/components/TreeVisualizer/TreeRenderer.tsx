@@ -256,7 +256,7 @@ const TreeRenderer: React.FC = () => {
 
     return (
         <div className="w-full h-full relative">
-            <div className="absolute top-4 left-4 bg-white p-4 shadow-lg rounded-lg z-10 max-h-[90vh] overflow-y-auto w-[35ch]">
+            <div className="absolute bottom-4 right-4 bg-white p-4 shadow-lg rounded-lg z-10 max-h-[90vh] overflow-y-auto w-[35ch]">
                 <h2 className="text-xl font-semibold mb-4">Controls</h2>
                 <ProductSelector
                     products={influenceProducts}
