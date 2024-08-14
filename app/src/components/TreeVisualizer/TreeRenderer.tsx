@@ -49,6 +49,7 @@ import { initializeD3Tree, updateD3Tree, injectForeignObjects } from '@/utils/d3
 import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 import { buildProductNode } from '@/utils/TreeVisualizer/buildProductNode';
+import AmountInput from '@/components/TreeVisualizer/AmountInput';
 
 const TreeRenderer: React.FC = () => {
     // State to keep track of the selected product ID and tree data
@@ -97,8 +98,7 @@ const TreeRenderer: React.FC = () => {
     }, [influenceProducts, desiredAmount, getProcessesByProductId, transform]);
 
     // Handle changes in the desired amount
-    const handleAmountChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const newDesiredAmount = Number(event.target.value);
+    const handleAmountChange = (newDesiredAmount: number) => {
         setDesiredAmount(newDesiredAmount);
 
         if (treeData && rootNode) {
@@ -264,11 +264,10 @@ const TreeRenderer: React.FC = () => {
                     onSelect={handleSelectProduct}
                     className="p-2 border rounded border-gray-300 mb-4 w-full"
                 />
-                <input
-                    type="number"
-                    value={desiredAmount}
+                <AmountInput
+                    desiredAmount={desiredAmount}
                     onChange={handleAmountChange}
-                    placeholder="Desired Amount"
+                    label="Desired Amount"
                     className="p-2 border rounded border-gray-300 mb-4 w-full"
                 />
                 {/* Production Inputs */}
