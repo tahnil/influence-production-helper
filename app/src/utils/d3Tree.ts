@@ -123,7 +123,7 @@ export const initializeD3Tree = (
     }
 
     // Add links first to ensure they are rendered behind the nodes
-    const linkGroup = g.append('g').attr('class', 'links');
+    const linkGroup = g.append('g').attr('class', 'links stroke-mako-400 stroke-2');
     linkGroup.selectAll<SVGPathElement, d3.HierarchyPointLink<D3TreeNode>>('path.link')
         .data(links, d => {
             // Create a unique ID for each link based on source and target node IDs
@@ -133,10 +133,8 @@ export const initializeD3Tree = (
         })
         .enter()
         .append('path')
-        .attr('class', 'link')
+        .attr('class', 'link stroke-mako-400 stroke-2')
         .attr('d', d => bezierCurveGenerator(d as d3.HierarchyPointLink<D3TreeNode>))
-        .style('stroke', 'black')
-        .style('stroke-width', '1px')
         .style('fill', 'none');
 
     // Add nodes
@@ -150,8 +148,6 @@ export const initializeD3Tree = (
         .append('g')
         .attr('class', 'node')
         .attr('transform', d => `translate(${d.y},${d.x})`);
-
-    node.append('circle').attr('r', 10);
 
     rootRef.current = rootPointNode;
 };
@@ -193,7 +189,7 @@ export const updateD3Tree = (
     // Enter new links
     const linkEnter = linkSelection.enter()
         .append('path')
-        .attr('class', 'link')
+        .attr('class', 'link stroke-mako-400 stroke-2')
         // Initially draw the new links as a line between the source and target positions
         .attr('d', d => {
             const initialPosition = d.source ? { x: d.source.x, y: d.source.y } : { x: root.x, y: root.y };
@@ -201,8 +197,6 @@ export const updateD3Tree = (
             const initialLink = { source: initialPosition, target: initialPosition };
             return bezierCurveGenerator(initialLink as d3.HierarchyPointLink<D3TreeNode>);
         })
-        .style('stroke', 'black')
-        .style('stroke-width', '1px')
         .style('fill', 'none');
 
     // Apply the transition to the entering links
@@ -231,16 +225,6 @@ export const updateD3Tree = (
             const initialPosition = d.parent ? { x: d.parent.x, y: d.parent.y } : { x: root.x, y: root.y };
             return `translate(${initialPosition.y},${initialPosition.x})`;
         });
-
-    // Append circle to the entering nodes
-    nodeEnter.append('circle')
-        .attr('r', 10);
-
-    // Append text to the entering nodes
-    nodeEnter.append('text')
-        .attr('dy', '.35em')
-        .attr('x', d => d.children ? -10 : 10)
-        .style('text-anchor', d => d.children ? 'end' : 'start');
 
     // Apply the transition to the newly added nodes
     nodeEnter.merge(nodeSelection)  // Merge the enter selection with the update selection
@@ -289,13 +273,13 @@ export const injectForeignObjects = (
         const foreignObject = nodeElement.append('foreignObject')
             .attr('width', foreignObjectWidth)
             .attr('x', -foreignObjectWidth / 10)
+            .attr('class', 'bg-mako-900')
             .style('overflow', 'visible')
             .append('xhtml:div')
             .style('display', 'flex')
             .style('flex-direction', 'column')
             .style('align-items', 'center')
             .style('justify-content', 'center')
-            .style('background-color', 'white')
             .style('border', '1px solid black')
             .style('border-radius', '5px')
             .style('padding', '5px')
