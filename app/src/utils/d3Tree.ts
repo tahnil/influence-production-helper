@@ -267,29 +267,21 @@ export const injectForeignObjects = (
         const nodeElement = d3.select(this);
         nodeElement.selectAll('foreignObject').remove();
 
-        // Ensure foreign object is placed correctly within the node
+        // Set the width of the foreign object
         const foreignObjectWidth = 220;
 
         const foreignObject = nodeElement.append('foreignObject')
             .attr('width', foreignObjectWidth)
             .attr('x', -foreignObjectWidth / 10)
-            .attr('class', 'bg-mako-900')
             .style('overflow', 'visible')
             .append('xhtml:div')
-            .style('display', 'flex')
-            .style('flex-direction', 'column')
-            .style('align-items', 'center')
-            .style('justify-content', 'center')
-            .style('border', '1px solid black')
-            .style('border-radius', '5px')
-            .style('padding', '5px')
-            .style('overflow', 'visible')
+            .attr('class', 'flex flex-col items-center justify-center bg-mako-900 border border-black rounded p-2 overflow-visible')
             .style('width', `${foreignObjectWidth}px`)
             .style('box-sizing', 'border-box');
 
         foreignObject.html(d => {
-            const node = d as d3.HierarchyPointNode<D3TreeNode>
-            const nodeName = `<div style="font-weight: bold; margin-bottom: 5px; text-align: center">${node.data.name}</div>`;
+            const node = d as d3.HierarchyPointNode<D3TreeNode>;
+            const nodeName = `<div class="font-bold mb-2 text-center">${node.data.name}</div>`;
             let additionalHtml = '';
 
             if (node.data.nodeType === 'product') {
@@ -299,8 +291,7 @@ export const injectForeignObjects = (
                     <div>Amount: ${formatNumber(productNode.amount)}</div>
                     <div>Total Weight: ${formatNumber(productNode.totalWeight)} kg</div>
                     <div>Total Volume: ${formatNumber(productNode.totalVolume)} L</div>
-                    <label for="process-select-${productNode.id}">Select Process:</label>
-                    <select style="width: 100%" id="process-select-${productNode.id}" name="process-select">
+                    <select class="mt-1 w-full bg-mako-950" id="process-select-${productNode.id}" name="process-select">
                         <option value="">-- Select a Process --</option>
                         ${productNode.processes.map(process => `<option value="${process.id}">${process.name}</option>`).join('')}
                     </select>
@@ -316,7 +307,7 @@ export const injectForeignObjects = (
             return nodeName + additionalHtml;
         });
 
-        // After appending the content, dynamically set the height of the foreignObject
+        // Dynamically set the height of the foreign object to match its content
         const htmlElement = foreignObject.node() as HTMLElement;
         const foreignObjectHeight = htmlElement.getBoundingClientRect().height;
 
@@ -324,6 +315,7 @@ export const injectForeignObjects = (
             .attr('height', foreignObjectHeight)
             .attr('y', -foreignObjectHeight / 2);
 
+        // Attach event listeners for process selection
         if (d.data.nodeType === 'product') {
             const productNode = d.data as ProductNode;
             foreignObject.select('select').on('change', async function () {
@@ -336,8 +328,6 @@ export const injectForeignObjects = (
                     console.error('[injectForeignObjects] Failed to build process node:', err);
                 }
             });
-        } else {
-            // console.log('[injectForeignObjects] Skipping non-product node:', d);
         }
     });
 };
