@@ -41,6 +41,7 @@
 import * as d3 from 'd3';
 import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
 import { MutableRefObject } from 'react';
+import { formatNumber } from '@/utils/formatNumber';
 
 // Function to clear the existing D3 tree
 export const clearD3Tree = (container: HTMLDivElement) => {
@@ -57,10 +58,6 @@ const bezierCurveGenerator = (d: d3.HierarchyPointLink<D3TreeNode>) => {
         d.target.y, d.target.x
     );
     return path.toString();
-};
-
-const formatNumber = (num: number): string => {
-    return num % 1 === 0 ? num.toString() : num.toFixed(2).replace(/\.00$/, '');
 };
 
 // Initialize the D3 tree
@@ -315,7 +312,7 @@ export const injectForeignObjects = (
                 const productNode = node.data as ProductNode;
                 // console.log('[injectForeignObjects] Rendering process options for node:', productNode);
                 additionalHtml = `
-                    <div>Amount: ${productNode.amount}</div>
+                    <div>Amount: ${formatNumber(productNode.amount)}</div>
                     <div>Total Weight: ${formatNumber(productNode.totalWeight)} kg</div>
                     <div>Total Volume: ${formatNumber(productNode.totalVolume)} L</div>
                     <label for="process-select-${productNode.id}">Select Process:</label>
