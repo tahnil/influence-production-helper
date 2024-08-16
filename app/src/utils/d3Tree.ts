@@ -165,7 +165,7 @@ export const updateD3Tree = (
     const g = svg.select('g');
 
     const root = d3.hierarchy(treeData);
-    const nodeWidth = 288;
+    const nodeWidth = 320;
     const nodeHeight = 256;
 
     // D3 tree layout
@@ -267,7 +267,7 @@ export const injectForeignObjects = (
         const nodeElement = d3.select(this);
         nodeElement.selectAll('foreignObject').remove();
 
-        const foreignObjectWidth = 256;
+        const foreignObjectWidth = 288;
 
         const foreignObject = nodeElement.append('foreignObject')
             .attr('width', foreignObjectWidth)
@@ -287,17 +287,16 @@ export const injectForeignObjects = (
                 // console.log('[injectForeignObjects] Rendering process options for node:', productNode);
                 // Product Node styling
                 // Use the Base64 image string
-                const imageSrc = productNode.imageBase64;
+                const units = formatNumber(productNode.amount, { minimumFractionDigits: 0, maximumFractionDigits: 6, scaleForUnit: true, scaleType: 'units' });
                 const weight = formatNumber(productNode.totalWeight, { scaleForUnit: true, scaleType: 'weight' });
                 const volume = formatNumber(productNode.totalVolume, { scaleForUnit: true, scaleType: 'volume' });
-                const units = formatNumber(productNode.amount, { minimumFractionDigits: 0, maximumFractionDigits: 6, scaleForUnit: true, scaleType: 'units' });
 
                 contentHtml = `
                 <div id="productNodeCard" class="flex flex-col items-center">
-                    <div class="w-64 shadow-lg rounded-lg overflow-hidden font-sans font-light">
+                    <div class="w-72 shadow-lg rounded-lg overflow-hidden font-sans font-light">
                         <div id="titleSection" class="p-2 bg-mako-900 flex justify-center items-center gap-2.5 grid grid-cols-3">
                             <div id="productIcon" class="p-2">
-                                <img src="${imageSrc}" alt="${node.data.name}">
+                        <img src="${productNode.imageBase64}" alt="${node.data.name}">
                             </div>
                             <div id="productName" class="col-span-2">
                                 <span class="text-detailText">${node.data.name}</span>
@@ -313,7 +312,7 @@ export const injectForeignObjects = (
                                 <div 
                                     class="border border-transparent border-2 border-dotted cursor-pointer" 
                                     data-value="${productNode.amount}">
-                                    ${units.formattedValue} ${units.scale}
+                            ${units.formattedValue}
                                 </div>
                                 <div>${units.unit}</div>
                             </div>
@@ -337,26 +336,27 @@ export const injectForeignObjects = (
                 `;
             } else if (node.data.nodeType === 'process') {
                 const processNode = node.data as ProcessNode;
-                const buildingIconBase64 = processNode.imageBase64;
+
                 const duration = formatNumber(processNode.totalDuration, { 
                     minimumFractionDigits: 0, 
                     maximumFractionDigits: 4, 
                     scaleForUnit: true, 
                     scaleType: 'units' 
                 });
+
                 const runs = formatNumber(processNode.totalRuns, { 
                     minimumFractionDigits: 0, 
                     maximumFractionDigits: 6, 
                     scaleForUnit: true, 
                     scaleType: 'units' 
                 });
-                console.log('buildinggIconBase64:', buildingIconBase64);
+
                 contentHtml = `
                     <div id="processNodeCard" class="flex flex-col items-center">
-                        <div class="w-64 shadow-lg rounded-lg overflow-hidden font-sans font-light">
+                        <div class="w-72 shadow-lg rounded-lg overflow-hidden font-sans font-light">
                             <div id="titleSection" class="p-2 bg-falcon-800 flex justify-center items-center gap-2.5 grid grid-cols-3">
                                 <div id="buildingIcon" class="p-2">
-                                    <img class="size-12 fill-falconWhite" src="${buildingIconBase64}" alt="${node.data.name}">
+                            <img class="size-12 fill-falconWhite" src="${processNode.imageBase64}" alt="${node.data.name}">
                                 </div>
                                 <div id="processName" class="col-span-2">
                                     <span class="text-detailText">${node.data.name}</span>
@@ -364,14 +364,15 @@ export const injectForeignObjects = (
                             </div>
                             <div id="sideProductsSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-2">
                                 <div id="totalDuration" class="flex flex-col items-center">
-                                    <div>${duration.formattedValue} ${duration.scale}</div>
+                            <div>${duration.formattedValue}</div>
                                     <div>duration</div>
                                 </div>
                                 <div id="totalRuns" class="flex flex-col items-center">
                                     <div
                                         class="border border-transparent border-2 border-dotted cursor-pointer" 
                                         data-value="${processNode.totalRuns}">
-                                    ${runs.formattedValue} ${runs.scale}</div>
+                                ${runs.formattedValue}
+                            </div>
                                     <div>runs</div>
                                 </div>
                             </div>

@@ -15,50 +15,52 @@ export const formatNumber = (
         scaleForUnit = false,
         scaleType = ''
     }: FormatOptions = {}
-): { formattedValue: string; scale?: string; unit: string } => {
+): { formattedValue: string; unit: string } => {
     const ABSURDLY_LARGE_THRESHOLD = 1e15;
+    const ROUND_UP_THRESHOLD = 100000;
 
     // Handle absurdly large numbers upfront
     if (Math.abs(value) >= ABSURDLY_LARGE_THRESHOLD) {
-        return { formattedValue: 'Oh really?', scale: '', unit: '🧐' };
+        return { formattedValue: 'Oh really?', unit: '🧐' };
     }
 
     let scaledValue = value;
-    let unit = '';
     let scale = '';
+    let unit = '';
 
     if (scaleForUnit && scaleType) {
         switch (scaleType) {
             case 'weight':
                 if (Math.abs(value) >= 1e9) {
                     scaledValue = value / 1e9;
-                    unit = 'mt';
+                    scale = 'mt';
                 } else if (Math.abs(value) >= 1e6) {
                     scaledValue = value / 1e6;
-                    unit = 'kt';
+                    scale = 'kt';
                 } else if (Math.abs(value) >= 1e3) {
                     scaledValue = value / 1e3;
-                    unit = 't';
+                    scale = 't';
                 } else {
-                    unit = 'kg';
+                    scale = 'kg';
                 }
+                unit = 'weight';
                 break;
             case 'volume':
                 if (Math.abs(value) >= 1e12) {
                     scaledValue = value / 1e12;
-                    unit = 'km³'; // Cubic kilometers
+                    scale = 'km³'; // Cubic kilometers
                 } else if (Math.abs(value) >= 1e9) {
                     scaledValue = value / 1e9;
-                    unit = 'hm³'; // Cubic hectometers
+                    scale = 'hm³'; // Cubic hectometers
                 } else if (Math.abs(value) >= 1e3) {
                     scaledValue = value / 1e3;
-                    unit = 'm³'; // Cubic meters
+                    scale = 'm³'; // Cubic meters
                 } else {
-                    unit = 'L'; // Liters
+                    scale = 'L'; // Liters
                 }
+                unit = 'volume';
                 break;
             case 'units':
-                unit = 'units';
                 if (Math.abs(value) >= 1e12) {
                     scaledValue = value / 1e12;
                     scale = 'T'; // Trillions
@@ -72,15 +74,23 @@ export const formatNumber = (
                     scaledValue = value / 1e3;
                     scale = 'k'; // Thousands
                 }
+                unit = 'units';
                 break;
         }
     }
 
-    const formattedValue = new Intl.NumberFormat('en-US', {
+    // Round up logic for large numbers
+    if (Math.abs(scaledValue) >= ROUND_UP_THRESHOLD) {
+        scaledValue = Math.ceil(scaledValue);
+        minimumFractionDigits = 0;
+        maximumFractionDigits = 0;
+    }
+
+    const formattedValue = `${new Intl.NumberFormat('en-US', {
         minimumFractionDigits,
         maximumFractionDigits: scaledValue < 1 ? maximumFractionDigits : 2,
         useGrouping: true,
-    }).format(scaledValue);
+    }).format(scaledValue)} ${scale}`;
 
-    return { formattedValue, scale, unit };
+    return { formattedValue, unit };
 };
