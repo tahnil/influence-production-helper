@@ -61,6 +61,10 @@ const TreeRenderer: React.FC = () => {
     // State to keep track of desired end product amount
     const [desiredAmount, setDesiredAmount] = useState<number>(1);
 
+    // State for loading and error management during process node building
+    const [processNodeLoading, setProcessNodeLoading] = useState(false);
+    const [processNodeError, setProcessNodeError] = useState<string | null>(null);
+
     // Refs for D3 container, root node, and update function
     const d3RenderContainer = useRef<HTMLDivElement | null>(null);
     const rootRef = useRef<d3.HierarchyPointNode<D3TreeNode> | null>(null);
@@ -135,6 +139,9 @@ const TreeRenderer: React.FC = () => {
         try {
             if (!selectedProcessId || parentNode.nodeType !== 'product') return;
 
+            setProcessNodeLoading(true);
+            setProcessNodeError(null);
+
             const parentProductNode = parentNode as ProductNode;
             const newProcessNode = await buildProcessNode(selectedProcessId, parentProductNode.amount, parentProductNode.productData.id);
 
@@ -188,8 +195,12 @@ const TreeRenderer: React.FC = () => {
                 // console.log('[TreeRenderer] Updated tree data:', updatedTreeData);
                 return updatedTreeData;
             });
+
+            setProcessNodeLoading(false);
         } catch (err) {
             console.error('[TreeRenderer] Failed to build process node:', err);
+            setProcessNodeError('Failed to build process node');
+            setProcessNodeLoading(false);
         }
     }, [buildProcessNode]);
 
@@ -274,7 +285,18 @@ const TreeRenderer: React.FC = () => {
                 <ProductionInputs treeData={treeData} />
             </div>
 
-            <div className="h-full w-full bg-lunarGreen-950">
+            <div className="h-full w-full bg-lunarGreen-950 relative">
+                {/* Loading and error states for process nodes */}
+                {/* {processNodeLoading && (
+                    <div className="absolute inset-0 flex justify-center items-center bg-black bg-opacity-50 z-20">
+                        <div className="text-white">Building process node...</div>
+                    </div>
+                )} */}
+                {processNodeError && (
+                    <div className="absolute inset-0 flex justify-center items-center bg-red-600 bg-opacity-50 z-20">
+                        <div className="text-white">{processNodeError}</div>
+                    </div>
+                )}
                 {/* D3 Diagram Area */}
                 {(!loading && !error) && (
                     <div 
