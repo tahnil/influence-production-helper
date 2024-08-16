@@ -50,6 +50,7 @@ import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 import { buildProductNode } from '@/utils/TreeVisualizer/buildProductNode';
 import AmountInput from '@/components/TreeVisualizer/AmountInput';
+import { fetchProductImageBase64 } from '@/utils/TreeVisualizer/fetchProductImageBase64';
 
 const TreeRenderer: React.FC = () => {
     // State to keep track of the selected product ID and tree data
@@ -87,7 +88,8 @@ const TreeRenderer: React.FC = () => {
 
             if (selectedProduct) {
                 // Build the root node directly when the product is selected
-                const newRootNode = buildProductNode(selectedProduct, processes, desiredAmount);
+                const base64Image = await fetchProductImageBase64(productId);
+                const newRootNode = buildProductNode(selectedProduct, processes, desiredAmount, base64Image);
                 setRootNode(newRootNode);
 
                 // Initialize the D3 tree with the new root node

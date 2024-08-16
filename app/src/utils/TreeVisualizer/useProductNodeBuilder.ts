@@ -11,6 +11,7 @@ import { ProductNode } from '@/types/d3Types';
 import { buildProductNode } from '@/utils/TreeVisualizer/buildProductNode';
 import useProductDetails from '@/hooks/useInfluenceProductDetails';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
+import { fetchProductImageBase64 } from '@/utils/TreeVisualizer/fetchProductImageBase64';
 
 const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: string | null }) => {
     const [loading, setLoading] = useState(false);
@@ -34,20 +35,6 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
             });
         }
     }, [selectedProductId, getProductDetails, getProcessesByProductId]);
-
-    const fetchProductImageBase64 = useCallback(async (productId: string) => {
-        try {
-            const response = await fetch(`/api/productImage?productId=${productId}`);
-            if (!response.ok) {
-                throw new Error('Failed to fetch product image');
-            }
-            const { base64Image } = await response.json();
-            return base64Image;
-        } catch (error) {
-            console.error('Error fetching product image:', error);
-            return '';
-        }
-    }, []);
 
     const buildCurrentProductNode = useCallback(async (): Promise<ProductNode | null> => {
         if (productDetails && !loading && !error && processesByProductId) {
