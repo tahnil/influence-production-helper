@@ -39,6 +39,7 @@ export interface ProcessNode extends BaseNode {
     totalRuns: number; // Calculated total number of standard runs
     sideProducts: SideProductNode[]; // Add side products here
     children: ProductNode[]; // Children are always ProductNodes
+    imageBase64: string;
 }
 
 // Union type for D3TreeNode

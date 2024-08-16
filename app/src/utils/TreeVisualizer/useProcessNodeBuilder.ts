@@ -12,6 +12,7 @@ import useProductNodeBuilder from './useProductNodeBuilder';
 import { generateUniqueId } from '@/utils/generateUniqueId';
 import { ProcessInput, InfluenceProcess } from '@/types/influenceTypes';
 import useProcessDetails from '@/hooks/useProcessDetails';
+import { fetchBuildingIconBase64 } from './fetchBuildingIconBase64';
 
 const useProcessNodeBuilder = () => {
     const { getInputsByProcessId } = useInputsByProcessId();
@@ -61,6 +62,9 @@ const useProcessNodeBuilder = () => {
                 })
             );
 
+            // Fetch the imageBase64 for the process
+            const imageBase64 = await fetchBuildingIconBase64(processDetails.buildingId);
+
             // Create the new process node
             const newProcessNode: ProcessNode = {
                 id: generateUniqueId(),
@@ -71,7 +75,8 @@ const useProcessNodeBuilder = () => {
                 totalRuns,
                 children: inputNodes,
                 _children: [],
-                sideProducts: [] 
+                sideProducts: [],
+                imageBase64: imageBase64,
             };
 
             // console.log('[useProcessNodeBuilder] New process node:', newProcessNode);
