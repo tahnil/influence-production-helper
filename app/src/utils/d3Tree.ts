@@ -291,7 +291,7 @@ export const injectForeignObjects = (
                 const imageSrc = productNode.imageBase64;
                 const weight = formatNumber(productNode.totalWeight, { scaleForUnit: true, scaleType: 'weight' });
                 const volume = formatNumber(productNode.totalVolume, { scaleForUnit: true, scaleType: 'volume' });
-                const units = formatNumber(productNode.amount, { minimumFractionDigits: 0, maximumFractionDigits: 4, scaleForUnit: true, scaleType: 'units' });
+                const units = formatNumber(productNode.amount, { minimumFractionDigits: 0, maximumFractionDigits: 6, scaleForUnit: true, scaleType: 'units' });
 
                 contentHtml = `
                 <div id="productNodeCard" class="flex flex-col items-center">
@@ -311,8 +311,8 @@ export const injectForeignObjects = (
                         </div>
                         <div id="outputSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-3">
                             <div id="units" class="flex flex-col items-center">
-                                <div>${units.formattedValue} ${units.unit}</div>
-                                <div>units</div>
+                                <div>${units.formattedValue} ${units.scale}</div>
+                                <div>${units.unit}</div>
                             </div>
                             <div id="weight" class="flex flex-col items-center">
                                 <div>${weight.formattedValue}</div>

@@ -15,13 +15,22 @@ export const formatNumber = (
         scaleForUnit = false,
         scaleType = ''
     }: FormatOptions = {}
-): { formattedValue: string; unit: string } => {
+): { formattedValue: string; scale?: string; unit: string } => {
+    const ABSURDLY_LARGE_THRESHOLD = 1e15;
+
+    // Handle absurdly large numbers upfront
+    if (Math.abs(value) >= ABSURDLY_LARGE_THRESHOLD) {
+        return { formattedValue: 'Oh really?', scale: '', unit: '🧐' };
+    }
+
     let scaledValue = value;
     let unit = '';
+    let scale = '';
 
-    if (scaleForUnit) {
-        if (scaleType === 'weight') {
-            if (Math.abs(value) >= 1e9) {
+    if (scaleForUnit && scaleType) {
+        switch (scaleType) {
+            case 'weight':
+                if (Math.abs(value) >= 1e9) {
                 scaledValue = value / 1e9;
                 unit = 'mt';
             } else if (Math.abs(value) >= 1e6) {
@@ -33,8 +42,9 @@ export const formatNumber = (
             } else {
                 unit = 'kg';
             }
-        } else if (scaleType === 'volume') {
-            if (Math.abs(value) >= 1e12) {
+                break;
+            case 'volume':
+                if (Math.abs(value) >= 1e12) {
                 scaledValue = value / 1e12;
                 unit = 'km³'; // Cubic kilometers
             } else if (Math.abs(value) >= 1e9) {
@@ -46,32 +56,31 @@ export const formatNumber = (
             } else {
                 unit = 'L'; // Liters
             }
-        } else if (scaleType === 'units') {
-            if (Math.abs(value) >= 1e12) {
+                break;
+            case 'units':
+            unit = 'units';
+                if (Math.abs(value) >= 1e12) {
                 scaledValue = value / 1e12;
-                unit = 'T'; // Trillions
+                    scale = 'T'; // Trillions
             } else if (Math.abs(value) >= 1e9) {
                 scaledValue = value / 1e9;
-                unit = 'B'; // Billions
+                scale = 'B'; // Billions
             } else if (Math.abs(value) >= 1e6) {
                 scaledValue = value / 1e6;
-                unit = 'M'; // Millions
+                scale = 'M'; // Millions
             } else if (Math.abs(value) >= 1e3) {
                 scaledValue = value / 1e3;
-                unit = 'k'; // Thousands
-            } else {
-                unit = ''; // No unit for small numbers
+                scale = 'k'; // Thousands
             }
-        } else if (scaleType === '') {
-            console.log('No scaleType provided');
+                break;
         }
     }
 
     const formattedValue = new Intl.NumberFormat('en-US', {
         minimumFractionDigits,
-        maximumFractionDigits,
+        maximumFractionDigits: scaledValue < 1 ? maximumFractionDigits : 2,
         useGrouping: true,
     }).format(scaledValue);
 
-    return { formattedValue, unit };
+    return { formattedValue, scale, unit };
 };
