@@ -42,6 +42,7 @@ import * as d3 from 'd3';
 import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
 import { MutableRefObject } from 'react';
 import { formatNumber } from '@/utils/formatNumber';
+import { formatDuration } from '@/utils/formatDuration';
 
 // Function to clear the existing D3 tree
 export const clearD3Tree = (container: HTMLDivElement) => {
@@ -337,18 +338,20 @@ export const injectForeignObjects = (
             } else if (node.data.nodeType === 'process') {
                 const processNode = node.data as ProcessNode;
 
-                const duration = formatNumber(processNode.totalDuration, { 
-                    minimumFractionDigits: 0, 
-                    maximumFractionDigits: 4, 
-                    scaleForUnit: true, 
-                    scaleType: 'units' 
-                });
+                // const duration = formatNumber(processNode.totalDuration, { 
+                //     minimumFractionDigits: 0, 
+                //     maximumFractionDigits: 4, 
+                //     scaleForUnit: true, 
+                //     scaleType: 'units' 
+                // });
+
+                const formattedDuration = formatDuration(processNode.totalRuns, processNode.processData.mAdalianHoursPerSR);
 
                 const runs = formatNumber(processNode.totalRuns, { 
                     minimumFractionDigits: 0, 
                     maximumFractionDigits: 6, 
                     scaleForUnit: true, 
-                    scaleType: 'units' 
+                    scaleType: 'runs' 
                 });
 
                 contentHtml = `
@@ -356,24 +359,24 @@ export const injectForeignObjects = (
                         <div class="w-72 shadow-lg rounded-lg overflow-hidden font-sans font-light">
                             <div id="titleSection" class="p-2 bg-falcon-800 flex justify-center items-center gap-2.5 grid grid-cols-3">
                                 <div id="buildingIcon" class="p-2">
-                            <img class="size-12 fill-falconWhite" src="${processNode.imageBase64}" alt="${node.data.name}">
+                                    <img class="size-12 fill-falconWhite" src="${processNode.imageBase64}" alt="${node.data.name}">
                                 </div>
                                 <div id="processName" class="col-span-2">
                                     <span class="text-detailText">${node.data.name}</span>
                                 </div>
                             </div>
-                            <div id="sideProductsSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-2">
+                            <div id="statsSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-2">
                                 <div id="totalDuration" class="flex flex-col items-center">
-                            <div>${duration.formattedValue}</div>
+                                    <div>${formattedDuration}</div>
                                     <div>duration</div>
                                 </div>
                                 <div id="totalRuns" class="flex flex-col items-center">
                                     <div
                                         class="border border-transparent border-2 border-dotted cursor-pointer" 
                                         data-value="${processNode.totalRuns}">
-                                ${runs.formattedValue}
-                            </div>
-                                    <div>runs</div>
+                                        ${runs.formattedValue}
+                                    </div>
+                                    <div>${runs.unit}</div>
                                 </div>
                             </div>
                         </div>

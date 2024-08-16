@@ -4,7 +4,7 @@ type FormatOptions = {
     minimumFractionDigits?: number;
     maximumFractionDigits?: number;
     scaleForUnit?: boolean;
-    scaleType?: 'weight' | 'volume' | 'units' | '';
+    scaleType?: 'weight' | 'volume' | 'units' | 'runs' | '';
 };
 
 export const formatNumber = (
@@ -76,6 +76,22 @@ export const formatNumber = (
                 }
                 unit = 'units';
                 break;
+            case 'runs':
+                if (Math.abs(value) >= 1e12) {
+                    scaledValue = value / 1e12;
+                    scale = 'T'; // Trillions
+                } else if (Math.abs(value) >= 1e9) {
+                    scaledValue = value / 1e9;
+                    scale = 'B'; // Billions
+                } else if (Math.abs(value) >= 1e6) {
+                    scaledValue = value / 1e6;
+                    scale = 'M'; // Millions
+                } else if (Math.abs(value) >= 1e3) {
+                    scaledValue = value / 1e3;
+                    scale = 'k'; // Thousands
+                }
+                unit = 'runs';
+                break;
         }
     }
 
@@ -91,6 +107,18 @@ export const formatNumber = (
         maximumFractionDigits: scaledValue < 1 ? maximumFractionDigits : 2,
         useGrouping: true,
     }).format(scaledValue)} ${scale}`;
+
+    // Handle singular unit names
+    if (value === 1) {
+        switch (scaleType) {
+            case 'units':
+                unit = 'unit'; // Singular, e.g., "1 unit"
+                break;
+            case 'runs':
+                unit = 'run'; // Singular, e.g., "1 unit"
+                break;
+        }
+    }
 
     return { formattedValue, unit };
 };
