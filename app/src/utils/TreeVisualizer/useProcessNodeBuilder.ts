@@ -50,7 +50,7 @@ const useProcessNodeBuilder = () => {
 
             const unitsPerSR = parseFloat(output.unitsPerSR || '0');
             // console.log('[useProcessNodeBuilder] unitsPerSR: ',output?.unitsPerSR);
-            const totalRuns = Math.ceil(parentAmount / unitsPerSR);
+            const totalRuns = parentAmount / unitsPerSR;
             // console.log('[useProcessNodeBuilder] totalRuns: ',totalRuns);
             const totalDuration = totalRuns * parseFloat(processDetails.bAdalianHoursPerAction);
             // console.log('[useProcessNodeBuilder] totalDuration: ',totalDuration);

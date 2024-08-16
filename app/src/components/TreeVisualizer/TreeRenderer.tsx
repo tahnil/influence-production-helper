@@ -248,7 +248,7 @@ const TreeRenderer: React.FC = () => {
                     const output = processNode.processData.outputs.find(output => output.productId === parentProductNode.productData.id);
                     if (output) {
                         const unitsPerSR = parseFloat(output.unitsPerSR || '0');
-                        processNode.totalRuns = Math.ceil(parentProductNode.amount / unitsPerSR);
+                        processNode.totalRuns = parentProductNode.amount / unitsPerSR;
                         processNode.totalDuration = processNode.totalRuns * parseFloat(processNode.processData.bAdalianHoursPerAction || '0');
                     }
 

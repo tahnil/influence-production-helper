@@ -345,11 +345,11 @@ export const injectForeignObjects = (
                             </div>
                             <div id="sideProductsSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-2">
                                 <div id="totalDuration" class="flex flex-col items-center">
-                                    <div>${formatNumber(processNode.totalDuration)}</div>
+                                    <div>${formatNumber(processNode.totalDuration, 0, 4)}</div>
                                     <div>duration</div>
                                 </div>
                                 <div id="totalRuns" class="flex flex-col items-center">
-                                    <div>${formatNumber(processNode.totalRuns)}</div>
+                                    <div>${formatNumber(processNode.totalRuns, 0, 6)}</div>
                                     <div>runs</div>
                                 </div>
                             </div>
