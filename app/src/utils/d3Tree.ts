@@ -313,12 +313,16 @@ export const injectForeignObjects = (
                                 <div 
                                     class="border border-transparent border-2 border-dotted cursor-pointer" 
                                     data-value="${productNode.amount}">
-                            ${units.formattedValue}
+                                    ${units.formattedValue}
                                 </div>
                                 <div>${units.unit}</div>
                             </div>
                             <div id="weight" class="flex flex-col items-center">
-                                <div>${weight.formattedValue}</div>
+                                <div 
+                                    class="border border-transparent border-2 border-dotted cursor-pointer" 
+                                    data-value="${productNode.totalWeight}">
+                                    ${weight.formattedValue}
+                                </div>
                                 <div>${weight.unit}</div>
                             </div>
                             <div id="volume" class="flex flex-col items-center">
@@ -337,13 +341,6 @@ export const injectForeignObjects = (
                 `;
             } else if (node.data.nodeType === 'process') {
                 const processNode = node.data as ProcessNode;
-
-                // const duration = formatNumber(processNode.totalDuration, { 
-                //     minimumFractionDigits: 0, 
-                //     maximumFractionDigits: 4, 
-                //     scaleForUnit: true, 
-                //     scaleType: 'units' 
-                // });
 
                 const formattedDuration = formatDuration(processNode.totalRuns, processNode.processData.mAdalianHoursPerSR);
 
@@ -403,7 +400,7 @@ export const injectForeignObjects = (
         }
 
         // Add event listeners after the HTML is injected
-        foreignObject.select('div.border.cursor-pointer')
+        foreignObject.selectAll('div.border.cursor-pointer')
             .on('mouseover', function () {
                 d3.select(this).classed('border-gray-400', true);
             })
