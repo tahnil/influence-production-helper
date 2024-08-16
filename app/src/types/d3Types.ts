@@ -19,6 +19,7 @@ export interface ProductNode extends BaseNode {
     totalVolume: number; // Calculated total volume
     children: ProcessNode[];
     processes: InfluenceProcess[];
+    imageBase64: string;
 }
 
 // Define the SideProductNode type

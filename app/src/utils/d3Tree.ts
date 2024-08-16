@@ -287,11 +287,16 @@ export const injectForeignObjects = (
 
                 // console.log('[injectForeignObjects] Rendering process options for node:', productNode);
                 // Product Node styling
+                // Use the Base64 image string
+                const imageSrc = productNode.imageBase64;
                 contentHtml = `
                 <div id="productNodeCard" class="flex flex-col items-center">
                     <div class="w-64 shadow-lg rounded-lg overflow-hidden font-sans font-light">
                         <div id="titleSection" class="p-2 bg-mako-900 flex justify-center items-center gap-2.5 grid grid-cols-3">
-                            <div id="productName" class="col-span-3">
+                            <div id="productIcon" class="p-2">
+                                <img src="${imageSrc}" alt="${node.data.name}">
+                            </div>
+                            <div id="productName" class="col-span-2">
                                 <span class="text-detailText">${node.data.name}</span>
                             </div>
                         </div>
