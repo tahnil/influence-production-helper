@@ -338,8 +338,18 @@ export const injectForeignObjects = (
             } else if (node.data.nodeType === 'process') {
                 const processNode = node.data as ProcessNode;
                 const buildingIconBase64 = processNode.imageBase64;
-                const duration = formatNumber(processNode.totalDuration, { minimumFractionDigits: 0, maximumFractionDigits: 4, scaleForUnit: true, scaleType: 'units' });
-                const runs = formatNumber(processNode.totalRuns, { minimumFractionDigits: 0, maximumFractionDigits: 6, scaleForUnit: true, scaleType: 'units' });
+                const duration = formatNumber(processNode.totalDuration, { 
+                    minimumFractionDigits: 0, 
+                    maximumFractionDigits: 4, 
+                    scaleForUnit: true, 
+                    scaleType: 'units' 
+                });
+                const runs = formatNumber(processNode.totalRuns, { 
+                    minimumFractionDigits: 0, 
+                    maximumFractionDigits: 6, 
+                    scaleForUnit: true, 
+                    scaleType: 'units' 
+                });
                 console.log('buildinggIconBase64:', buildingIconBase64);
                 contentHtml = `
                     <div id="processNodeCard" class="flex flex-col items-center">
@@ -354,14 +364,14 @@ export const injectForeignObjects = (
                             </div>
                             <div id="sideProductsSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-2">
                                 <div id="totalDuration" class="flex flex-col items-center">
-                                    <div>${duration.formattedValue}</div>
+                                    <div>${duration.formattedValue} ${duration.scale}</div>
                                     <div>duration</div>
                                 </div>
                                 <div id="totalRuns" class="flex flex-col items-center">
                                     <div
                                         class="border border-transparent border-2 border-dotted cursor-pointer" 
                                         data-value="${processNode.totalRuns}">
-                                    ${runs.formattedValue}</div>
+                                    ${runs.formattedValue} ${runs.scale}</div>
                                     <div>runs</div>
                                 </div>
                             </div>
