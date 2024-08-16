@@ -289,6 +289,10 @@ export const injectForeignObjects = (
                 // Product Node styling
                 // Use the Base64 image string
                 const imageSrc = productNode.imageBase64;
+                const weight = formatNumber(productNode.totalWeight, { scaleForUnit: true, scaleType: 'weight' });
+                const volume = formatNumber(productNode.totalVolume, { scaleForUnit: true, scaleType: 'volume' });
+                const units = formatNumber(productNode.amount, { minimumFractionDigits: 0, maximumFractionDigits: 4, scaleForUnit: true, scaleType: 'units' });
+
                 contentHtml = `
                 <div id="productNodeCard" class="flex flex-col items-center">
                     <div class="w-64 shadow-lg rounded-lg overflow-hidden font-sans font-light">
@@ -307,16 +311,16 @@ export const injectForeignObjects = (
                         </div>
                         <div id="outputSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-3">
                             <div id="units" class="flex flex-col items-center">
-                                <div>${formatNumber(productNode.amount)}</div>
+                                <div>${units.formattedValue} ${units.unit}</div>
                                 <div>units</div>
                             </div>
                             <div id="weight" class="flex flex-col items-center">
-                                <div>${formatNumber(productNode.totalWeight)}</div>
-                                <div>kg</div>
+                                <div>${weight.formattedValue}</div>
+                                <div>${weight.unit}</div>
                             </div>
                             <div id="volume" class="flex flex-col items-center">
-                                <div>${formatNumber(productNode.totalVolume)}</div>
-                                <div>liters</div>
+                                <div>${volume.formattedValue}</div>
+                                <div>${volume.unit}</div>
                             </div>
                         </div>
                         <div id="moreInfosSection" class="bg-lunarGreen-500 py-1 px-2.5 flex flex-wrap items-start content-start gap-1">
@@ -331,6 +335,8 @@ export const injectForeignObjects = (
             } else if (node.data.nodeType === 'process') {
                 const processNode = node.data as ProcessNode;
                 const buildingIconBase64 = processNode.imageBase64;
+                const duration = formatNumber(processNode.totalDuration, { minimumFractionDigits: 0, maximumFractionDigits: 4, scaleForUnit: true, scaleType: 'units' });
+                const runs = formatNumber(processNode.totalRuns, { minimumFractionDigits: 0, maximumFractionDigits: 6, scaleForUnit: true, scaleType: 'units' });
                 console.log('buildinggIconBase64:', buildingIconBase64);
                 contentHtml = `
                     <div id="processNodeCard" class="flex flex-col items-center">
@@ -345,11 +351,11 @@ export const injectForeignObjects = (
                             </div>
                             <div id="sideProductsSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-2">
                                 <div id="totalDuration" class="flex flex-col items-center">
-                                    <div>${formatNumber(processNode.totalDuration, 0, 4)}</div>
+                                    <div>${duration.formattedValue}</div>
                                     <div>duration</div>
                                 </div>
                                 <div id="totalRuns" class="flex flex-col items-center">
-                                    <div>${formatNumber(processNode.totalRuns, 0, 6)}</div>
+                                    <div>${runs.formattedValue}</div>
                                     <div>runs</div>
                                 </div>
                             </div>
