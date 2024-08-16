@@ -310,7 +310,11 @@ export const injectForeignObjects = (
                         </div>
                         <div id="outputSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-3">
                             <div id="units" class="flex flex-col items-center">
-                                <div class="border border-transparent border-2 border-dotted hover:border-dotted hover:border-2 hover:border-gray-400 cursor-pointer" onclick="navigator.clipboard.writeText('${productNode.amount}')">${units.formattedValue} ${units.scale}</div>
+                                <div 
+                                    class="border border-transparent border-2 border-dotted cursor-pointer" 
+                                    data-value="${productNode.amount}">
+                                    ${units.formattedValue} ${units.scale}
+                                </div>
                                 <div>${units.unit}</div>
                             </div>
                             <div id="weight" class="flex flex-col items-center">
@@ -354,7 +358,10 @@ export const injectForeignObjects = (
                                     <div>duration</div>
                                 </div>
                                 <div id="totalRuns" class="flex flex-col items-center">
-                                    <div>${runs.formattedValue}</div>
+                                    <div
+                                        class="border border-transparent border-2 border-dotted cursor-pointer" 
+                                        data-value="${processNode.totalRuns}">
+                                    ${runs.formattedValue}</div>
                                     <div>runs</div>
                                 </div>
                             </div>
@@ -365,6 +372,36 @@ export const injectForeignObjects = (
 
             return contentHtml;
         });
+
+        // Your copyToClipboard function should be defined somewhere globally accessible
+        function copyToClipboard(element: HTMLElement, value: string) {
+            navigator.clipboard.writeText(value).then(() => {
+                element.classList.add('bg-green-100', 'text-green-800');
+                element.classList.remove('border-gray-400');
+
+                setTimeout(() => {
+                    element.classList.remove('bg-green-100', 'text-green-800');
+                    element.classList.add('border-gray-400');
+                }, 100);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        // Add event listeners after the HTML is injected
+        foreignObject.select('div.border.cursor-pointer')
+            .on('mouseover', function () {
+                d3.select(this).classed('border-gray-400', true);
+            })
+            .on('mouseout', function () {
+                if (!d3.select(this).classed('bg-green-100')) {
+                    d3.select(this).classed('border-gray-400', false);
+                }
+            })
+            .on('click', function () {
+                const value = d3.select(this).attr('data-value');
+                copyToClipboard(this as HTMLElement, value);
+            });
 
         // Dynamically set the height of the foreign object to match its content
         const htmlElement = foreignObject.node() as HTMLElement;
