@@ -1,4 +1,4 @@
-// src/components/TreeVisualizer/useProcessNodeBuilder.ts
+// components/TreeVisualizer/useProcessNodeBuilder.ts
 // 
 // — State Management: Uses useState to manage the state of the process node being built.
 // — Fetching Inputs: Fetches the required inputs for a process using getInputsByProcessId.
@@ -15,11 +15,16 @@ import useProcessDetails from '@/hooks/useProcessDetails';
 
 const useProcessNodeBuilder = () => {
     const { getInputsByProcessId } = useInputsByProcessId();
-    const { getProductNode } = useProductNodeBuilder({ selectedProductId: null });
+    const { getProductNode, loading: productNodeLoading, error: productNodeError } = useProductNodeBuilder({ selectedProductId: null });
     const { getProcessDetails } = useProcessDetails();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const buildProcessNode = useCallback(async (selectedProcessId: string | null, parentAmount: number, parentId: string): Promise<ProcessNode | null> => {
         if (!selectedProcessId) return null;
+
+        setLoading(true);
+        setError(null);
 
         try {
             // console.log('[useProcessNodeBuilder] Fetching process details and inputs for process with id:', selectedProcessId);
@@ -52,14 +57,7 @@ const useProcessNodeBuilder = () => {
             // Build input nodes
             const inputNodes: ProductNode[] = await Promise.all(
                 fetchedInputs.map(async (input: ProcessInput) => {
-                    try {
-                        const node = await getProductNode(input.product.id, totalRuns * parseFloat(input.unitsPerSR));
-                        // console.log('[useProcessNodeBuilder] Product Node:', node, 'Input:', input);
-                        return node;
-                    } catch (error) {
-                        // console.error('[useProcessNodeBuilder] Error fetching product node for input:', error);
-                        throw error;
-                    }
+                    return await getProductNode(input.product.id, totalRuns * parseFloat(input.unitsPerSR));
                 })
             );
 
@@ -77,14 +75,17 @@ const useProcessNodeBuilder = () => {
             };
 
             // console.log('[useProcessNodeBuilder] New process node:', newProcessNode);
+            setLoading(false);
             return newProcessNode;
         } catch (err) {
-            // console.error('[useProcessNodeBuilder] Error building process node:', err);
+            console.error('[useProcessNodeBuilder] Error building process node:', err);
+            setError('Failed to build process node');
+            setLoading(false);
             return null;
         }
     }, [getProductNode, getInputsByProcessId, getProcessDetails]);
 
-    return { buildProcessNode };
+    return { buildProcessNode, loading, error };
 };
 
 export default useProcessNodeBuilder;

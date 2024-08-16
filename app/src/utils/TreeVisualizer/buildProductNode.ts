@@ -7,7 +7,8 @@ import { generateUniqueId } from '@/utils/generateUniqueId';
 export const buildProductNode = (
     productData: InfluenceProduct,
     processes: InfluenceProcess[],
-    desiredAmount: number | 0
+    desiredAmount: number | 0,
+    imageBase64: string = ''
 ): ProductNode => {
     // console.log('[buildProductNode] Product data: ',productData,'\nMassKgPerUnit: ',productData.massKilogramsPerUnit,'\nVolPerUnit: ',productData.volumeLitersPerUnit);
     const amount = desiredAmount;
@@ -28,6 +29,7 @@ export const buildProductNode = (
         totalVolume,
         children: [],
         _children: [],
-        processes: processes
+        processes: processes,
+        imageBase64: imageBase64,
     };
 };
