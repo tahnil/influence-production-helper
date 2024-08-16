@@ -400,7 +400,7 @@ export const injectForeignObjects = (
             })
             .on('click', function () {
                 const value = d3.select(this).attr('data-value');
-                copyToClipboard(this as HTMLElement, value);
+                copyToClipboard(this as HTMLElement, value ?? '');
             });
 
         // Dynamically set the height of the foreign object to match its content
