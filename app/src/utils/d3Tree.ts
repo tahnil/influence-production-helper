@@ -274,7 +274,6 @@ export const injectForeignObjects = (
             .attr('x', -foreignObjectWidth / 10)
             .style('overflow', 'visible')
             .append('xhtml:div')
-            // .attr('class', 'flex flex-col items-center justify-center bg-mako-900 border border-black rounded-xl p-2 overflow-visible')
             .style('width', `${foreignObjectWidth}px`)
             .style('box-sizing', 'border-box');
 
@@ -311,7 +310,7 @@ export const injectForeignObjects = (
                         </div>
                         <div id="outputSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-3">
                             <div id="units" class="flex flex-col items-center">
-                                <div>${units.formattedValue} ${units.scale}</div>
+                                <div class="border border-transparent border-2 border-dotted hover:border-dotted hover:border-2 hover:border-gray-400 cursor-pointer" onclick="navigator.clipboard.writeText('${productNode.amount}')">${units.formattedValue} ${units.scale}</div>
                                 <div>${units.unit}</div>
                             </div>
                             <div id="weight" class="flex flex-col items-center">
