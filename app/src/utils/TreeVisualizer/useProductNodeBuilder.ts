@@ -35,12 +35,27 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
         }
     }, [selectedProductId, getProductDetails, getProcessesByProductId]);
 
-    const buildCurrentProductNode = useCallback((): ProductNode | null => {
+    const fetchProductImageBase64 = useCallback(async (productId: string) => {
+        try {
+            const response = await fetch(`/api/productImage?productId=${productId}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch product image');
+            }
+            const { base64Image } = await response.json();
+            return base64Image;
+        } catch (error) {
+            console.error('Error fetching product image:', error);
+            return '';
+        }
+    }, []);
+
+    const buildCurrentProductNode = useCallback(async (): Promise<ProductNode | null> => {
         if (productDetails && !loading && !error && processesByProductId) {
-            return buildProductNode(productDetails, processesByProductId, 0);
+            const imageBase64 = await fetchProductImageBase64(productDetails.id);
+            return buildProductNode(productDetails, processesByProductId, 0, imageBase64);
         }
         return null;
-    }, [productDetails, loading, error, processesByProductId]);
+    }, [productDetails, loading, error, processesByProductId, fetchProductImageBase64]);
 
     const getProductNode = useCallback(async (productId: string, requiredAmount: number) => {
         setLoading(true);
@@ -50,8 +65,9 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
                 getProcessesByProductId(productId)
             ]);
             setLoading(false);
+            const imageBase64 = await fetchProductImageBase64(productId);
             if (details && processList) {
-                return buildProductNode(details, processList, requiredAmount);
+                return buildProductNode(details, processList, requiredAmount, imageBase64);
             }
             throw new Error('Product details or processes not available');
         } catch (error) {
@@ -60,7 +76,7 @@ const useProductNodeBuilder = ({ selectedProductId }: { selectedProductId: strin
             setLoading(false);
             throw error;
         }
-    }, [getProductDetails, getProcessesByProductId]);
+    }, [getProductDetails, getProcessesByProductId, fetchProductImageBase64]);
 
     return { buildCurrentProductNode, loading, error, getProductNode };
 };
