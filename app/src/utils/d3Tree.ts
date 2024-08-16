@@ -166,7 +166,7 @@ export const updateD3Tree = (
 
     const root = d3.hierarchy(treeData);
     const nodeWidth = 288;
-    const nodeHeight = 200;
+    const nodeHeight = 256;
 
     // D3 tree layout
     const treeLayout = d3.tree<D3TreeNode>().nodeSize([nodeHeight, nodeWidth]);
@@ -284,21 +284,49 @@ export const injectForeignObjects = (
 
             if (node.data.nodeType === 'product') {
                 const productNode = node.data as ProductNode;
+
                 // console.log('[injectForeignObjects] Rendering process options for node:', productNode);
+                // Product Node styling
                 contentHtml = `
-                    <div class="font-bold mb-2 text-center">${node.data.name}</div>
-                    <div>Amount: ${formatNumber(productNode.amount)}</div>
-                    <div>Total Weight: ${formatNumber(productNode.totalWeight)} kg</div>
-                    <div>Total Volume: ${formatNumber(productNode.totalVolume)} L</div>
-                    <select class="mt-1 w-full bg-mako-950" id="process-select-${productNode.id}" name="process-select">
-                        <option value="">-- Select a Process --</option>
-                        ${productNode.processes.map(process => `<option value="${process.id}">${process.name}</option>`).join('')}
-                    </select>
+                <div id="productNodeCard" class="flex flex-col items-center">
+                    <div class="w-64 shadow-lg rounded-lg overflow-hidden font-sans font-light">
+                        <div id="titleSection" class="p-2 bg-mako-900 flex justify-center items-center gap-2.5 grid grid-cols-3">
+                            <div id="productName" class="col-span-3">
+                                <span class="text-detailText">${node.data.name}</span>
+                            </div>
+                        </div>
+                        <div id="productStatsSection" class="bg-mako-900 py-1 px-2.5 flex flex-wrap items-start content-start gap-1">
+                            <div class="p-[2px] rounded bg-mako-950">${productNode.productData.category}</div>
+                            <div class="p-[2px] rounded bg-mako-950">${productNode.productData.massKilogramsPerUnit} kg</div>
+                            <div class="p-[2px] rounded bg-mako-950">${productNode.productData.volumeLitersPerUnit} L</div>
+                        </div>
+                        <div id="outputSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-3">
+                            <div id="units" class="flex flex-col items-center">
+                                <div>${formatNumber(productNode.amount)}</div>
+                                <div>units</div>
+                            </div>
+                            <div id="weight" class="flex flex-col items-center">
+                                <div>${formatNumber(productNode.totalWeight)}</div>
+                                <div>kg</div>
+                            </div>
+                            <div id="volume" class="flex flex-col items-center">
+                                <div>${formatNumber(productNode.totalVolume)}</div>
+                                <div>liters</div>
+                            </div>
+                        </div>
+                        <div id="moreInfosSection" class="bg-lunarGreen-500 py-1 px-2.5 flex flex-wrap items-start content-start gap-1">
+                            <select class="mt-1 w-full bg-lunarGreen-500" id="process-select-${productNode.id}" name="process-select">
+                                <option value="">-- Select a Process --</option>
+                                ${productNode.processes.map(process => `<option value="${process.id}">${process.name}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                </div>
                 `;
             } else if (node.data.nodeType === 'process') {
                 const processNode = node.data as ProcessNode;
                 contentHtml = `
-                    <div class="flex flex-col items-center">
+                    <div id="processNodeCard" class="flex flex-col items-center">
                         <div class="w-64 shadow-lg rounded-lg overflow-hidden font-sans font-light">
                             <div id="titleSection" class="p-2 bg-falcon-800 flex justify-center items-center gap-2.5 grid grid-cols-3">
                                 <div id="buildingIcon" class="p-2">
@@ -312,11 +340,11 @@ export const injectForeignObjects = (
                                 </div>
                             </div>
                             <div id="sideProductsSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-2">
-                                <div id="units" class="flex flex-col items-center">
+                                <div id="totalDuration" class="flex flex-col items-center">
                                     <div>${formatNumber(processNode.totalDuration)}</div>
                                     <div>duration</div>
                                 </div>
-                                <div id="weight" class="flex flex-col items-center">
+                                <div id="totalRuns" class="flex flex-col items-center">
                                     <div>${formatNumber(processNode.totalRuns)}</div>
                                     <div>runs</div>
                                 </div>
@@ -330,11 +358,11 @@ export const injectForeignObjects = (
         });
 
         // Dynamically set the height of the foreign object to match its content
-            const htmlElement = foreignObject.node() as HTMLElement;
-            const foreignObjectHeight = htmlElement.getBoundingClientRect().height;
+        const htmlElement = foreignObject.node() as HTMLElement;
+        const foreignObjectHeight = htmlElement.getBoundingClientRect().height;
 
-            nodeElement.select('foreignObject')
-                .attr('height', foreignObjectHeight)
+        nodeElement.select('foreignObject')
+            .attr('height', foreignObjectHeight)
             .attr('y', -foreignObjectHeight / 2);
 
         // Attach event listeners for process selection

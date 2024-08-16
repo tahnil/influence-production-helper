@@ -18,6 +18,17 @@ const config = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Roboto Condensed', 'sans-serif'],
+      },
+      fontSize: {
+        bigText: '2.5rem',
+        largeText: '2rem',
+        normalText: '1.625rem',
+        detailText: '1.375rem',
+        micro: '1.125rem',
+        tiny: '0.875rem',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
