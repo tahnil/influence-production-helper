@@ -1,4 +1,4 @@
-// src/utils/errorHandler.ts
+// utils/errorHandler.ts
 export const handleApiError = (error: any): string => {
     if (error.response && error.response.data && error.response.data.message) {
       return error.response.data.message;

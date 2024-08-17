@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Collapsible Tree with Node Configuration</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .node circle {
+            fill: #999;
+            stroke: #000;
+            stroke-width: 1.5px;
+        }
+
+        .node text {
+            font: 12px sans-serif;
+        }
+
+        .link {
+            fill: none;
+            stroke: #555;
+            stroke-width: 1.5px;
+        }
+
+        .input-box {
+            font: 12px sans-serif;
+            fill: white;
+            stroke: none;
+        }
+
+        svg {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #tree-container {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="tree-container"></div>
+
+    <script>
+        // Sample tree data
+        let treeData = {
+            name: "Root",
+            children: [
+                { name: "Child 1" },
+                { name: "Child 2", children: [{ name: "Grandchild 1" }, { name: "Grandchild 2" }] }
+            ]
+        };
+
+        var margin = { top: 20, right: 90, bottom: 30, left: 90 },
+            width = window.innerWidth - margin.left - margin.right,
+            height = window.innerHeight - margin.top - margin.bottom;
+
+        let i = 0;  // Variable for generating unique IDs
+
+        const treeLayout = d3.tree().size([height, width]);
+        let root = d3.hierarchy(treeData);
+        root.x0 = height / 2;
+        root.y0 = 0;
+
+        treeLayout(root);
+
+        const svg = d3.select("#tree-container")
+            .append("svg")
+            .attr("width", width + margin.right + margin.left)
+            .attr("height", height + margin.top + margin.bottom)
+            .call(d3.zoom().on("zoom", function (event) {
+                svg.attr("transform", event.transform);
+            }))
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        // Initial tree rendering
+        update(root);
+
+        function update(source) {
+            console.log('Updating tree layout...');
+            console.log('Current tree data:', treeData);
+
+            // Preserve the state of _children before reinitializing the hierarchy
+            const nodeStates = {};
+            root.each(d => {
+                nodeStates[d.data.name] = d._children;
+            });
+
+            root = d3.hierarchy(treeData);
+            root.each(d => {
+                d._children = nodeStates[d.data.name];
+            });
+
+            treeLayout(root);
+
+            const nodes = svg.selectAll(".node")
+                .data(root.descendants(), d => d.id || (d.id = ++i));
+
+            // Enter any new nodes at the parent's previous position.
+            const nodeEnter = nodes.enter().append("g")
+                .attr("class", "node")
+                .attr("transform", d => {
+                    const x = source.x0 || 0;
+                    const y = source.y0 || 0;
+                    console.log(`Enter node ${d.data.name}: (${x}, ${y})`);
+                    return `translate(${y},${x})`;
+                });
+
+            nodeEnter.append("circle")
+                .attr("r", 10)
+                .style("fill", d => d._children ? "lightsteelblue" : "#444")
+                .on("click", (event, d) => {
+                    event.stopPropagation();
+                    console.log('Node clicked:', d.data.name);
+                    toggleChildren(d);
+                    update(d);
+                });
+
+            nodeEnter.append("text")
+                .attr("dy", -20)
+                .attr("x", d => d.children || d._children ? -8 : 8)
+                .style("text-anchor", d => d.children || d._children ? "end" : "start")
+                .text(d => d.data.name);
+
+            nodeEnter.append("foreignObject")
+                .attr("width", 200)
+                .attr("height", 100)
+                .attr("x", -50)
+                .attr("y", 30)
+                .html(d => `
+                    <div xmlns="http://www.w3.org/1999/xhtml">
+                        <input type="text" value="${d.data.name}" onchange="updateNodeName(event, '${d.data.name}')" />
+                        <br>
+                        <input type="text" id="new-branch-${d.data.name}" placeholder="New branch name" />
+                        <button onclick="addBranch('${d.data.name}')">Add Branch</button>
+                    </div>
+                `);
+
+            // UPDATE
+            const nodeUpdate = nodeEnter.merge(nodes);
+
+            // Set the proper position for the node
+            nodeUpdate
+                .attr("transform", d => {
+                    console.log(`Update node ${d.data.name}: (${d.y}, ${d.x})`);
+                    return `translate(${d.y},${d.x})`;
+                });
+
+            // Update the node attributes and style
+            nodeUpdate.select("circle")
+                .attr("r", 10)
+                .style("fill", d => d._children ? "lightsteelblue" : "#333");
+
+            // Remove any exiting nodes
+            const nodeExit = nodes.exit()
+                .attr("transform", d => {
+                    const x = source.x || 0;
+                    const y = source.y || 0;
+                    console.log(`Exit node ${d.data.name}: (${x}, ${y})`);
+                    return `translate(${y},${x})`;
+                })
+                .remove();
+
+            nodeExit.select("circle")
+                .attr("r", 10);
+
+            nodeExit.select("text")
+                .style("fill-opacity", 1);
+
+            console.log('Tree updated');
+
+            // Update the links...
+            const links = svg.selectAll(".link")
+                .data(root.links(), d => d.target.id);
+
+            // Enter any new links at the parent's previous position.
+            const linkEnter = links.enter().insert("path", "g")
+                .attr("class", "link")
+                .attr("d", d => {
+                    const o = { x: source.x0 || 0, y: source.y0 || 0 };
+                    console.log(`Enter link: (${o.x}, ${o.y})`);
+                    return diagonal(o, o);
+                });
+
+            // Set links to their new position.
+            const linkUpdate = linkEnter.merge(links);
+
+            linkUpdate
+                .attr("d", d => {
+                    console.log(`Update link: source (${d.source.y}, ${d.source.x}), target (${d.target.y}, ${d.target.x})`);
+                    return diagonal(d.source, d.target);
+                });
+
+            const linkExit = links.exit()
+                .attr("d", d => {
+                    const o = { x: source.x || 0, y: source.y || 0 };
+                    console.log(`Exit link: (${o.x}, ${o.y})`);
+                    return diagonal(o, o);
+                })
+                .remove();
+
+            // Store the old positions.
+            root.each(function (d) {
+                console.log(`Store node ${d.data.name}: (${d.x}, ${d.y})`);
+                d.x0 = d.x;
+                d.y0 = d.y;
+            });
+        }
+
+        function diagonal(s, d) {
+            if (!d) return ""; // Safeguard against undefined `d`
+            console.log(`Diagonal path: source (${s.y}, ${s.x}), target (${d.y}, ${d.x})`);
+            return `M ${s.y} ${s.x}
+                    C ${(s.y + d.y) / 2} ${s.x},
+                      ${(s.y + d.y) / 2} ${d.x},
+                      ${d.y} ${d.x}`;
+        }
+
+        function toggleChildren(d) {
+            if (d.children) {
+                console.log('Hiding visible children:', d.children);
+                d._children = d.children;
+                d.children = null;
+            } else {
+                console.log('Unhiding invisible children:', d._children);
+                d.children = d._children;
+                d._children = null;
+            }
+            console.log('Toggled children for node:', d.data.name, 'New children:', d.children, 'Hidden children:', d._children);
+            updateTreeData(d.data.name, d.children, d._children);
+        }
+
+        function updateTreeData(name, children, _children) {
+            const node = findNode(treeData, name);
+            if (node) {
+                if (children !== undefined) {
+                    node.children = children ? children.map(c => ({ name: c.data.name, children: c.children ? [] : null })) : null;
+                }
+                if (_children !== undefined) {
+                    node._children = _children ? _children.map(c => ({ name: c.data.name, children: c.children ? [] : null })) : null;
+                }
+            }
+        }
+
+        function findNode(data, name) {
+            if (data.name === name) return data;
+            if (data.children) {
+                for (let child of data.children) {
+                    const result = findNode(child, name);
+                    if (result) return result;
+                }
+            }
+            return null;
+        }
+
+        function updateNodeName(event, name) {
+            const newName = event.target.value;
+            console.log(`Updating node name from ${name} to ${newName}`);
+            const node = root.descendants().find(d => d.data.name === name);
+            if (node) {
+                node.data.name = newName;
+                console.log('Node name updated:', node);
+                updateTreeData(node.data.name, node.children, node._children);
+                update(node);
+            }
+        }
+
+        function addBranch(parentName) {
+            console.log('Adding branch to parent:', parentName);
+            const parentNode = root.descendants().find(d => d.data.name === parentName);
+            const newBranchName = document.getElementById(`new-branch-${parentName}`).value;
+            console.log('New branch name:', newBranchName);
+            if (parentNode && newBranchName) {
+                if (!parentNode.data.children) {
+                    parentNode.data.children = [];
+                }
+                parentNode.data.children.push({ name: newBranchName });
+                console.log('New branch added:', treeData);
+                update(root);
+            }
+        }
+
+        // Expose functions to the global scope
+        window.addBranch = addBranch;
+        window.updateNodeName = updateNodeName;
+    </script>
+</body>
+</html>

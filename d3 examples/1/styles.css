@@ -1,0 +1,31 @@
+.node circle {
+    fill: #999;
+    stroke: #000;
+    stroke-width: 1.5px;
+}
+
+.node text {
+    font: 12px sans-serif;
+}
+
+.link {
+    fill: none;
+    stroke: #555;
+    stroke-width: 1.5px;
+}
+
+.input-box {
+    font: 12px sans-serif;
+    fill: white;
+    stroke: none;
+}
+
+svg {
+    width: 100vw;
+    height: 100vh;
+}
+
+#tree-container {
+    width: 100vw;
+    height: 100vh;
+}
