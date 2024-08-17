@@ -1,4 +1,4 @@
-// src/pages/index.tsx
+// pages/index.tsx
 import React from 'react';
 import TreeRenderer from '@/components/TreeVisualizer/TreeRenderer'
 

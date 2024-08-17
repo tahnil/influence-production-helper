@@ -1,4 +1,4 @@
-// src/types/types.ts
+// types/types.ts
 import * as d3 from 'd3';
 
 // used by

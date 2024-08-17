@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+// utils/TreeVisualizer/fetchProductImageBase64.ts
 
 export const fetchProductImageBase64 = async (productId: string) => {
     try {

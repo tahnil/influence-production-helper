@@ -10,34 +10,37 @@
 // ########################
 // 
 // 1. TreeRenderer Component
-// — Manages the state for the selected product and the tree data.
+// — Manages the state for the selected product, desired amount, and the tree data.
 // — Renders the product selector and the D3 visualization container.
 // — Utilizes custom hooks to fetch data and build the tree nodes.
 // 2. Custom Hooks
-// — useInfluenceProducts: Fetches the list of products.
+// — useInfluenceProducts: Fetches the list of products available in the system.
+// — useProcessesByProductId: Fetches processes associated with a specific product.
+// — useProcessNodeBuilder: Builds process nodes by fetching inputs and calculating values.
 // — useProductNodeBuilder: Builds product nodes including their details and associated processes.
-// — useProcessNodeBuilder: Builds process nodes including the required input products.
 // 3. D3 Utilities
-// — initializeD3Tree: Initializes the D3 tree with the root node and renders nodes and links.
-// — updateD3Tree: Updates the existing D3 tree with new nodes and links.
-// — injectForeignObjects: Adds interactive elements (foreign objects) to D3 nodes, such as process selection dropdowns.
+// — initializeD3Tree: Initializes the D3 tree with the root node, setting up nodes and links in the tree layout.
+// — updateD3Tree: Updates the existing D3 tree with new nodes and links as the tree data changes.
+// — injectForeignObjects: Adds interactive elements (foreign objects) to D3 nodes, such as process selection dropdowns, and copy-to-clipboard functionality.
 // 
 // ########################
 // Detailed Explanation of Each Component and Function
 // ########################
 // 
-// — State Management: Uses useState to manage the selected product ID, tree data, and the current transform state.
-// — Refs: Uses useRef to manage references to the D3 container, root node, and update function.
-// — Product Selection: handleSelectProduct updates the selected product ID and fetches associated processes.
-// — Tree Rendering: The useEffect hook listens for changes in the rootNode and initializes the D3 tree.
-// — Injecting Foreign Objects: Another useEffect hook injects foreign objects (process selection dropdowns) into the D3 nodes.
+// — State Management: Uses useState to manage the selected product ID, tree data, the desired end product amount, and the current transform state of the D3 tree.
+// — Refs: Uses useRef to manage references to the D3 container, the root node of the tree, and the update function for the D3 tree.
+// — Product Selection: The handleSelectProduct function updates the selected product ID, fetches associated processes, and builds the root node of the tree.
+// — Tree Rendering: The useEffect hook listens for changes in the rootNode and initializes the D3 tree, ensuring that the visualization updates appropriately.
+// — Injecting Foreign Objects: Another useEffect hook injects foreign objects (like dropdowns and interactive elements) into the D3 nodes, allowing for user interaction with the tree visualization.
+// — Error Handling: Uses conditional rendering to display error messages if data fetching fails or if there's an issue with building process nodes.
 //
 // ########################
 // The TreeRenderer component and its associated hooks and utilities manage a dynamic D3 tree visualization. 
 // It allows users to select a product, initializes the tree with the selected product as the root node, 
 // and dynamically updates the tree based on user interactions (such as selecting processes). The 
 // architecture is modular, with custom hooks handling data fetching and node building, and D3 utilities 
-// managing the rendering and updating of the tree visualization.
+// managing the rendering and updating of the tree visualization. This structure ensures that the tree 
+// remains responsive to user inputs and updates in real time.
 // ########################
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';

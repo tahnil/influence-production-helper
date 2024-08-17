@@ -1,3 +1,5 @@
+// components/TreeVisualizer/ProductionInputs.tsx
+
 import React, { useEffect, useState } from 'react';
 import { NumericFormat } from 'react-number-format';
 import { D3TreeNode, ProductNode, ProcessNode } from '@/types/d3Types';

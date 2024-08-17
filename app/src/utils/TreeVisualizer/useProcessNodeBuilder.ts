@@ -1,4 +1,4 @@
-// components/TreeVisualizer/useProcessNodeBuilder.ts
+// utils/TreeVisualizer/useProcessNodeBuilder.ts
 // 
 // — State Management: Uses useState to manage the state of the process node being built.
 // — Fetching Inputs: Fetches the required inputs for a process using getInputsByProcessId.

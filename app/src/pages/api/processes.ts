@@ -1,4 +1,4 @@
-// src/pages/api/processes.ts
+// pages/api/processes.ts
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { fetchProcessById, fetchAllProcesses, fetchProcessesByProductId, fetchInputsByProcessId } from '../../lib/processUtils';

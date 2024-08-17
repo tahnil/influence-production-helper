@@ -1,4 +1,4 @@
-// src/lib/dataLoader.ts
+// lib/dataLoader.ts
 
 import path from 'path';
 import fs from 'fs';

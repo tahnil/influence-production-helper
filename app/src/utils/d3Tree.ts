@@ -10,32 +10,41 @@
 // 
 // 1. clearD3Tree
 // — Removes all existing elements within the D3 container.
+// 
 // 2. initializeD3Tree
 // — Initializes the D3 tree with the root node, sets up the zoom behavior, and renders nodes and links.
+// 
 // 3. updateD3Tree
 // — Updates the existing D3 tree with new nodes and links, ensuring smooth transitions.
+// 
 // 4. injectForeignObjects
-// — Adds interactive elements (foreign objects) to D3 nodes, such as process selection dropdowns.
+// — Adds interactive elements (foreign objects) to D3 nodes, such as process selection dropdowns and copy-to-clipboard functionality.
 // 
 // ########################
 // Detailed Explanation of Each Function
 // ########################
 // 
-// — clearD3Tree: Clears the D3 container by selecting and removing all child elements.
+// — clearD3Tree:
+//    - Clears the D3 container by selecting and removing all child elements.
+//    - This ensures that any existing tree is fully removed before rendering a new one.
+// 
 // — initializeD3Tree: 
-//    - Sets up the SVG canvas with margins.
-//    - Creates groups for links and nodes.
-//    - Defines the tree layout and computes the positions of nodes and links.
-//    - Appends links and nodes to the respective groups.
-//    - Sets up zoom behavior and applies any previous transform.
+//    - Sets up the SVG canvas with margins and initializes the root node of the tree.
+//    - Creates groups for links and nodes within the SVG container.
+//    - Defines the tree layout using `d3.tree` and computes the positions of nodes and links.
+//    - Appends links and nodes to their respective groups, establishing the initial structure of the tree.
+//    - Sets up zoom behavior, allowing users to pan and zoom the tree visualization.
+//    - Applies any previous transform to maintain the state between updates or re-renders.
+// 
 // — updateD3Tree: 
 //    - Recomputes the positions of nodes and links based on the updated tree data.
-//    - Updates the links and nodes with smooth transitions.
-//    - Applies the previous transform to maintain the zoom and pan state.
+//    - Updates the links and nodes with smooth transitions, reflecting changes in the tree structure.
+//    - Ensures that any previous transform (zoom/pan state) is reapplied to maintain user context.
+// 
 // — injectForeignObjects: 
-//    - Iterates through the nodes and injects foreign objects for each node.
-//    - Dynamically sets the height of the foreign objects based on their content.
-//    - Adds event listeners to handle interactions within the foreign objects.
+//    - Iterates through the nodes and injects foreign objects for each node, allowing for additional HTML content inside SVG elements.
+//    - Dynamically sets the height of the foreign objects based on their content, ensuring correct placement within the tree.
+//    - Adds event listeners to handle interactions within the foreign objects, such as copying values to the clipboard or handling dropdown selections.
 // ########################
 
 import * as d3 from 'd3';
@@ -284,8 +293,8 @@ export const injectForeignObjects = (
 
             if (node.data.nodeType === 'product') {
                 const productNode = node.data as ProductNode;
-
                 // console.log('[injectForeignObjects] Rendering process options for node:', productNode);
+                
                 // Product Node styling
                 // Use the Base64 image string
                 const units = formatNumber(productNode.amount, { minimumFractionDigits: 0, maximumFractionDigits: 6, scaleForUnit: true, scaleType: 'units' });

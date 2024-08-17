@@ -1,3 +1,5 @@
+// utils/formatDuration.ts
+
 export const formatDuration = (totalRuns: number, mAdalianHoursPerSR: string): string => {
     // Convert Adalian hours to real-world hours
     const realWorldHoursPerSR = parseFloat(mAdalianHoursPerSR) / 24;

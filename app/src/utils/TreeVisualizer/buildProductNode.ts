@@ -1,4 +1,4 @@
-// components/TreeVisualizer/buildProductNode.ts
+// utils/TreeVisualizer/buildProductNode.ts
 
 import { ProductNode } from '@/types/d3Types';
 import { InfluenceProduct, InfluenceProcess } from '@/types/influenceTypes';

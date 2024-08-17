@@ -1,4 +1,4 @@
-// src/pages/api/products.ts
+// pages/api/products.ts
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { fetchProductById, fetchAllProducts } from '../../lib/productUtils';

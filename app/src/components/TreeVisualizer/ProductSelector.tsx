@@ -1,4 +1,4 @@
-// components/ProductSelector.tsx
+// components/TreeVisualizer/ProductSelector.tsx
 // 
 // — Dropdown for Product Selection: Renders a dropdown list of products.
 // — Event Handling: Calls onSelect with the selected product ID when a product is selected.

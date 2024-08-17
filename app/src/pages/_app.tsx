@@ -1,4 +1,5 @@
 // pages/_app.tsx
+
 import { AppProps } from 'next/app';
 import Link from 'next/link';
 import './globals.css';

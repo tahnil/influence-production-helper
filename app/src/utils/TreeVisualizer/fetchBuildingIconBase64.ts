@@ -1,3 +1,5 @@
+// utils/TreeVisualizer/fetchBuildingIconBase64.ts
+
 export const fetchBuildingIconBase64 = async (buildingId: string): Promise<string> => {
     try {
         const response = await fetch(`/api/buildingIcon?buildingId=${buildingId}`);

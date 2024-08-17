@@ -1,4 +1,4 @@
-// ./app/src/lib/productUtils.ts
+// lib/productUtils.ts
 
 import { Product, Process, SpectralType, ProductWithSpectralTypes } from '../types/types';
 import { loadProductionChains } from './dataLoader';
