@@ -1,3 +1,4 @@
+
 # Production Chain Configurator
 
 The Production Chain Configurator is a web application designed to help users configure and manage production chains for items in a computer game. The application allows users to select an end product and specify the desired amount, then configure all necessary processes to produce that product, including all intermediate products.
@@ -25,17 +26,15 @@ The Production Chain Configurator is a web application designed to help users co
 - **Tailwind CSS**: A utility-first CSS framework.
 - **Axios**: A promise-based HTTP client for the browser and Node.js.
 - **React Hook Form**: A performant, flexible, and extensible form library for React.
-- **Zod**: A TypeScript-first schema declaration and validation library.
 
 ## Project Structure
 
 - **`components/`**: Contains all the reusable React components.
-  - **`CopyButton.tsx`**: A button component for copying text to the clipboard.
-  - **`ProcessConfigurator/`**: Components related to process configuration.
-    - **`ProcessConfigurator.tsx`**: Main component for configuring processes.
-    - **`ProcessInputs.tsx`**: Component for displaying and configuring process inputs.
-    - **`ProcessSelector.tsx`**: Component for selecting a process.
-  - **`ProductList.tsx`**: Component for displaying and selecting products.
+  - **`TreeVisualizer/`**: Components related to visualizing the production tree.
+    - **`AmountInput.tsx`**: Component for inputting the desired amount of product.
+    - **`ProductSelector.tsx`**: Component for selecting the main product.
+    - **`ProductionInputs.tsx`**: Component for displaying production inputs.
+    - **`TreeRenderer.tsx`**: Main component for rendering the D3 tree.
   - **`ui/`**: Common UI components.
     - **`button.tsx`**: Button component.
     - **`form.tsx`**: Form component.
@@ -44,39 +43,50 @@ The Production Chain Configurator is a web application designed to help users co
     - **`select.tsx`**: Select component.
 
 - **`hooks/`**: Contains custom React hooks for data fetching.
-  - **`useConfigureProductionChain.ts`**: Hook for configuring the production chain.
-  - **`useInputsByProcessId.ts`**: Hook for fetching inputs by process ID.
+  - **`useInfluenceProducts.ts`**: Hook for fetching the list of products.
   - **`useProcessesByProductId.ts`**: Hook for fetching processes by product ID.
-  - **`useProducts.ts`**: Hook for fetching products.
+  - **`useInputsByProcessId.ts`**: Hook for fetching inputs by process ID.
+  - **`useProcessDetails.ts`**: Hook for fetching detailed process information.
+  - **`useProductNodeBuilder.ts`**: Hook for building product nodes in the tree.
+  - **`useProcessNodeBuilder.ts`**: Hook for building process nodes in the tree.
 
 - **`lib/`**: Contains utility functions and data handling logic.
-  - **`calculationHelpers.ts`**: Functions for calculating input and output amounts.
-  - **`constructors.ts`**: Functions for creating data structures.
   - **`dataLoader.ts`**: Functions for loading data.
-  - **`inputHelpers.ts`**: Functions for handling process inputs.
   - **`processUtils.ts`**: Functions for handling processes.
-  - **`uniqueId.ts`**: Utility for generating unique IDs.
+  - **`productUtils.ts`**: Functions for handling product data.
   - **`utils.ts`**: General utility functions.
 
 - **`pages/`**: Contains Next.js page components and API routes.
   - **`_app.tsx`**: Custom App component for initializing pages.
   - **`api/`**: API route handlers.
-    - **`configureProductionChain.ts`**: API handler for configuring production chains.
+    - **`buildingIcon.ts`**: API handler for fetching building icons.
     - **`processes.ts`**: API handler for fetching processes.
+    - **`productImage.ts`**: API handler for fetching product images.
     - **`products.ts`**: API handler for fetching products.
   - **`index.tsx`**: Main page component.
   - **`layout.tsx`**: Layout component for the application.
   - **`globals.css`**: Global CSS styles.
 
-- **`store/`**: Contains state management logic using Zustand.
-  - **`useProductionChainStore.ts`**: Zustand store for managing production chain state.
+- **`sdk/`**: Contains JSON data related to the Influence SDK.
+  - **`productionChains.json`**: JSON file containing production chain data.
 
 - **`types/`**: Contains TypeScript type definitions.
-  - **`types.ts`**: Type definitions for the application.
+  - **`d3Types.ts`**: Type definitions for D3 tree nodes.
+  - **`influenceTypes.ts`**: Type definitions related to the Influence SDK.
+  - **`types.ts`**: General type definitions.
 
 - **`utils/`**: Contains utility functions.
+  - **`TreeVisualizer/`**: Functions related to the TreeVisualizer components.
+    - **`buildProductNode.ts`**: Function for building product nodes.
+    - **`fetchBuildingIconBase64.ts`**: Function for fetching building icons in base64.
+    - **`fetchProductImageBase64.ts`**: Function for fetching product images in base64.
+    - **`useProcessNodeBuilder.ts`**: Utility for building process nodes.
+    - **`useProductNodeBuilder.ts`**: Utility for building product nodes.
+  - **`d3Tree.ts`**: Functions related to D3 tree manipulation.
   - **`errorHandler.ts`**: Utility for handling errors.
-  - **`logger.ts`**: Utility for logging.
+  - **`formatDuration.ts`**: Utility for formatting durations.
+  - **`formatNumber.ts`**: Utility for formatting numbers.
+  - **`generateUniqueId.ts`**: Utility for generating unique IDs.
 
 ## Installation
 
