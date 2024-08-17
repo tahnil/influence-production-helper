@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { D3TreeNode, ProductNode, ProcessNode } from '@/types/d3Types';
 import { NumericFormat } from 'react-number-format';
+import { D3TreeNode, ProductNode, ProcessNode } from '@/types/d3Types';
 
 interface ProductionInputsProps {
     treeData: D3TreeNode | null;

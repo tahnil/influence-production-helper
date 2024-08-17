@@ -1,4 +1,4 @@
-// components/TreeRenderer.tsx
+// components/TreeVisualizer/TreeRenderer.tsx
 // 
 // The TreeRenderer component is a React component that visualizes a hierarchical tree structure using D3.js. 
 // It allows users to select a product, which then populates the tree with nodes representing the product and 
@@ -41,16 +41,16 @@
 // ########################
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import ProductSelector from './ProductSelector';
-import ProductionInputs from './ProductionInputs';
-import useInfluenceProducts from '@/hooks/useInfluenceProducts';
-import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
-import { initializeD3Tree, updateD3Tree, injectForeignObjects } from '@/utils/d3Tree';
 import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
-import useProcessesByProductId from '@/hooks/useProcessesByProductId';
-import { buildProductNode } from '@/utils/TreeVisualizer/buildProductNode';
 import AmountInput from '@/components/TreeVisualizer/AmountInput';
+import ProductionInputs from '@/components/TreeVisualizer/ProductionInputs';
+import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
+import useInfluenceProducts from '@/hooks/useInfluenceProducts';
+import useProcessesByProductId from '@/hooks/useProcessesByProductId';
+import { initializeD3Tree, updateD3Tree, injectForeignObjects } from '@/utils/d3Tree';
+import { buildProductNode } from '@/utils/TreeVisualizer/buildProductNode';
 import { fetchProductImageBase64 } from '@/utils/TreeVisualizer/fetchProductImageBase64';
+import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
 
 const TreeRenderer: React.FC = () => {
     // State to keep track of the selected product ID and tree data

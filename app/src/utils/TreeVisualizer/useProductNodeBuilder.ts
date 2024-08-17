@@ -1,4 +1,4 @@
-// components/TreeVisualizer/useProductNodeBuilder.ts
+// utils/TreeVisualizer/useProductNodeBuilder.ts
 // 
 // — Fetching Product Details and Processes: Uses useProductDetails and useProcessesByProductId to fetch the 
 //   necessary data.

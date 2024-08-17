@@ -1,6 +1,6 @@
 // types/d3Types.ts
 
-import { InfluenceProduct, InfluenceProcess } from './influenceTypes';
+import { InfluenceProduct, InfluenceProcess } from '@/types/influenceTypes';
 
 export interface BaseNode {
     id: string;

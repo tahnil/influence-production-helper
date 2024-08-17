@@ -1,4 +1,4 @@
-// src/hooks/useProcessDetails.ts
+// hooks/useProcessDetails.ts
 
 import { useState, useCallback } from 'react';
 import { InfluenceProcess } from '@/types/influenceTypes';

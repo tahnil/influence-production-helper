@@ -1,4 +1,4 @@
-// src/hooks/useInputsByProcessId.ts
+// hooks/useInputsByProcessId.ts
 
 import { useState, useCallback } from 'react';
 import axios from 'axios';

@@ -1,8 +1,8 @@
 // components/TreeVisualizer/AmountInput.tsx
 import React from 'react';
+import { NumericFormat } from 'react-number-format';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { NumericFormat } from 'react-number-format';
 
 
 interface AmountInputProps {

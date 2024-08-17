@@ -39,8 +39,8 @@
 // ########################
 
 import * as d3 from 'd3';
-import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
 import { MutableRefObject } from 'react';
+import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
 import { formatNumber } from '@/utils/formatNumber';
 import { formatDuration } from '@/utils/formatDuration';
 
