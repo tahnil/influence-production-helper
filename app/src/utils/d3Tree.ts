@@ -417,12 +417,12 @@ export const injectForeignObjects = (
         // Your copyToClipboard function should be defined somewhere globally accessible
         function copyToClipboard(element: HTMLElement, value: string) {
             navigator.clipboard.writeText(value).then(() => {
-                element.classList.add('bg-green-100', 'text-green-800');
-                element.classList.remove('border-gray-400');
+                element.classList.add('bg-lunarGreen-100', 'text-lunarGreen-800');
+                element.classList.remove('border-falconWhite');
 
                 setTimeout(() => {
-                    element.classList.remove('bg-green-100', 'text-green-800');
-                    element.classList.add('border-gray-400');
+                    element.classList.remove('bg-lunarGreen-100', 'text-lunarGreen-800');
+                    element.classList.add('border-falconWhite');
                 }, 100);
             }).catch(err => {
                 console.error('Failed to copy: ', err);
@@ -432,11 +432,11 @@ export const injectForeignObjects = (
         // Add event listeners after the HTML is injected
         foreignObject.selectAll('div.border.cursor-pointer')
             .on('mouseover', function () {
-                d3.select(this).classed('border-gray-400', true);
+                d3.select(this).classed('border-falconWhite', true);
             })
             .on('mouseout', function () {
                 if (!d3.select(this).classed('bg-green-100')) {
-                    d3.select(this).classed('border-gray-400', false);
+                    d3.select(this).classed('border-falconWhite', false);
                 }
             })
             .on('click', function () {
