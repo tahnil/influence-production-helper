@@ -17,7 +17,7 @@ export const formatNumber = (
     }: FormatOptions = {}
 ): { formattedValue: string; unit: string } => {
     const ABSURDLY_LARGE_THRESHOLD = 1e15;
-    const ROUND_UP_THRESHOLD = 100000;
+    const ROUND_UP_THRESHOLD = 10000;
 
     // Handle absurdly large numbers upfront
     if (Math.abs(value) >= ABSURDLY_LARGE_THRESHOLD) {

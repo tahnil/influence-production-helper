@@ -341,44 +341,65 @@ export const injectForeignObjects = (
                 `;
             } else if (node.data.nodeType === 'process') {
                 const processNode = node.data as ProcessNode;
-
                 const formattedDuration = formatDuration(processNode.totalRuns, processNode.processData.mAdalianHoursPerSR);
-
-                const runs = formatNumber(processNode.totalRuns, { 
-                    minimumFractionDigits: 0, 
-                    maximumFractionDigits: 6, 
-                    scaleForUnit: true, 
-                    scaleType: 'runs' 
+                const runs = formatNumber(processNode.totalRuns, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 6,
+                    scaleForUnit: true,
+                    scaleType: 'runs'
                 });
 
-                contentHtml = `
-                    <div id="processNodeCard" class="flex flex-col items-center">
-                        <div class="w-72 shadow-lg rounded-lg overflow-hidden font-sans font-light">
-                            <div id="titleSection" class="p-2 bg-falcon-800 flex justify-center items-center gap-2.5 grid grid-cols-3">
-                                <div id="buildingIcon" class="p-2">
-                                    <img class="size-12 fill-falconWhite" src="${processNode.imageBase64}" alt="${node.data.name}">
-                                </div>
-                                <div id="processName" class="col-span-2">
-                                    <span class="text-detailText">${node.data.name}</span>
-                                </div>
-                            </div>
-                            <div id="statsSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-2">
-                                <div id="totalDuration" class="flex flex-col items-center">
-                                    <div>${formattedDuration}</div>
-                                    <div>duration</div>
-                                </div>
-                                <div id="totalRuns" class="flex flex-col items-center">
-                                    <div
-                                        class="border border-transparent border-2 border-dotted cursor-pointer" 
-                                        data-value="${processNode.totalRuns}">
-                                        ${runs.formattedValue}
+                // Check if this is a resource extraction node
+                const isResourceExtraction = processNode.children.length === 0;
+
+                if (!isResourceExtraction) {
+                    contentHtml = `
+                        <div id="processNodeCard" class="flex flex-col items-center">
+                            <div class="w-72 shadow-lg rounded-lg overflow-hidden font-sans font-light">
+                                <div id="titleSection" class="p-2 bg-falcon-800 flex justify-center items-center gap-2.5 grid grid-cols-3">
+                                    <div id="buildingIcon" class="p-2">
+                                        <img class="size-12 fill-falconWhite" src="${processNode.imageBase64}" alt="${node.data.name}">
                                     </div>
-                                    <div>${runs.unit}</div>
+                                    <div id="processName" class="col-span-2">
+                                        <span class="text-detailText">${node.data.name}</span>
+                                    </div>
+                                </div>
+                                <div id="statsSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-2">
+                                    <div id="totalDuration" class="flex flex-col items-center">
+                                        <div>${formattedDuration}</div>
+                                        <div>duration</div>
+                                    </div>
+                                    <div id="totalRuns" class="flex flex-col items-center">
+                                        <div
+                                            class="border border-transparent border-2 border-dotted cursor-pointer" 
+                                            data-value="${processNode.totalRuns}">
+                                            ${runs.formattedValue}
+                                        </div>
+                                        <div>${runs.unit}</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    contentHtml = `
+                        <div id="processNodeCard" class="flex flex-col items-center">
+                            <div class="w-64 shadow-lg rounded-lg overflow-hidden font-sans font-light">
+                                <div id="titleSection" class="p-2 bg-falcon-800 flex justify-center items-center gap-2.5 grid grid-cols-3">
+                                    <div id="buildingIcon" class="p-2">
+                                        <img class="size-12 fill-falconWhite" src="${processNode.imageBase64}" alt="${node.data.name}">
+                                    </div>
+                                    <div id="processName" class="col-span-2">
+                                        <span class="text-detailText">${node.data.name}</span>
+                                    </div>
+                                </div>
+                                <div id="noInputMsg" class="p-2 text-center text-sm text-gray-500 bg-mako-950">
+                                    No further inputs. This process extracts resources directly.
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
             }
 
             return contentHtml;

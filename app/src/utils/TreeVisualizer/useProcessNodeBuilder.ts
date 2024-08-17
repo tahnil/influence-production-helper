@@ -37,30 +37,45 @@ const useProcessNodeBuilder = () => {
             // Fetch inputs for the process
             const fetchedInputs = await getInputsByProcessId(selectedProcessId);
             // console.log('[useProcessNodeBuilder] Inputs fetched:', fetchedInputs);
-            
+
             // Calculate the required runs based on parentAmount
             // console.log('[useProcessNodeBuilder] parentId: ',parentId);
             // console.log('[useProcessNodeBuilder] processDetails: ',processDetails);
             // console.log('[useProcessNodeBuilder] outputs: ',processDetails.outputs);
-            const output = processDetails.outputs.find(output => output.productId === parentId);
-            // console.log('[useProcessNodeBuilder] output: ',output);
-            if (!output) {
-            throw new Error(`No matching output found for product ID: ${parentId}`);
+
+            // Check if this is a resource extraction process (no product inputs)
+            const isResourceExtraction = fetchedInputs.length === 0;
+
+            let totalRuns = 0;
+            let totalDuration = 0;
+            let inputNodes: ProductNode[] = [];
+
+            if (!isResourceExtraction) {
+                // Regular process logic
+                const output = processDetails.outputs.find(output => output.productId === parentId);
+                // console.log('[useProcessNodeBuilder] output: ',output);
+                if (!output) {
+                    throw new Error(`No matching output found for product ID: ${parentId}`);
+                }
+
+                const unitsPerSR = parseFloat(output.unitsPerSR || '0');
+                // console.log('[useProcessNodeBuilder] unitsPerSR: ',output?.unitsPerSR);
+                totalRuns = parentAmount / unitsPerSR;
+                // console.log('[useProcessNodeBuilder] totalRuns: ',totalRuns);
+                totalDuration = totalRuns * parseFloat(processDetails.bAdalianHoursPerAction);
+                // console.log('[useProcessNodeBuilder] totalDuration: ',totalDuration);
+
+                // Build input nodes
+                inputNodes = await Promise.all(
+                    fetchedInputs.map(async (input: ProcessInput) => {
+                        return await getProductNode(input.product.id, totalRuns * parseFloat(input.unitsPerSR));
+                    })
+                );
+            } else {
+                // Handle resource extraction logic (simplified or skipped)
+                totalRuns = 0;
+                totalDuration = 0;
             }
-
-            const unitsPerSR = parseFloat(output.unitsPerSR || '0');
-            // console.log('[useProcessNodeBuilder] unitsPerSR: ',output?.unitsPerSR);
-            const totalRuns = parentAmount / unitsPerSR;
-            // console.log('[useProcessNodeBuilder] totalRuns: ',totalRuns);
-            const totalDuration = totalRuns * parseFloat(processDetails.bAdalianHoursPerAction);
-            // console.log('[useProcessNodeBuilder] totalDuration: ',totalDuration);
-
-            // Build input nodes
-            const inputNodes: ProductNode[] = await Promise.all(
-                fetchedInputs.map(async (input: ProcessInput) => {
-                    return await getProductNode(input.product.id, totalRuns * parseFloat(input.unitsPerSR));
-                })
-            );
 
             // Fetch the imageBase64 for the process
             const imageBase64 = await fetchBuildingIconBase64(processDetails.buildingId);
