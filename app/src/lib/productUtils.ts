@@ -20,8 +20,8 @@ const convertProductToInfluenceProduct = (product: Product): InfluenceProduct =>
     type: product.type,
     category: product.category,
     quantized: product.quantized,
-    massKilogramsPerUnit: product.massKilogramsPerUnit ? parseFloat(product.massKilogramsPerUnit) : undefined,
-    volumeLitersPerUnit: product.volumeLitersPerUnit ? parseFloat(product.volumeLitersPerUnit) : undefined,
+    massKilogramsPerUnit: product.massKilogramsPerUnit,
+    volumeLitersPerUnit: product.volumeLitersPerUnit,
   };
 };
 
