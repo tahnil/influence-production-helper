@@ -294,7 +294,7 @@ export const injectForeignObjects = (
             if (node.data.nodeType === 'product') {
                 const productNode = node.data as ProductNode;
                 // console.log('[injectForeignObjects] Rendering process options for node:', productNode);
-                
+
                 // Product Node styling
                 // Use the Base64 image string
                 const units = formatNumber(productNode.amount, { minimumFractionDigits: 0, maximumFractionDigits: 6, scaleForUnit: true, scaleType: 'units' });
@@ -339,15 +339,10 @@ export const injectForeignObjects = (
                                 <div>${volume.unit}</div>
                             </div>
                         </div>
-                        <div id="moreInfosSection" class="bg-lunarGreen-500 py-1 px-2.5 flex flex-wrap items-start content-start gap-1">
-                            <select class="mt-1 w-full bg-lunarGreen-500" id="process-select-${productNode.id}" name="process-select">
-                                <option value="">-- Select a Process --</option>
-                                ${productNode.processes.map(process => `<option value="${process.id}">${process.name}</option>`).join('')}
-                            </select>
-                        </div>
                     </div>
                 </div>
                 `;
+
             } else if (node.data.nodeType === 'process') {
                 const processNode = node.data as ProcessNode;
                 const formattedDuration = formatDuration(processNode.totalRuns, processNode.processData.mAdalianHoursPerSR);
@@ -412,6 +407,65 @@ export const injectForeignObjects = (
             }
 
             return contentHtml;
+        });
+
+        foreignObject
+            .each(function (d) {
+                const productNode = d.data as ProductNode;
+
+                if (!productNode) {
+                    console.error('Product node is undefined', d);
+                    return;
+                }
+
+                const dropdown = d3.select(this).append('div')
+                    .attr('class', 'custom-dropdown')
+                    .datum(productNode); // Bind the productNode to the dropdown container
+
+                dropdown.html(`
+                    <div class="dropdown-selected border cursor-pointer">-- Select a Process --</div>
+                    <div class="dropdown-options hidden">
+                        ${Array.isArray(productNode.processes) ?
+                            productNode.processes.map(process => `
+                                <div class="dropdown-option border cursor-pointer" data-value="${process.id}">
+                                    ${process.name}
+                                </div>`).join('')
+                            : '<div class="dropdown-option">No processes available</div>'}
+                    </div>
+                `);
+            });
+
+        foreignObject.on('click', function (event) {
+            const target = event.target as HTMLElement;
+
+            if (target.classList.contains('dropdown-selected')) {
+                const dropdown = target.closest('.custom-dropdown') as HTMLElement;
+                console.log('Dropdown element:', dropdown);
+                if (dropdown) {
+                    const options = d3.select(dropdown).select('.dropdown-options');
+                    const isVisible = options.classed('hidden');
+                    options.classed('hidden', !isVisible);  // Toggle the 'hidden' class
+                    event.stopPropagation(); // Prevent click from bubbling up
+                }
+            }
+
+            if (target.classList.contains('dropdown-option')) {
+                const selectedValue = target.getAttribute('data-value');
+                const selectedText = target.textContent;
+
+                const dropdown = target.closest('.custom-dropdown') as HTMLElement;
+                console.log('Dropdown element for option:', dropdown);
+                if (dropdown) {
+                    const productNode = d3.select(dropdown).datum() as ProductNode;
+                    console.log('Retrieved product node:', productNode);
+                    if (productNode) {
+                        console.log('Selected Value:', selectedValue, 'Product Node:', productNode);
+                        buildProcessNodeCallback(selectedValue, productNode, productNode.id);
+                    } else {
+                        console.error('Product node data is undefined');
+                    }
+                }
+            }
         });
 
         // Your copyToClipboard function should be defined somewhere globally accessible
