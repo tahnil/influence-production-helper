@@ -84,23 +84,22 @@ const TreeRenderer: React.FC = () => {
     const { buildProcessNode } = useProcessNodeBuilder();
 
     const updateComponentPositions = useCallback(() => {
-        if (!d3RenderContainer.current || !transform) return;
+        if (!d3RenderContainer.current || !transform || !treeData) return;
     
-        const svgElement = d3RenderContainer.current;
-        const containerRect = svgElement.getBoundingClientRect();
+        const svgElement = d3RenderContainer.current.querySelector('svg');
+        const containerRect = svgElement?.getBoundingClientRect();
     
         const rootHierarchy = d3.hierarchy(treeData);
     
-        rootHierarchy.descendants().forEach((node) => {
-            const targetRect = svgElement.querySelector(`[data-id='${node.data.id}']`) as SVGRectElement;
+        rootHierarchy.descendants().forEach((node: HierarchyNode<D3TreeNode>) => {
+            const target = svgElement?.querySelector(`[data-id='${node.data.id}']`);
             const component = document.getElementById(`component-${node.data.id}`);
     
-            if (targetRect && component) {
-                const { x, y, width, height } = targetRect.getBBox();
+            if (target && component && containerRect) {
+                const targetRect = target.getBoundingClientRect();
     
-                // Apply D3's current transform to the positions
-                const transformedX = transform.applyX(x + width / 2);
-                const transformedY = transform.applyY(y + height / 2);
+                const transformedX = transform.applyX(targetRect.left - containerRect.left);
+                const transformedY = transform.applyY(targetRect.top - containerRect.top);
     
                 // Position the React component at the transformed coordinates
                 component.style.transform = `translate(${transformedX}px, ${transformedY}px)`;
@@ -347,9 +346,8 @@ const TreeRenderer: React.FC = () => {
                 <ProductionInputs treeData={treeData} />
             </div>
 
-            <div className="h-full w-full bg-lunarGreen-950 relative">
-                {/* Loading and error states for process nodes */}
-                <div ref={d3RenderContainer} className="flex justify-center items-center w-full h-full" />
+            <div ref={d3RenderContainer} className="h-full w-full bg-lunarGreen-950 relative">
+                <svg className="w-full h-full"></svg>
 
                 {/* Render Product and Process Nodes */}
                 {treeData && d3.hierarchy(treeData).descendants().map((node: HierarchyNode<D3TreeNode>) => {
