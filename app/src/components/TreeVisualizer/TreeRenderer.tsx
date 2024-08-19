@@ -44,16 +44,20 @@
 // ########################
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import * as d3 from 'd3';
+import { HierarchyNode } from 'd3-hierarchy';
 import { D3TreeNode, ProcessNode, ProductNode } from '@/types/d3Types';
 import AmountInput from '@/components/TreeVisualizer/AmountInput';
 import ProductionInputs from '@/components/TreeVisualizer/ProductionInputs';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import useInfluenceProducts from '@/hooks/useInfluenceProducts';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
-import { initializeD3Tree, updateD3Tree, injectForeignObjects } from '@/utils/d3Tree';
+import { initializeD3Tree, updateD3Tree, injectPlaceholders } from '@/utils/d3Tree';
 import { buildProductNode } from '@/utils/TreeVisualizer/buildProductNode';
 import { fetchProductImageBase64 } from '@/utils/TreeVisualizer/fetchProductImageBase64';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
+import ProductNodeComponent from './ProductNodeComponent';
+import ProcessNodeComponent from './ProcessNodeComponent';
 
 const TreeRenderer: React.FC = () => {
     // State to keep track of the selected product ID and tree data
@@ -79,6 +83,31 @@ const TreeRenderer: React.FC = () => {
     const { processesByProductId, getProcessesByProductId } = useProcessesByProductId();
     const { buildProcessNode } = useProcessNodeBuilder();
 
+    const updateComponentPositions = useCallback(() => {
+        if (!d3RenderContainer.current || !transform) return;
+    
+        const svgElement = d3RenderContainer.current;
+        const containerRect = svgElement.getBoundingClientRect();
+    
+        const rootHierarchy = d3.hierarchy(treeData);
+    
+        rootHierarchy.descendants().forEach((node) => {
+            const targetRect = svgElement.querySelector(`[data-id='${node.data.id}']`) as SVGRectElement;
+            const component = document.getElementById(`component-${node.data.id}`);
+    
+            if (targetRect && component) {
+                const { x, y, width, height } = targetRect.getBBox();
+    
+                // Apply D3's current transform to the positions
+                const transformedX = transform.applyX(x + width / 2);
+                const transformedY = transform.applyY(y + height / 2);
+    
+                // Position the React component at the transformed coordinates
+                component.style.transform = `translate(${transformedX}px, ${transformedY}px)`;
+            }
+        });
+    }, [treeData, transform]);
+    
     // Callback function to handle product selection
     const handleSelectProduct = useCallback(async (productId: string | null) => {
         setSelectedProduct(productId);
@@ -97,14 +126,22 @@ const TreeRenderer: React.FC = () => {
 
                 // Initialize the D3 tree with the new root node
                 if (d3RenderContainer.current) {
-                    initializeD3Tree(d3RenderContainer.current, newRootNode, rootRef, updateRef, setTransform, transform ?? undefined);
+                    initializeD3Tree(
+                        d3RenderContainer.current,
+                        newRootNode,
+                        rootRef,
+                        updateRef,
+                        setTransform,
+                        updateComponentPositions,
+                        transform ?? undefined
+                    );
                 }
 
                 // Set the tree data for further updates
                 setTreeData(newRootNode);
             }
         }
-    }, [influenceProducts, desiredAmount, getProcessesByProductId, transform]);
+    }, [influenceProducts, desiredAmount, getProcessesByProductId, transform, updateComponentPositions]);
 
     // Handle changes in the desired amount
     const handleAmountChange = (newDesiredAmount: number) => {
@@ -119,6 +156,11 @@ const TreeRenderer: React.FC = () => {
         }
     };
 
+    // Call `updateComponentPositions` on zoom
+    useEffect(() => {
+        updateComponentPositions();
+    }, [transform, treeData, updateComponentPositions]);
+
     // Update treeData when the rootNode is updated
     useEffect(() => {
         if (rootNode) {
@@ -127,7 +169,14 @@ const TreeRenderer: React.FC = () => {
 
             // Also trigger an update in the D3 tree
             if (d3RenderContainer.current) {
-                updateD3Tree(d3RenderContainer.current, rootNode, rootRef, updateRef, setTransform, transform ?? undefined);
+                updateD3Tree(
+                    d3RenderContainer.current,
+                    rootNode,
+                    rootRef,
+                    updateRef,
+                    setTransform,
+                    transform ?? undefined
+                );
             }
         }
     }, [rootNode]);
@@ -135,8 +184,16 @@ const TreeRenderer: React.FC = () => {
     // UseEffect hook to re-render the D3 tree whenever treeData changes
     useEffect(() => {
         if (treeData && d3RenderContainer.current) {
-            updateD3Tree(d3RenderContainer.current, treeData, rootRef, updateRef, setTransform, transform ?? undefined);
-            injectForeignObjects(d3RenderContainer.current, rootRef, buildProcessNodeCallback);
+            updateD3Tree(
+                d3RenderContainer.current,
+                treeData,
+                rootRef,
+                updateRef,
+                setTransform,
+                transform ?? undefined
+            );
+            injectPlaceholders(d3RenderContainer.current, rootRef);
+            updateComponentPositions();
         }
     }, [treeData]);
 
@@ -292,25 +349,38 @@ const TreeRenderer: React.FC = () => {
 
             <div className="h-full w-full bg-lunarGreen-950 relative">
                 {/* Loading and error states for process nodes */}
-                {/* {processNodeLoading && (
-                    <div className="absolute inset-0 flex justify-center items-center bg-black bg-opacity-50 z-20">
-                        <div className="text-white">Building process node...</div>
-                    </div>
-                )} */}
-                {processNodeError && (
-                    <div className="absolute inset-0 flex justify-center items-center bg-red-600 bg-opacity-50 z-20">
-                        <div className="text-white">{processNodeError}</div>
-                    </div>
-                )}
-                {/* D3 Diagram Area */}
-                {(!loading && !error) && (
-                    <div 
-                        ref={d3RenderContainer} 
-                        className="flex justify-center items-center w-full h-full" 
-                    />
-                )}
-            </div>
+                <div ref={d3RenderContainer} className="flex justify-center items-center w-full h-full" />
 
+                {/* Render Product and Process Nodes */}
+                {treeData && d3.hierarchy(treeData).descendants().map((node: HierarchyNode<D3TreeNode>) => {
+                    const isProductNode = node.data.nodeType === 'product';
+                    const Component = isProductNode ? ProductNodeComponent : ProcessNodeComponent;
+
+                    return (
+                        <div
+                            key={node.data.id}
+                            id={`component-${node.data.id}`}
+                            style={{ position: 'absolute', transform: 'translate(0px, 0px)', zIndex: 1000 }}
+                        >
+                            {isProductNode ? (
+                                <ProductNodeComponent
+                                    nodeData={node.data as ProductNode}
+                                    onSelectProcess={(processId) => {
+                                        const productNode = node.data as ProductNode;
+                                        buildProcessNodeCallback(processId, productNode, productNode.id).catch(err => {
+                                            console.error('Error processing node:', err);
+                                        });
+                                    }}
+                                />
+                            ) : (
+                                <ProcessNodeComponent
+                                    nodeData={node.data as ProcessNode}
+                                />
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 };

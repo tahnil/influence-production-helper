@@ -77,6 +77,7 @@ export const initializeD3Tree = (
     rootRef: MutableRefObject<d3.HierarchyPointNode<D3TreeNode> | null>,
     updateRef: MutableRefObject<(source: d3.HierarchyPointNode<D3TreeNode> | null) => void>,
     setTransform: (transform: d3.ZoomTransform) => void,
+    handleZoom: (transform: d3.ZoomTransform) => void,  // New parameter
     previousTransform?: d3.ZoomTransform
 ) => {
     // Check if an SVG already exists in the container
@@ -121,6 +122,7 @@ export const initializeD3Tree = (
         .on('zoom', (event) => {
             g.attr('transform', event.transform);
             setTransform(event.transform);
+            handleZoom(event.transform);  // Call the passed handleZoom function
         });
 
     svg.call(zoom);
@@ -262,209 +264,29 @@ export const updateD3Tree = (
     }
 };
 
-// Function to inject foreign objects into the D3 nodes
-export const injectForeignObjects = (
+// utils/d3Tree.ts
+
+export const injectPlaceholders = (
     container: HTMLDivElement,
     rootRef: React.MutableRefObject<d3.HierarchyPointNode<D3TreeNode> | null>,
-    buildProcessNodeCallback: (selectedProcessId: string | null, parentNode: D3TreeNode, parentId: string | null) => Promise<void>
 ) => {
     const svg = d3.select(container).select('svg g');
     const nodeSelection = svg.selectAll<SVGGElement, d3.HierarchyPointNode<D3TreeNode>>('g.node');
 
     nodeSelection.each(function (d) {
-        // console.log('[injectForeignObjects] Injecting foreignObject for product node:', d);
-
         const nodeElement = d3.select(this);
-        nodeElement.selectAll('foreignObject').remove();
 
-        const foreignObjectWidth = 288;
+        // Remove any existing placeholder rects
+        nodeElement.selectAll('rect.placeholder').remove();
 
-        const foreignObject = nodeElement.append('foreignObject')
-            .attr('width', foreignObjectWidth)
-            .attr('x', -foreignObjectWidth / 10)
-            .style('overflow', 'visible')
-            .append('xhtml:div')
-            .style('width', `${foreignObjectWidth}px`)
-            .style('box-sizing', 'border-box');
-
-        foreignObject.html(d => {
-            const node = d as d3.HierarchyPointNode<D3TreeNode>;
-            let contentHtml = '';
-
-            if (node.data.nodeType === 'product') {
-                const productNode = node.data as ProductNode;
-                // console.log('[injectForeignObjects] Rendering process options for node:', productNode);
-                
-                // Product Node styling
-                // Use the Base64 image string
-                const units = formatNumber(productNode.amount, { minimumFractionDigits: 0, maximumFractionDigits: 6, scaleForUnit: true, scaleType: 'units' });
-                const weight = formatNumber(productNode.totalWeight, { scaleForUnit: true, scaleType: 'weight' });
-                const volume = formatNumber(productNode.totalVolume, { scaleForUnit: true, scaleType: 'volume' });
-
-                contentHtml = `
-                <div id="productNodeCard" class="flex flex-col items-center">
-                    <div class="w-72 shadow-lg rounded-lg overflow-hidden font-sans font-light">
-                        <div id="titleSection" class="p-2 bg-mako-900 flex justify-center items-center gap-2.5 grid grid-cols-3">
-                            <div id="productIcon" class="p-2">
-                        <img src="${productNode.imageBase64}" alt="${node.data.name}">
-                            </div>
-                            <div id="productName" class="col-span-2">
-                                <span class="text-detailText">${node.data.name}</span>
-                            </div>
-                        </div>
-                        <div id="productStatsSection" class="bg-mako-900 py-1 px-2.5 flex flex-wrap items-start content-start gap-1">
-                            <div class="p-[2px] rounded bg-mako-950">${productNode.productData.category}</div>
-                            <div class="p-[2px] rounded bg-mako-950">${productNode.productData.massKilogramsPerUnit} kg</div>
-                            <div class="p-[2px] rounded bg-mako-950">${productNode.productData.volumeLitersPerUnit} L</div>
-                        </div>
-                        <div id="outputSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-3">
-                            <div id="units" class="flex flex-col items-center">
-                                <div 
-                                    class="border border-transparent border-2 border-dotted cursor-pointer" 
-                                    data-value="${productNode.amount}">
-                                    ${units.formattedValue}
-                                </div>
-                                <div>${units.unit}</div>
-                            </div>
-                            <div id="weight" class="flex flex-col items-center">
-                                <div 
-                                    class="border border-transparent border-2 border-dotted cursor-pointer" 
-                                    data-value="${productNode.totalWeight}">
-                                    ${weight.formattedValue}
-                                </div>
-                                <div>${weight.unit}</div>
-                            </div>
-                            <div id="volume" class="flex flex-col items-center">
-                                <div>${volume.formattedValue}</div>
-                                <div>${volume.unit}</div>
-                            </div>
-                        </div>
-                        <div id="moreInfosSection" class="bg-lunarGreen-500 py-1 px-2.5 flex flex-wrap items-start content-start gap-1">
-                            <select class="mt-1 w-full bg-lunarGreen-500" id="process-select-${productNode.id}" name="process-select">
-                                <option value="">-- Select a Process --</option>
-                                ${productNode.processes.map(process => `<option value="${process.id}">${process.name}</option>`).join('')}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                `;
-            } else if (node.data.nodeType === 'process') {
-                const processNode = node.data as ProcessNode;
-                const formattedDuration = formatDuration(processNode.totalRuns, processNode.processData.mAdalianHoursPerSR);
-                const runs = formatNumber(processNode.totalRuns, {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 6,
-                    scaleForUnit: true,
-                    scaleType: 'runs'
-                });
-
-                // Check if this is a resource extraction node
-                const isResourceExtraction = processNode.children.length === 0;
-
-                if (!isResourceExtraction) {
-                    contentHtml = `
-                        <div id="processNodeCard" class="flex flex-col items-center">
-                            <div class="w-72 shadow-lg rounded-lg overflow-hidden font-sans font-light">
-                                <div id="titleSection" class="p-2 bg-falcon-800 flex justify-center items-center gap-2.5 grid grid-cols-3">
-                                    <div id="buildingIcon" class="p-2">
-                                        <img class="size-12 fill-falconWhite" src="${processNode.imageBase64}" alt="${node.data.name}">
-                                    </div>
-                                    <div id="processName" class="col-span-2">
-                                        <span class="text-detailText">${node.data.name}</span>
-                                    </div>
-                                </div>
-                                <div id="statsSection" class="p-2 bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-2">
-                                    <div id="totalDuration" class="flex flex-col items-center">
-                                        <div>${formattedDuration}</div>
-                                        <div>duration</div>
-                                    </div>
-                                    <div id="totalRuns" class="flex flex-col items-center">
-                                        <div
-                                            class="border border-transparent border-2 border-dotted cursor-pointer" 
-                                            data-value="${processNode.totalRuns}">
-                                            ${runs.formattedValue}
-                                        </div>
-                                        <div>${runs.unit}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    contentHtml = `
-                        <div id="processNodeCard" class="flex flex-col items-center">
-                            <div class="w-64 shadow-lg rounded-lg overflow-hidden font-sans font-light">
-                                <div id="titleSection" class="p-2 bg-falcon-800 flex justify-center items-center gap-2.5 grid grid-cols-3">
-                                    <div id="buildingIcon" class="p-2">
-                                        <img class="size-12 fill-falconWhite" src="${processNode.imageBase64}" alt="${node.data.name}">
-                                    </div>
-                                    <div id="processName" class="col-span-2">
-                                        <span class="text-detailText">${node.data.name}</span>
-                                    </div>
-                                </div>
-                                <div id="noInputMsg" class="p-2 text-center text-sm text-gray-500 bg-mako-950">
-                                    No further inputs. This process extracts resources directly.
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-
-            return contentHtml;
-        });
-
-        // Your copyToClipboard function should be defined somewhere globally accessible
-        function copyToClipboard(element: HTMLElement, value: string) {
-            navigator.clipboard.writeText(value).then(() => {
-                element.classList.add('bg-lunarGreen-100', 'text-lunarGreen-800');
-                element.classList.remove('border-falconWhite');
-
-                setTimeout(() => {
-                    element.classList.remove('bg-lunarGreen-100', 'text-lunarGreen-800');
-                    element.classList.add('border-falconWhite');
-                }, 100);
-            }).catch(err => {
-                console.error('Failed to copy: ', err);
-            });
-        }
-
-        // Add event listeners after the HTML is injected
-        foreignObject.selectAll('div.border.cursor-pointer')
-            .on('mouseover', function () {
-                d3.select(this).classed('border-falconWhite', true);
-            })
-            .on('mouseout', function () {
-                if (!d3.select(this).classed('bg-green-100')) {
-                    d3.select(this).classed('border-falconWhite', false);
-                }
-            })
-            .on('click', function () {
-                const value = d3.select(this).attr('data-value');
-                copyToClipboard(this as HTMLElement, value ?? '');
-            });
-
-        // Dynamically set the height of the foreign object to match its content
-        const htmlElement = foreignObject.node() as HTMLElement;
-        const foreignObjectHeight = htmlElement.getBoundingClientRect().height;
-
-        nodeElement.select('foreignObject')
-            .attr('height', foreignObjectHeight)
-            .attr('y', -foreignObjectHeight / 2);
-
-        // Attach event listeners for process selection
-        if (d.data.nodeType === 'product') {
-            const productNode = d.data as ProductNode;
-            foreignObject.select('select').on('change', async function () {
-                const selectedProcessId = (this as HTMLSelectElement).value;
-                try {
-                    if (selectedProcessId) {
-                        await buildProcessNodeCallback(selectedProcessId, d.data, d.data.id);
-                    }
-                } catch (err) {
-                    console.error('[injectForeignObjects] Failed to build process node:', err);
-                }
-            });
-        }
+        // Add a placeholder rect element
+        nodeElement.append('rect')
+            .attr('class', 'placeholder')
+            .attr('width', 240)  // Width of your component
+            .attr('height', 140) // Height of the node
+            .attr('x', -120) // Center the placeholder horizontally
+            .attr('y', -70)  // Center the placeholder vertically
+            .attr('fill', 'transparent') // Transparent background
+            .attr('data-id', d.data.id); // Attach the node ID for reference
     });
 };
