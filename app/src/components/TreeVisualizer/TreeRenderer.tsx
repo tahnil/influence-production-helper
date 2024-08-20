@@ -24,6 +24,7 @@ const TreeRenderer: React.FC = () => {
 
     const { influenceProducts, loading, error } = useInfluenceProducts();
     const { processesByProductId, getProcessesByProductId } = useProcessesByProductId();
+    const { buildProcessNode } = useProcessNodeBuilder();
 
     const handleSelectProduct = useCallback(async (productId: string | null) => {
         setSelectedProduct(productId);
@@ -44,8 +45,88 @@ const TreeRenderer: React.FC = () => {
         setDesiredAmount(newDesiredAmount);
         if (treeData && rootNode) {
             const updatedTreeData = JSON.parse(JSON.stringify(treeData)); // Deep clone to ensure immutability
+            recalculateTreeValues(updatedTreeData as ProductNode, newDesiredAmount);
             setTreeData(updatedTreeData);
         }
+    };
+
+    const buildProcessNodeCallback = useCallback(async (selectedProcessId: string | null, parentNode: D3TreeNode, parentId: string | null) => {
+        if (!selectedProcessId || parentNode.nodeType !== 'product') return;
+        try {
+            const parentProductNode = parentNode as ProductNode;
+            const newProcessNode = await buildProcessNode(selectedProcessId, parentProductNode.amount, parentProductNode.productData.id);
+
+            if (!newProcessNode) throw new Error('Failed to build process node');
+
+            // Update the tree with the new process node
+            const updateTreeData = (node: D3TreeNode): D3TreeNode => {
+                if (node.id === parentNode.id) {
+                    const productNode = node as ProductNode;
+                    const existingProcessIndex = productNode.children.findIndex(child => child.nodeType === 'process');
+                    if (existingProcessIndex !== -1) {
+                        // Replace the existing process node
+                        const updatedChildren = [...productNode.children];
+                        updatedChildren[existingProcessIndex] = newProcessNode;
+                        return { ...productNode, children: updatedChildren };
+                    } else {
+                        return { ...productNode, children: [...productNode.children, newProcessNode] };
+                    }
+                } else if (node.children) {
+                    return { ...node, children: node.children.map(updateTreeData) };
+                }
+                return node;
+            };
+
+            setTreeData(prevTreeData => {
+                const updatedTreeData = prevTreeData ? updateTreeData(prevTreeData) : null;
+                return updatedTreeData;
+            });
+        } catch (err) {
+            console.error('[TreeRenderer] Failed to build process node:', err);
+        }
+    }, [buildProcessNode]);
+
+    const recalculateTreeValues = (rootNode: ProductNode, desiredAmount: number) => {
+        const updateNodeValues = (node: ProductNode | ProcessNode, parentNode?: ProductNode | ProcessNode) => {
+            if (node.nodeType === 'product') {
+                const productNode = node as ProductNode;
+
+                if (!parentNode) {
+                    productNode.amount = desiredAmount;
+                } else if (parentNode.nodeType === 'process') {
+                    const processNode = parentNode as ProcessNode;
+                    const input = processNode.processData.inputs.find(input => input.productId === productNode.productData.id);
+                    if (input) {
+                        const unitsPerSR = parseFloat(input.unitsPerSR || '0');
+                        productNode.amount = processNode.totalRuns * unitsPerSR;
+                    }
+                }
+
+                productNode.totalWeight = productNode.amount * parseFloat(productNode.productData.massKilogramsPerUnit || '0');
+                productNode.totalVolume = productNode.amount * parseFloat(productNode.productData.volumeLitersPerUnit || '0');
+
+                if (productNode.children) {
+                    productNode.children.forEach(child => updateNodeValues(child, productNode));
+                }
+            } else if (node.nodeType === 'process') {
+                const processNode = node as ProcessNode;
+                if (parentNode && parentNode.nodeType === 'product') {
+                    const parentProductNode = parentNode as ProductNode;
+                    const output = processNode.processData.outputs.find(output => output.productId === parentProductNode.productData.id);
+                    if (output) {
+                        const unitsPerSR = parseFloat(output.unitsPerSR || '0');
+                        processNode.totalRuns = parentProductNode.amount / unitsPerSR;
+                        processNode.totalDuration = processNode.totalRuns * parseFloat(processNode.processData.bAdalianHoursPerAction || '0');
+                    }
+
+                    if (processNode.children) {
+                        processNode.children.forEach(child => updateNodeValues(child, processNode));
+                    }
+                }
+            }
+        };
+
+        updateNodeValues(rootNode);
     };
 
     if (loading) return <div>Loading products...</div>;
@@ -96,25 +177,10 @@ const TreeRenderer: React.FC = () => {
 
                                         return (
                                             <Group key={`node-${i}`} top={node.y} left={node.x}>
-                                                <rect
-                                                    width={100}
-                                                    height={40}
-                                                    y={-20}
-                                                    x={-50}
-                                                    fill="#272b4d"
-                                                    stroke="#03c0dc"
-                                                    strokeWidth={1}
-                                                    rx={10}
+                                                <Component
+                                                    nodeData={node.data as ProductNode | ProcessNode}
+                                                    onSelectProcess={isProductNode ? buildProcessNodeCallback : undefined}
                                                 />
-                                                <text
-                                                    dy=".33em"
-                                                    fontSize={12}
-                                                    fontFamily="Arial"
-                                                    textAnchor="middle"
-                                                    fill="white"
-                                                >
-                                                    {node.data.name}
-                                                </text>
                                             </Group>
                                         );
                                     })}
