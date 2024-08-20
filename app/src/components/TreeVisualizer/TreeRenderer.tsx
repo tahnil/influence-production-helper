@@ -50,10 +50,9 @@ import ProductionInputs from '@/components/TreeVisualizer/ProductionInputs';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import useInfluenceProducts from '@/hooks/useInfluenceProducts';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
-import { Tree } from '@visx/hierarchy';
+import { Tree, hierarchy } from '@visx/hierarchy';
 import { Group } from '@visx/group';
 import { LinkHorizontal } from '@visx/shape';
-import { hierarchy } from 'd3-hierarchy';
 import ProductNodeComponent from './ProductNodeComponent';
 import ProcessNodeComponent from './ProcessNodeComponent';
 import { fetchProductImageBase64 } from '@/utils/TreeVisualizer/fetchProductImageBase64';
@@ -236,31 +235,41 @@ const TreeRenderer: React.FC = () => {
 
             <div className="h-full w-full bg-lunarGreen-950 relative">
                 {treeData && (
+                    <svg width="100%" height="100%">
                     <Tree
                         root={hierarchy(treeData)}
-                        size={[800, 600]}
-                        nodeComponent={({ node }) => {
+                            size={[1000, 600]}
+                            separation={(a, b) => (a.parent === b.parent ? 1 : 1.5) / a.depth}
+                        >
+                            {(tree) => (
+                                <Group top={50} left={50}>
+                                    {tree.links().map((link, i) => (
+                                        <LinkHorizontal
+                                            key={`link-${i}`}
+                                            data={link}
+                                            stroke="gray"
+                                            strokeWidth="1"
+                                            fill="none"
+                                        />
+                                    ))}
+
+                                    {tree.descendants().map((node, i) => {
                             const isProductNode = node.data.nodeType === 'product';
                             const Component = isProductNode ? ProductNodeComponent : ProcessNodeComponent;
 
                             return (
-                                <Group top={node.y} left={node.x}>
+                                            <Group key={`node-${i}`} top={node.y} left={node.x}>
                                     <Component
                                         nodeData={node.data as ProductNode | ProcessNode}
                                         onSelectProcess={isProductNode ? buildProcessNodeCallback : undefined}
                                     />
                                 </Group>
                             );
-                        }}
-                        linkComponent={({ link }) => (
-                            <LinkHorizontal
-                                data={link}
-                                stroke="gray"
-                                strokeWidth="1"
-                                fill="none"
-                            />
-                        )}
-                    />
+                                    })}
+                                </Group>
+                            )}
+                        </Tree>
+                    </svg>
                 )}
             </div>
         </div>
