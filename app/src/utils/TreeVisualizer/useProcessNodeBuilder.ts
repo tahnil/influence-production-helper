@@ -6,13 +6,14 @@
 // — Building Process Node: Constructs a new process node with the fetched input nodes as children.
 
 import { useState, useCallback } from 'react';
-import { ProcessNode, ProductNode } from '@/types/d3Types';
+import { Node } from '@xyflow/react';
 import useInputsByProcessId from '@/hooks/useInputsByProcessId';
 import useProductNodeBuilder from './useProductNodeBuilder';
 import { generateUniqueId } from '@/utils/generateUniqueId';
 import { ProcessInput, InfluenceProcess } from '@/types/influenceTypes';
 import useProcessDetails from '@/hooks/useProcessDetails';
 import { fetchBuildingIconBase64 } from './fetchBuildingIconBase64';
+import { ProductNodeData } from '@/types/reactFlowTypes';
 
 const useProcessNodeBuilder = () => {
     const { getInputsByProcessId } = useInputsByProcessId();
@@ -21,7 +22,7 @@ const useProcessNodeBuilder = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const buildProcessNode = useCallback(async (selectedProcessId: string | null, parentAmount: number, parentId: string): Promise<ProcessNode | null> => {
+    const buildProcessNode = useCallback(async (selectedProcessId: string | null, parentAmount: number, parentId: string): Promise<ProcessFlowNode | null> => {
         if (!selectedProcessId) return null;
 
         setLoading(true);
@@ -48,7 +49,7 @@ const useProcessNodeBuilder = () => {
 
             let totalRuns = 0;
             let totalDuration = 0;
-            let inputNodes: ProductNode[] = [];
+            let inputNodes: Node<ProductNodeData>[] = [];
 
             if (!isResourceExtraction) {
                 // Regular process logic
@@ -81,17 +82,19 @@ const useProcessNodeBuilder = () => {
             const imageBase64 = await fetchBuildingIconBase64(processDetails.buildingId);
 
             // Create the new process node
-            const newProcessNode: ProcessNode = {
+            const newProcessNode: ProcessFlowNode = {
                 id: generateUniqueId(),
-                name: processDetails.name,
-                nodeType: 'process',
-                processData: processDetails,
-                totalDuration,
-                totalRuns,
-                children: inputNodes,
-                _children: [],
-                sideProducts: [],
-                imageBase64: imageBase64,
+                type: 'processNode', // Custom node type
+                data: {
+                    name: processDetails.name,
+                    processData: processDetails,
+                    totalDuration,
+                    totalRuns,
+                    children: inputNodes,
+                    sideProducts: [],
+                    imageBase64: imageBase64,
+                },
+                position: { x: 0, y: 0 }, // Initial position, can be adjusted later
             };
 
             // console.log('[useProcessNodeBuilder] New process node:', newProcessNode);
