@@ -32,7 +32,6 @@ export const buildProductNode = (
         totalVolume,
         processes: processes,
         imageBase64: imageBase64,
-        buildProcessNodeCallback: buildProcessNodeCallback,
     };
 
     // Return the React Flow node

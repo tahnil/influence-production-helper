@@ -2,7 +2,7 @@
 import { Node as ReactFlowNode } from '@xyflow/react';
 import { InfluenceProduct, InfluenceProcess } from '@/types/influenceTypes';
 
-export interface ProductNodeData {
+export interface ProductNodeData extends Record<string, unknown> {
     name: string;
     productData: InfluenceProduct;
     amount: number;
@@ -10,7 +10,6 @@ export interface ProductNodeData {
     totalVolume: number;
     processes: InfluenceProcess[];
     imageBase64: string;
-    buildProcessNodeCallback?: (selectedProcessId: string, parentNode: ReactFlowNode<ProductNodeData>) => void;
 }
 
 export interface ProcessNodeData {

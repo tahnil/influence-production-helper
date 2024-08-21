@@ -3,7 +3,13 @@
 import React from 'react';
 import { ProductNodeData } from '@/types/reactFlowTypes';
 
-const ProductNodeComponent = ({ data }: { data: ProductNodeData }) => {
+interface ProductNodeComponentProps {
+    data: ProductNodeData;
+    id: string;
+    buildProcessNodeCallback?: (selectedProcessId: string, parentNodeId: string) => void;
+}
+
+const ProductNodeComponent: React.FC<ProductNodeComponentProps> = ({ data, id, buildProcessNodeCallback }) => {
     const {
         name,
         productData,
@@ -12,16 +18,16 @@ const ProductNodeComponent = ({ data }: { data: ProductNodeData }) => {
         totalVolume,
         processes,
         imageBase64,
-        buildProcessNodeCallback
     } = data;
 
     console.log("ProductNodeComponent data:", data);
 
-    const handleProcessChange = (e) => {
+    const handleProcessChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const selectedProcessId = e.target.value;
         console.log("selectedProcessId:", selectedProcessId);
+        // Send id of this product node as parent node to buildProcessNodeCallback
         if (typeof buildProcessNodeCallback === 'function') {
-            buildProcessNodeCallback(selectedProcessId, data);
+            buildProcessNodeCallback(selectedProcessId, id);
         } else {
             console.error("buildProcessNodeCallback is not a function or undefined");
         }
