@@ -1,3 +1,4 @@
+// types/reactFlowTypes.ts:
 // Updated types to fit React Flow's Node structure
 import { Node as ReactFlowNode } from '@xyflow/react';
 import { InfluenceProduct, InfluenceProcess } from '@/types/influenceTypes';

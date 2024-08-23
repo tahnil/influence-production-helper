@@ -16,9 +16,6 @@ The Production Chain Configurator is a web application designed to help users co
    - For each product and intermediate product in the production chain, users can select appropriate processes from a list.
    - The configuration is recursive, allowing users to drill down into intermediate products and configure their production processes as well.
 
-4. **Production Chain Visualization**:
-   - Once the production chain is fully configured, users can submit it and view a detailed JSON representation of the entire chain, including all products and processes involved.
-
 ## Technologies Used
 
 - **Next.js**: A React framework for server-side rendering and generating static websites.
