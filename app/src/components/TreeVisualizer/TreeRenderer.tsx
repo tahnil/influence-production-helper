@@ -44,25 +44,12 @@
 // ########################
 
 import React, { useState, useCallback } from 'react';
-import { ReactFlow, addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
+import { ReactFlow, addEdge, applyEdgeChanges, applyNodeChanges, Edge, Node } from '@xyflow/react';
 import ProductNode from './ProductNode';
 import ProcessNode from './ProcessNode';
-import '@xyflow/react/dist/style.css';
-
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
-
-const initialNodes = [
-    {
-        id: '1',
-        type: 'productNode',
-        position: { x: 0, y: 0 },
-        data: {
-            product: 'End Product',
-            processes: ['Process A', 'Process B', 'Process C'],
-            onProcessSelected: (process: string) => console.log(`Process selected: ${process}`),
-        },
-    },
-];
+import { generateUniqueId } from '@/utils/generateUniqueId';
+import '@xyflow/react/dist/style.css';
 
 const nodeTypes = {
     productNode: ProductNode,
@@ -70,8 +57,8 @@ const nodeTypes = {
 };
 
 const TreeRenderer: React.FC = () => {
-    const [nodes, setNodes] = useState([]);
-    const [edges, setEdges] = useState([]);
+    const [nodes, setNodes] = useState<Node[]>([]);
+    const [edges, setEdges] = useState<Edge[]>([]);
 
     const onNodesChange = useCallback(
         (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -88,10 +75,34 @@ const TreeRenderer: React.FC = () => {
         [setEdges]
     );
 
+    const removeNodeAndDescendants = useCallback(
+        (nodeId: string) => {
+            const descendantEdges = edges.filter(edge => edge.source === nodeId);
+
+            descendantEdges.forEach(edge => removeNodeAndDescendants(edge.target));
+
+            // Remove the node and its associated edges
+            setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+            setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+        },
+        [edges]
+    );
+
     const handleProcessSelected = useCallback(
-        (nodeId, selectedProcess) => {
-            const processNodeId = `${nodeId}-process-${selectedProcess}`;
-            const newProcessNode = {
+        (parentNodeId: string, selectedProcess: string) => {
+      const processNodeId = generateUniqueId(); // Generate a unique ID for the process node
+
+            // Check if there is an existing process node connected to this parent product node
+            const existingProcessNode = nodes.find((node) =>
+                node.parentId === parentNodeId && node.type === 'processNode'
+            );
+
+            if (existingProcessNode) {
+                removeNodeAndDescendants(existingProcessNode.id);
+            }
+
+            // Create the new process node
+            const newProcessNode: Node = {
                 id: processNodeId,
                 type: 'processNode',
                 position: { x: 200, y: 100 },
@@ -99,48 +110,64 @@ const TreeRenderer: React.FC = () => {
                     processName: selectedProcess,
                     inputProducts: ['Input Product 1', 'Input Product 2'],
                 },
+                parentId: parentNodeId,
             };
+            console.log('A new ProcessNode has been created:\n', newProcessNode);
 
-            const inputProductNodes = ['Input Product 1', 'Input Product 2'].map(
-                (product, index) => ({
-                    id: `${processNodeId}-product-${index}`,
+            // Create new product nodes for the inputs
+            const inputProductNodes = newProcessNode.data.inputProducts.map((product, index) => {
+                const inputProductNodeId = generateUniqueId();
+                return {
+                    id: inputProductNodeId,
                     type: 'productNode',
                     position: { x: 400, y: index * 100 },
                     data: {
                         product,
                         processes: ['Process X', 'Process Y'],
                         onProcessSelected: (process: string) =>
-                            handleProcessSelected(`${processNodeId}-product-${index}`, process),
+                            handleProcessSelected(inputProductNodeId, process),
                     },
-                })
-            );
+                    parentId: processNodeId, // This product node's parent is the process node
+                };
+            });
+            console.log('One or many children ProductNode has been created:\n', inputProductNodes);
 
             setNodes((nds) => nds.concat(newProcessNode, ...inputProductNodes));
 
-            const newEdges = inputProductNodes.map((inputNode) => ({
-                id: `e-${processNodeId}-${inputNode.id}`,
+            // Create an edge to connect the process node to the product node
+            const newEdge: Edge = {
+                id: generateUniqueId(),
+                source: parentNodeId,
+                target: processNodeId,
+            };
+
+            // Create edges to connect the process node to the input product nodes
+            const inputProductEdges = inputProductNodes.map((inputNode) => ({
+                id: generateUniqueId(),
                 source: processNodeId,
                 target: inputNode.id,
             }));
 
-            setEdges((eds) => eds.concat(newEdges));
+            setEdges((eds) => eds.concat(newEdge, ...inputProductEdges));
         },
-        [setNodes, setEdges]
+        [nodes, edges, removeNodeAndDescendants]
     );
 
     const handleProductSelect = useCallback(
         (productName: string) => {
-            const initialNode = {
-                id: 'initial-product',
+            const rootNodeId = generateUniqueId(); // Generate unique ID for the root product node
+            const initialNode: Node = {
+                id: rootNodeId,
                 type: 'productNode',
                 position: { x: 0, y: 0 },
                 data: {
                     product: productName,
                     processes: ['Process A', 'Process B', 'Process C'],
                     onProcessSelected: (process: string) =>
-                        handleProcessSelected('initial-product', process),
+                        handleProcessSelected(rootNodeId, process), // Pass the root node's ID as parentNodeId
                 },
             };
+            console.log('A new Root ProductNode has been created:\n', initialNode);
 
             setNodes([initialNode]);
             setEdges([]);
@@ -166,7 +193,7 @@ const TreeRenderer: React.FC = () => {
                     onConnect={onConnect}
                     nodeTypes={nodeTypes}
                     fitView
-                    style={{ backgroundColor: '#D3D2E5' }}
+                    style={{ backgroundColor: '#282C34' }}
                 />
             </div>
         </div>

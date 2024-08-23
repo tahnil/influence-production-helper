@@ -21,13 +21,13 @@ export interface ProcessNodeData {
     imageBase64: string;
 }
 
-export type ProcessNodeComponent = ReactFlowNode<
+export type ProcessNode = ReactFlowNode<
     {
         data: ProcessNodeData
     }
 >;
 
-export type ProductNodeComponent = ReactFlowNode<
+export type ProductNode = ReactFlowNode<
     {
         data: ProductNodeData
     }
