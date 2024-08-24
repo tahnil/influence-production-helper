@@ -1,30 +1,29 @@
+// components/TreeVisualizer/ProductNode.tsx
+
 import { useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { InfluenceProduct } from '@/types/influenceTypes';
+import { InfluenceProduct, InfluenceProcess } from '@/types/influenceTypes';
 
 interface ProductNodeProps {
   id: string;
   data: {
     InfluenceProduct: InfluenceProduct;  // Updated to match the new structure
     ProductionChainData: any;  // Placeholder for now; update as needed
-    onProcessSelected: (process: string) => void;
+    processes: InfluenceProcess[];  // Array of processes
+    onProcessSelected: (processId: string) => void;
   };
 }
 
 const handleStyle = { left: 10 };
 
 const ProductNode: React.FC<ProductNodeProps> = ({ id, data }) => {
-  const { InfluenceProduct, onProcessSelected } = data;
-
-  // Assuming 'processes' should come from some aspect of InfluenceProduct or ProductionChainData.
-  // Since it's not in InfluenceProduct, you may need to define it or fetch it elsewhere.
-  const processes = data.ProductionChainData.processes || [];  // Update this line to get the correct processes list
+  const { InfluenceProduct, processes, onProcessSelected } = data;
 
   const handleSelectProcess = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedProcess = event.target.value;
-    if (selectedProcess) {
-      onProcessSelected(selectedProcess);
+      const selectedProcessId = event.target.value;
+      if (selectedProcessId) {
+        onProcessSelected(selectedProcessId);
     }
     },
     [onProcessSelected]
@@ -37,9 +36,9 @@ const ProductNode: React.FC<ProductNodeProps> = ({ id, data }) => {
         <label htmlFor={`process-select-${id}`}>Select Process for {InfluenceProduct.name}:</label>
         <select id={`process-select-${id}`} onChange={handleSelectProcess}>
           <option value="">Select a process</option>
-          {processes.map((process: string) => (
-            <option key={process} value={process}>
-              {process}
+          {processes.map((process: InfluenceProcess) => (
+            <option key={process.id} value={process.id}>
+              {process.name}
             </option>
           ))}
         </select>

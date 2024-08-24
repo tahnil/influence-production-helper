@@ -49,11 +49,12 @@ import ProductNode from './ProductNode';
 import ProcessNode from './ProcessNode';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import useInfluenceProducts from '@/hooks/useInfluenceProducts';
+import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 import { generateUniqueId } from '@/utils/generateUniqueId';
 import '@xyflow/react/dist/style.css';
 
 interface ProductionChainData {
-  // Define this interface based on your requirements later
+    // Define this interface based on your requirements later
 }
 
 const nodeTypes = {
@@ -63,6 +64,7 @@ const nodeTypes = {
 
 const TreeRenderer: React.FC = () => {
     const { influenceProducts } = useInfluenceProducts();
+    const { getProcessesByProductId } = useProcessesByProductId();
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
 
@@ -96,7 +98,7 @@ const TreeRenderer: React.FC = () => {
 
     const handleProcessSelected = useCallback(
         (parentNodeId: string, selectedProcess: string) => {
-      const processNodeId = generateUniqueId(); // Generate a unique ID for the process node
+            const processNodeId = generateUniqueId(); // Generate a unique ID for the process node
 
             // Check if there is an existing process node connected to this parent product node
             const existingProcessNode = nodes.find((node) =>
@@ -160,7 +162,7 @@ const TreeRenderer: React.FC = () => {
     );
 
     const handleProductSelect = useCallback(
-        (productId: string) => {
+        async (productId: string) => {
             const rootNodeId = generateUniqueId(); // Generate unique ID for the root product node
             const selectedProduct = influenceProducts.find(product => product.id === productId);
 
@@ -169,23 +171,31 @@ const TreeRenderer: React.FC = () => {
                 return;
             }
 
-            const initialNode: Node = {
-                id: rootNodeId,
-                type: 'productNode',
-                position: { x: 0, y: 0 },
-                data: {
-                    InfluenceProduct: selectedProduct, // Store the detailed product data
-                    ProductionChainData: {}, // Initialize empty ProductionChainData (to be defined later)
-                    onProcessSelected: (process: string) =>
-                        handleProcessSelected(rootNodeId, process), // Pass the root node's ID as parentNodeId
-                },
-            };
-            console.log('A new Root ProductNode has been created:\n', initialNode);
+            try {
+                // Fetch processes that yield this product
+                const processes = await getProcessesByProductId(productId);
 
-            setNodes([initialNode]);
-            setEdges([]);
+                const initialNode: Node = {
+                    id: rootNodeId,
+                    type: 'productNode',
+                    position: { x: 0, y: 0 },
+                    data: {
+                        InfluenceProduct: selectedProduct, // Store the detailed product data
+                        ProductionChainData: {}, // Initialize empty ProductionChainData (to be defined later)
+                        processes, // Store the fetched processes in the node data
+                        onProcessSelected: (process: string) =>
+                            handleProcessSelected(rootNodeId, process), // Pass the root node's ID as parentNodeId
+                    },
+                };
+                console.log('A new Root ProductNode has been created:\n', initialNode);
+
+                setNodes([initialNode]);
+                setEdges([]);
+            } catch (error) {
+                console.error('Error fetching processes:', error);
+            }
         },
-        [handleProcessSelected, influenceProducts]
+        [handleProcessSelected, influenceProducts, getProcessesByProductId]
     );
 
     return (
