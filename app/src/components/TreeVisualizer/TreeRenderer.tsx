@@ -98,17 +98,10 @@ const TreeRenderer: React.FC = () => {
     );
 
     const handleProcessSelected = useCallback(
-        async (parentNodeId: string, selectedProcessId: string) => {
+    async (parentNodeId: string, parentNode: Node, selectedProcessId: string) => {
             const processNodeId = generateUniqueId(); // Generate a unique ID for the process node
 
-            // Find the selected process by its ID
-            console.log('nodes: ', nodes);
-            const parentNode = nodes.find(node => node.id === parentNodeId);
-            if (!parentNode || !parentNode.data) {
-                console.error(`Parent node with id ${parentNodeId} not found`);
-                return;
-            }
-
+        // Use the parentNode passed directly to find the selected process
             const selectedProcess = parentNode.data.processes.find(
                 (process: InfluenceProcess) => process.id === selectedProcessId
             );
@@ -215,15 +208,17 @@ const TreeRenderer: React.FC = () => {
                         ProductionChainData: {}, // Initialize empty ProductionChainData (to be defined later)
                         processes, // Store the fetched processes in the node data
                         onProcessSelected: async (processId: string) => {
-                            await handleProcessSelected(rootNodeId, processId); // Directly call the handler with the updated node
+                            handleProcessSelected(rootNodeId, initialNode, processId); // Pass initialNode directly
                         },
                     },
                 };
 
                 console.log('A new Root ProductNode has been created:\n', initialNode);
 
+            // Update nodes and edges to start from scratch
                 setNodes([initialNode]);
                 setEdges([]);
+
             } catch (error) {
                 console.error('Error fetching processes:', error);
             }
