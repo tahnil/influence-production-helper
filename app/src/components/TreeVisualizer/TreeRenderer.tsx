@@ -52,6 +52,7 @@ import useInfluenceProducts from '@/hooks/useInfluenceProducts';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 import { generateUniqueId } from '@/utils/generateUniqueId';
 import '@xyflow/react/dist/style.css';
+import { InfluenceProcess } from '@/types/influenceTypes';
 
 interface ProductionChainData {
     // Define this interface based on your requirements later
@@ -97,8 +98,25 @@ const TreeRenderer: React.FC = () => {
     );
 
     const handleProcessSelected = useCallback(
-        (parentNodeId: string, selectedProcess: string) => {
+        async (parentNodeId: string, selectedProcessId: string) => {
             const processNodeId = generateUniqueId(); // Generate a unique ID for the process node
+
+            // Find the selected process by its ID
+            console.log('nodes: ', nodes);
+            const parentNode = nodes.find(node => node.id === parentNodeId);
+            if (!parentNode || !parentNode.data) {
+                console.error(`Parent node with id ${parentNodeId} not found`);
+                return;
+            }
+
+            const selectedProcess = parentNode.data.processes.find(
+                (process: InfluenceProcess) => process.id === selectedProcessId
+            );
+
+            if (!selectedProcess) {
+                console.error(`Process with id ${selectedProcessId} not found`);
+                return;
+            }
 
             // Check if there is an existing process node connected to this parent product node
             const existingProcessNode = nodes.find((node) =>
@@ -115,29 +133,42 @@ const TreeRenderer: React.FC = () => {
                 type: 'processNode',
                 position: { x: 200, y: 100 },
                 data: {
-                    processName: selectedProcess,
-                    inputProducts: ['Input Product 1', 'Input Product 2'],
+                    processName: selectedProcess.name,
+                    inputProducts: selectedProcess.inputs.map(input => input.productId),
                 },
                 parentId: parentNodeId,
             };
-            console.log('A new ProcessNode has been created:\n', newProcessNode);
 
             // Create new product nodes for the inputs
-            const inputProductNodes = newProcessNode.data.inputProducts.map((product, index) => {
+            const inputProductNodesPromises = newProcessNode.data.inputProducts.map(async (productId, index) => {
                 const inputProductNodeId = generateUniqueId();
+
+                const selectedProduct = influenceProducts.find(product => product.id === productId);
+                if (!selectedProduct) {
+                    console.error(`Product with id ${productId} not found`);
+                    return null;
+                }
+
+                const processes = await getProcessesByProductId(productId);
+
                 return {
                     id: inputProductNodeId,
                     type: 'productNode',
                     position: { x: 400, y: index * 100 },
                     data: {
-                        product,
-                        processes: ['Process X', 'Process Y'],
+                        InfluenceProduct: selectedProduct,
+                        ProductionChainData: {}, // Initialize empty ProductionChainData (to be defined later)
+                        processes, // Store the fetched processes in the node data
                         onProcessSelected: (process: string) =>
                             handleProcessSelected(inputProductNodeId, process),
                     },
                     parentId: processNodeId, // This product node's parent is the process node
                 };
             });
+
+            const inputProductNodes = (await Promise.all(inputProductNodesPromises)).filter(Boolean);
+
+            console.log('A new ProcessNode has been created:\n', newProcessNode);
             console.log('One or many children ProductNode has been created:\n', inputProductNodes);
 
             setNodes((nds) => nds.concat(newProcessNode, ...inputProductNodes));
@@ -158,7 +189,7 @@ const TreeRenderer: React.FC = () => {
 
             setEdges((eds) => eds.concat(newEdge, ...inputProductEdges));
         },
-        [nodes, edges, removeNodeAndDescendants]
+        [nodes, edges, removeNodeAndDescendants, influenceProducts, getProcessesByProductId]
     );
 
     const handleProductSelect = useCallback(
@@ -183,10 +214,12 @@ const TreeRenderer: React.FC = () => {
                         InfluenceProduct: selectedProduct, // Store the detailed product data
                         ProductionChainData: {}, // Initialize empty ProductionChainData (to be defined later)
                         processes, // Store the fetched processes in the node data
-                        onProcessSelected: (process: string) =>
-                            handleProcessSelected(rootNodeId, process), // Pass the root node's ID as parentNodeId
+                        onProcessSelected: async (processId: string) => {
+                            await handleProcessSelected(rootNodeId, processId); // Directly call the handler with the updated node
+                        },
                     },
                 };
+
                 console.log('A new Root ProductNode has been created:\n', initialNode);
 
                 setNodes([initialNode]);
@@ -200,13 +233,6 @@ const TreeRenderer: React.FC = () => {
 
     return (
         <div className="w-full h-full relative">
-            <div className="absolute bottom-4 right-4 bg-background p-4 shadow-lg rounded-lg z-10 max-h-[90vh] overflow-y-auto w-[35ch]">
-                <h2 className="text-xl font-semibold mb-4">Controls</h2>
-                <ProductSelector
-                    onProductSelect={handleProductSelect}
-                    className="p-2 border rounded border-gray-300 mb-4 w-full"
-                />
-            </div>
             <div className="tree-renderer" style={{ width: '100%', height: '100%' }}>
                 <ReactFlow
                     nodes={nodes}
@@ -217,7 +243,15 @@ const TreeRenderer: React.FC = () => {
                     nodeTypes={nodeTypes}
                     fitView
                     style={{ backgroundColor: '#282C34' }}
-                />
+                >
+                    <div className="absolute bottom-4 right-4 bg-background p-4 shadow-lg rounded-lg z-10 max-h-[90vh] overflow-y-auto w-[35ch]">
+                        <h2 className="text-xl font-semibold mb-4">Controls</h2>
+                        <ProductSelector
+                            onProductSelect={handleProductSelect}
+                            className="p-2 border rounded border-gray-300 mb-4 w-full"
+                        />
+                    </div>
+                </ReactFlow>
             </div>
         </div>
     );
