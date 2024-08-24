@@ -64,8 +64,10 @@ const nodeTypes = {
 };
 
 const TreeRenderer: React.FC = () => {
-    const { influenceProducts } = useInfluenceProducts();
+    const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+    const [parentNodeId, setParentNodeId] = useState<string | null>(null);
     const { getProcessesByProductId } = useProcessesByProductId();
+    const { influenceProducts } = useInfluenceProducts();
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
 
@@ -98,10 +100,10 @@ const TreeRenderer: React.FC = () => {
     );
 
     const handleProcessSelected = useCallback(
-    async (parentNodeId: string, parentNode: Node, selectedProcessId: string) => {
+        async (parentNodeId: string, parentNode: Node, selectedProcessId: string) => {
             const processNodeId = generateUniqueId(); // Generate a unique ID for the process node
 
-        // Use the parentNode passed directly to find the selected process
+            // Use the parentNode passed directly to find the selected process
             const selectedProcess = parentNode.data.processes.find(
                 (process: InfluenceProcess) => process.id === selectedProcessId
             );
@@ -189,47 +191,6 @@ const TreeRenderer: React.FC = () => {
         [nodes, edges, removeNodeAndDescendants, influenceProducts, getProcessesByProductId]
     );
 
-    const handleProductSelect = useCallback(
-        async (productId: string) => {
-            const rootNodeId = generateUniqueId(); // Generate unique ID for the root product node
-            const selectedProduct = influenceProducts.find(product => product.id === productId);
-
-            if (!selectedProduct) {
-                console.error(`Product with id ${productId} not found`);
-                return;
-            }
-
-            try {
-                // Fetch processes that yield this product
-                const processes = await getProcessesByProductId(productId);
-
-                const initialNode: Node = {
-                    id: rootNodeId,
-                    type: 'productNode',
-                    position: { x: 0, y: 0 },
-                    data: {
-                        InfluenceProduct: selectedProduct, // Store the detailed product data
-                        ProductionChainData: {}, // Initialize empty ProductionChainData (to be defined later)
-                        processes, // Store the fetched processes in the node data
-                        onProcessSelected: async (processId: string) => {
-                            handleProcessSelected(rootNodeId, initialNode, processId); // Pass initialNode directly
-                        },
-                    },
-                };
-
-                console.log('A new Root ProductNode has been created:\n', initialNode);
-
-            // Update nodes and edges to start from scratch
-                setNodes([initialNode]);
-                setEdges([]);
-
-            } catch (error) {
-                console.error('Error fetching processes:', error);
-            }
-        },
-        [handleProcessSelected, influenceProducts, getProcessesByProductId]
-    );
-
     return (
         <div className="w-full h-full relative">
             <div className="tree-renderer" style={{ width: '100%', height: '100%' }}>
@@ -246,10 +207,18 @@ const TreeRenderer: React.FC = () => {
                     <div className="absolute bottom-4 right-4 bg-background p-4 shadow-lg rounded-lg z-10 max-h-[90vh] overflow-y-auto w-[35ch]">
                         <h2 className="text-xl font-semibold mb-4">Controls</h2>
                         <ProductSelector
-                            onProductSelect={handleProductSelect}
+                            onProductSelect={setSelectedProductId}
                             className="p-2 border rounded border-gray-300 mb-4 w-full"
                         />
                     </div>
+                    {selectedProductId && (
+                        <ProductNode
+                            selectedProductId={selectedProductId}
+                            setNodes={setNodes}
+                            setEdges={setEdges}
+                            setParentNodeId={setParentNodeId} // Pass state updater for parent node ID
+                        />
+                    )}
                 </ReactFlow>
             </div>
         </div>
