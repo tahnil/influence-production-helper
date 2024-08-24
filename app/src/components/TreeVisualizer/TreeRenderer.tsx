@@ -48,8 +48,13 @@ import { ReactFlow, addEdge, applyEdgeChanges, applyNodeChanges, Edge, Node } fr
 import ProductNode from './ProductNode';
 import ProcessNode from './ProcessNode';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
+import useInfluenceProducts from '@/hooks/useInfluenceProducts';
 import { generateUniqueId } from '@/utils/generateUniqueId';
 import '@xyflow/react/dist/style.css';
+
+interface ProductionChainData {
+  // Define this interface based on your requirements later
+}
 
 const nodeTypes = {
     productNode: ProductNode,
@@ -57,6 +62,7 @@ const nodeTypes = {
 };
 
 const TreeRenderer: React.FC = () => {
+    const { influenceProducts } = useInfluenceProducts();
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
 
@@ -154,15 +160,22 @@ const TreeRenderer: React.FC = () => {
     );
 
     const handleProductSelect = useCallback(
-        (productName: string) => {
+        (productId: string) => {
             const rootNodeId = generateUniqueId(); // Generate unique ID for the root product node
+            const selectedProduct = influenceProducts.find(product => product.id === productId);
+
+            if (!selectedProduct) {
+                console.error(`Product with id ${productId} not found`);
+                return;
+            }
+
             const initialNode: Node = {
                 id: rootNodeId,
                 type: 'productNode',
                 position: { x: 0, y: 0 },
                 data: {
-                    product: productName,
-                    processes: ['Process A', 'Process B', 'Process C'],
+                    InfluenceProduct: selectedProduct, // Store the detailed product data
+                    ProductionChainData: {}, // Initialize empty ProductionChainData (to be defined later)
                     onProcessSelected: (process: string) =>
                         handleProcessSelected(rootNodeId, process), // Pass the root node's ID as parentNodeId
                 },
@@ -172,7 +185,7 @@ const TreeRenderer: React.FC = () => {
             setNodes([initialNode]);
             setEdges([]);
         },
-        [handleProcessSelected]
+        [handleProcessSelected, influenceProducts]
     );
 
     return (

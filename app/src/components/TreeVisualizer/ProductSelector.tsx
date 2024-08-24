@@ -3,7 +3,7 @@
 // — Dropdown for Product Selection: Renders a dropdown list of products.
 // — Event Handling: Calls onSelect with the selected product ID when a product is selected.
 
-import React, { useState } from "react"
+import React from "react"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -23,7 +23,7 @@ import {
 import useInfluenceProducts from '@/hooks/useInfluenceProducts';
 
 interface ProductSelectorProps {
-  onProductSelect: (productName: string) => void;
+  onProductSelect: (productId: string) => void;  // Update the type to pass the productId
   className?: string;
 }
 
@@ -32,8 +32,8 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   className,
 }) => {
   const { influenceProducts, loading, error } = useInfluenceProducts();
-  const [open, setOpen] = React.useState(false)
-  const [inputValue, setInputValue] = React.useState("")
+  const [open, setOpen] = React.useState(false);
+  const [inputValue, setInputValue] = React.useState("");
   const [selectedProductId, setSelectedProductId] = React.useState<string | null>(
     null
   );
@@ -83,7 +83,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                           ? null
                           : product.id;
                       setSelectedProductId(newSelectedProductId);
-                      onProductSelect(product.name);
+                      onProductSelect(product.id);  // Pass the product ID to the parent component
                       setOpen(false);
                     }}
                   >
