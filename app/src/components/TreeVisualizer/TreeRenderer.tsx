@@ -43,8 +43,9 @@
 // remains responsive to user inputs and updates in real time.
 // ########################
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { ReactFlow, addEdge, applyEdgeChanges, applyNodeChanges, Edge, Node } from '@xyflow/react';
+import Dagre from '@dagrejs/dagre';
 import ProductNode from './ProductNode';
 import ProcessNode from './ProcessNode';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
@@ -61,6 +62,34 @@ interface ProductionChainData {
 const nodeTypes = {
     productNode: ProductNode,
     processNode: ProcessNode,
+};
+
+const getLayoutedElements = (nodes, edges, direction = 'TB') => {
+    const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
+    g.setGraph({ rankdir: direction });
+
+    nodes.forEach((node) => {
+        g.setNode(node.id, {
+            width: node.data.width || 172, // Assuming a default width for nodes
+            height: node.data.height || 36, // Assuming a default height for nodes
+        });
+    });
+
+    edges.forEach((edge) => {
+        g.setEdge(edge.source, edge.target);
+    });
+
+    Dagre.layout(g);
+
+    nodes.forEach((node) => {
+        const pos = g.node(node.id);
+        node.position = {
+            x: pos.x - node.data.width / 2,
+            y: pos.y - node.data.height / 2,
+        };
+    });
+
+    return { nodes, edges };
 };
 
 const TreeRenderer: React.FC = () => {
@@ -84,11 +113,19 @@ const TreeRenderer: React.FC = () => {
         [setEdges]
     );
 
+    useEffect(() => {
+        if (nodes.length > 0) {
+            const layoutedElements = getLayoutedElements(nodes, edges);
+            setNodes([...layoutedElements.nodes]);
+            setEdges([...layoutedElements.edges]);
+        }
+    }, [nodes, edges]);
+
     const removeNodeAndDescendants = useCallback(
         (nodeId: string) => {
-            const descendantEdges = edges.filter(edge => edge.source === nodeId);
+            const descendantEdges = edges.filter((edge) => edge.source === nodeId);
 
-            descendantEdges.forEach(edge => removeNodeAndDescendants(edge.target));
+            descendantEdges.forEach((edge) => removeNodeAndDescendants(edge.target));
 
             // Remove the node and its associated edges
             setNodes((nds) => nds.filter((node) => node.id !== nodeId));
@@ -98,10 +135,10 @@ const TreeRenderer: React.FC = () => {
     );
 
     const handleProcessSelected = useCallback(
-    async (parentNodeId: string, parentNode: Node, selectedProcessId: string) => {
+        async (parentNodeId: string, parentNode: Node, selectedProcessId: string) => {
             const processNodeId = generateUniqueId(); // Generate a unique ID for the process node
 
-        // Use the parentNode passed directly to find the selected process
+            // Use the parentNode passed directly to find the selected process
             const selectedProcess = parentNode.data.processes.find(
                 (process: InfluenceProcess) => process.id === selectedProcessId
             );
@@ -112,8 +149,8 @@ const TreeRenderer: React.FC = () => {
             }
 
             // Check if there is an existing process node connected to this parent product node
-            const existingProcessNode = nodes.find((node) =>
-                node.parentId === parentNodeId && node.type === 'processNode'
+            const existingProcessNode = nodes.find(
+                (node) => node.parentId === parentNodeId && node.type === 'processNode'
             );
 
             if (existingProcessNode) {
@@ -127,41 +164,43 @@ const TreeRenderer: React.FC = () => {
                 position: { x: 200, y: 100 },
                 data: {
                     processName: selectedProcess.name,
-                    inputProducts: selectedProcess.inputs.map(input => input.productId),
+                    inputProducts: selectedProcess.inputs.map((input) => input.productId),
                 },
                 parentId: parentNodeId,
             };
 
             // Create new product nodes for the inputs
-            const inputProductNodesPromises = newProcessNode.data.inputProducts.map(async (productId, index) => {
-                const inputProductNodeId = generateUniqueId();
+            const inputProductNodesPromises = newProcessNode.data.inputProducts.map(
+                async (productId, index) => {
+                    const inputProductNodeId = generateUniqueId();
 
-                const selectedProduct = influenceProducts.find(product => product.id === productId);
-                if (!selectedProduct) {
-                    console.error(`Product with id ${productId} not found`);
-                    return null;
+                    const selectedProduct = influenceProducts.find((product) => product.id === productId);
+                    if (!selectedProduct) {
+                        console.error(`Product with id ${productId} not found`);
+                        return null;
+                    }
+
+                    const processes = await getProcessesByProductId(productId);
+
+                    const newProductNode: Node = {
+                        id: inputProductNodeId,
+                        type: 'productNode',
+                        position: { x: 400, y: index * 100 },
+                        data: {
+                            InfluenceProduct: selectedProduct,
+                            ProductionChainData: {}, // Initialize empty ProductionChainData (to be defined later)
+                            processes, // Store the fetched processes in the node data
+                            onProcessSelected: (process: string) =>
+                                handleProcessSelected(inputProductNodeId, newProductNode, process),
+                        },
+                        parentId: processNodeId, // This product node's parent is the process node
+                    };
+
+                    console.log('A new ProductNode has been created for a ProcessNode:\n', newProductNode);
+
+                    return newProductNode;
                 }
-
-                const processes = await getProcessesByProductId(productId);
-
-                const newProductNode: Node = {
-                    id: inputProductNodeId,
-                    type: 'productNode',
-                    position: { x: 400, y: index * 100 },
-                    data: {
-                        InfluenceProduct: selectedProduct,
-                        ProductionChainData: {}, // Initialize empty ProductionChainData (to be defined later)
-                        processes, // Store the fetched processes in the node data
-                        onProcessSelected: (process: string) =>
-                            handleProcessSelected(inputProductNodeId, newProductNode, process),
-                    },
-                    parentId: processNodeId, // This product node's parent is the process node
-                };
-
-                console.log('A new ProductNode has been created for a ProcessNode:\n', newProductNode);
-
-                return newProductNode;
-            });
+            );
 
             const inputProductNodes = (await Promise.all(inputProductNodesPromises)).filter(Boolean);
 
@@ -192,7 +231,7 @@ const TreeRenderer: React.FC = () => {
     const handleProductSelect = useCallback(
         async (productId: string) => {
             const rootNodeId = generateUniqueId(); // Generate unique ID for the root product node
-            const selectedProduct = influenceProducts.find(product => product.id === productId);
+            const selectedProduct = influenceProducts.find((product) => product.id === productId);
 
             if (!selectedProduct) {
                 console.error(`Product with id ${productId} not found`);
@@ -219,7 +258,7 @@ const TreeRenderer: React.FC = () => {
 
                 console.log('A new Root ProductNode has been created:\n', initialNode);
 
-            // Update nodes and edges to start from scratch
+                // Update nodes and edges to start from scratch
                 setNodes([initialNode]);
                 setEdges([]);
 
