@@ -144,7 +144,7 @@ const TreeRenderer: React.FC = () => {
 
                 const processes = await getProcessesByProductId(productId);
 
-                return {
+                const newProductNode: Node = {
                     id: inputProductNodeId,
                     type: 'productNode',
                     position: { x: 400, y: index * 100 },
@@ -153,10 +153,14 @@ const TreeRenderer: React.FC = () => {
                         ProductionChainData: {}, // Initialize empty ProductionChainData (to be defined later)
                         processes, // Store the fetched processes in the node data
                         onProcessSelected: (process: string) =>
-                            handleProcessSelected(inputProductNodeId, process),
+                            handleProcessSelected(inputProductNodeId, newProductNode, process),
                     },
                     parentId: processNodeId, // This product node's parent is the process node
                 };
+
+                console.log('A new ProductNode has been created for a ProcessNode:\n', newProductNode);
+
+                return newProductNode;
             });
 
             const inputProductNodes = (await Promise.all(inputProductNodesPromises)).filter(Boolean);
