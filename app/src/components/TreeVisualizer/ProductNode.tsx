@@ -10,7 +10,7 @@ export type ProductNode = Node<
     image: string;
     processesByProductId: InfluenceProcess[];
     selectedProcessId: string | null;
-    onSelectProcess: (processId: string) => void;
+    onSelectProcess: (processId: string, nodeId: string) => void;
   }
 >;
 
@@ -21,7 +21,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
 
   const handleSelectProcess = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const processId = event.target.value;
-    onSelectProcess(processId);
+    onSelectProcess(processId, id);
   };
 
   return (

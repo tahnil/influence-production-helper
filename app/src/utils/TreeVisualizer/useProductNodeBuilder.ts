@@ -15,7 +15,7 @@ const useProductNodeBuilder = () => {
     const buildProductNode = useCallback(async (
         selectedProductId: string,
         selectedProcessId: string | null,
-        onSelectProcess: (processId: string) => void,
+        onSelectProcess: (processId: string, nodeId: string) => void,
     ): Promise<Node | null> => {
         try {
             const [productDetails, processesByProductId, productImage] = await Promise.all([

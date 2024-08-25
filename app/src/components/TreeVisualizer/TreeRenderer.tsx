@@ -63,10 +63,9 @@ const nodeTypes = {
 const TreeRenderer: React.FC = () => {
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
     const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
-    const [parentNodeId, setParentNodeId] = useState<string | null>(null);
-    const [productNode, setProductNode] = useState<Node | null>(null);
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
+    const [selectedProcessMap, setSelectedProcessMap] = useState<{ [key: string]: string | null }>({});
 
     const { buildProductNode } = useProductNodeBuilder();
 
@@ -94,7 +93,7 @@ const TreeRenderer: React.FC = () => {
                 const rootNode = await buildProductNode(
                     selectedProductId,
                     selectedProcessId,
-                    setSelectedProcessId,
+                    handleSelectProcess,
                 );
                 
                 if (rootNode) {
@@ -105,6 +104,19 @@ const TreeRenderer: React.FC = () => {
 
         fetchAndBuildNode();
     }, [selectedProductId, buildProductNode]);
+
+    const handleSelectProcess = (processId: string, nodeId: string) => {
+        // Store the object with the node ID and process ID in the state
+        setSelectedProcessMap((prevMap) => ({
+            ...prevMap,
+            [nodeId]: processId,
+        }));
+
+        console.log('Selected Process Map:', {
+            ...selectedProcessMap,
+            [nodeId]: processId,
+        });
+    };
 
     useEffect(() => {
         if (selectedProcessId) {
