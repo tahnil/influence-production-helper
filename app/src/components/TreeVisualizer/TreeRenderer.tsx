@@ -47,9 +47,10 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { ReactFlow, addEdge, applyEdgeChanges, applyNodeChanges, Edge, Node } from '@xyflow/react';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProductNode from './ProductNode';
-// import ProcessNode from './ProcessNode';
+import ProcessNode from './ProcessNode';
 import '@xyflow/react/dist/style.css';
 import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
+import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
 
 interface ProductionChainData {
     // Define this interface based on your requirements later
@@ -57,7 +58,7 @@ interface ProductionChainData {
 
 const nodeTypes = {
     productNode: ProductNode,
-    // processNode: ProcessNode,
+    processNode: ProcessNode,
 };
 
 const TreeRenderer: React.FC = () => {
@@ -68,24 +69,25 @@ const TreeRenderer: React.FC = () => {
     const [selectedProcessMap, setSelectedProcessMap] = useState<{ [key: string]: string | null }>({});
 
     const { buildProductNode } = useProductNodeBuilder();
+    const { buildProcessNode } = useProcessNodeBuilder();
 
     const onNodesChange = useCallback(
         (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-        [setNodes]
+        []
     );
 
     const onEdgesChange = useCallback(
         (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-        [setEdges]
+        []
     );
 
     const onConnect = useCallback(
         (connection) => setEdges((eds) => addEdge(connection, eds)),
-        [setEdges]
+        []
     );
 
     useEffect(() => {
-        const fetchAndBuildNode = async () => {
+        const fetchAndBuildRootNode = async () => {
             if (selectedProductId) {
                 setNodes([]); // Reset nodes when a new product is selected
                 setEdges([]); // Reset edges
@@ -95,14 +97,14 @@ const TreeRenderer: React.FC = () => {
                     selectedProcessId,
                     handleSelectProcess,
                 );
-                
+
                 if (rootNode) {
                     setNodes([rootNode]); // Set the new root node
                 }
             }
         };
 
-        fetchAndBuildNode();
+        fetchAndBuildRootNode();
     }, [selectedProductId, buildProductNode]);
 
     const handleSelectProcess = (processId: string, nodeId: string) => {
@@ -119,10 +121,57 @@ const TreeRenderer: React.FC = () => {
     };
 
     useEffect(() => {
-        if (selectedProcessId) {
-            console.log('Selected Process ID:', selectedProcessId);
-        }
-    }, [selectedProcessId]);
+        const fetchAndBuildProcessNode = async () => {
+            const processEntries = Object.entries(selectedProcessMap);
+            if (processEntries.length > 0) {
+                const lastEntry = processEntries[processEntries.length - 1];
+                const [parentNodeId, processId] = lastEntry;
+
+                if (processId && parentNodeId) {
+                    const newProcessNode = await buildProcessNode(processId, parentNodeId);
+
+                    if (newProcessNode) {
+                        setNodes((currentNodes) => {
+                            // Find if there is already a ProcessNode for this ProductNode
+                            const existingProcessNodeIndex = currentNodes.findIndex(
+                                (node) => node.parentId === parentNodeId && node.type === 'processNode'
+                            );
+
+                            let updatedNodes;
+                            if (existingProcessNodeIndex !== -1) {
+                                // Replace the existing ProcessNode
+                                updatedNodes = [...currentNodes];
+                                updatedNodes[existingProcessNodeIndex] = newProcessNode;
+                            } else {
+                                // Add the new ProcessNode
+                                updatedNodes = [...currentNodes, newProcessNode];
+                            }
+
+                            return updatedNodes;
+                        });
+
+                        setEdges((currentEdges) => {
+                            // Remove any existing edge connecting the old ProcessNode to the ProductNode
+                            const updatedEdges = currentEdges.filter(
+                                (edge) => edge.source !== parentNodeId || edge.target !== `process-${processId}`
+                            );
+
+                            // Add the new edge connecting the ProductNode to the new ProcessNode
+                            const newEdge: Edge = {
+                                id: `edge-${parentNodeId}-${newProcessNode.id}`,
+                                source: parentNodeId,
+                                target: newProcessNode.id,
+                            };
+
+                            return [...updatedEdges, newEdge];
+                        });
+                    }
+                }
+            }
+        };
+
+        fetchAndBuildProcessNode();
+    }, [selectedProcessMap, buildProcessNode]);
 
     return (
         <div className="w-full h-full relative">

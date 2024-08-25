@@ -1,6 +1,6 @@
 // components/TreeVisualizer/ProductNode.tsx
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Node, Handle, Position, NodeProps } from '@xyflow/react';
 import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 
