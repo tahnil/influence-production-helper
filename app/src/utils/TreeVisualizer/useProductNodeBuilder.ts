@@ -1,7 +1,7 @@
 // utils/TreeVisualizer/useProductNodeBuilder.ts
 
 import { useCallback } from 'react';
-import { Node } from '@xyflow/react';
+import { Node } from '@xyflow/react'
 import { generateUniqueId } from '../generateUniqueId';
 import useProductDetails from '@/hooks/useInfluenceProductDetails';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
@@ -16,7 +16,6 @@ const useProductNodeBuilder = () => {
         selectedProductId: string,
         selectedProcessId: string | null,
         onSelectProcess: (processId: string, nodeId: string) => void,
-        parentId?: string,
     ): Promise<Node | null> => {
         try {
             const [productDetails, processesByProductId, productImage] = await Promise.all([
@@ -29,7 +28,6 @@ const useProductNodeBuilder = () => {
                 id: generateUniqueId(),
                 type: 'productNode',
                 position: { x: 0, y: 0 },
-                parentId: parentId || undefined, 
                 data: {
                     InfluenceProduct: productDetails,
                     image: productImage,
