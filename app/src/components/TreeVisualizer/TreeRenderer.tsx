@@ -44,7 +44,7 @@
 // ########################
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { ReactFlow, addEdge, applyEdgeChanges, applyNodeChanges, Edge, Node } from '@xyflow/react';
+import { ReactFlow, addEdge, applyEdgeChanges, applyNodeChanges, Edge, Node, NodeChange, EdgeChange, Connection } from '@xyflow/react';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProductNode from './ProductNode';
 import ProcessNode from './ProcessNode';
@@ -72,17 +72,17 @@ const TreeRenderer: React.FC = () => {
     const { buildProcessNode } = useProcessNodeBuilder();
 
     const onNodesChange = useCallback(
-        (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+        (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
         []
     );
 
     const onEdgesChange = useCallback(
-        (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+        (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
         []
     );
 
     const onConnect = useCallback(
-        (connection) => setEdges((eds) => addEdge(connection, eds)),
+        (connection: Connection) => setEdges((eds) => addEdge(connection, eds)),
         []
     );
 
@@ -132,38 +132,55 @@ const TreeRenderer: React.FC = () => {
 
                     if (newProcessNode) {
                         setNodes((currentNodes) => {
-                            // Find if there is already a ProcessNode for this ProductNode
-                            const existingProcessNodeIndex = currentNodes.findIndex(
+                            // Find existing ProcessNode for this ProductNode
+                            const existingProcessNode = currentNodes.find(
                                 (node) => node.parentId === parentNodeId && node.type === 'processNode'
                             );
 
-                            let updatedNodes;
-                            if (existingProcessNodeIndex !== -1) {
-                                // Replace the existing ProcessNode
-                                updatedNodes = [...currentNodes];
-                                updatedNodes[existingProcessNodeIndex] = newProcessNode;
-                            } else {
-                                // Add the new ProcessNode
-                                updatedNodes = [...currentNodes, newProcessNode];
+                            let updatedNodes = [...currentNodes];
+
+                            if (existingProcessNode) {
+                                // Get all descendants of the existing ProcessNode
+                                const descendantIds = getDescendantIds(existingProcessNode.id, updatedNodes);
+
+                                // Remove the existing ProcessNode and its descendants
+                                updatedNodes = updatedNodes.filter(
+                                    (node) => ![existingProcessNode.id, ...descendantIds].includes(node.id)
+                                );
                             }
 
+                            // Add the new ProcessNode
+                            updatedNodes = [...updatedNodes, newProcessNode];
+
+                            setEdges((currentEdges) => {
+                                // Find existing ProcessNode for this ProductNode
+                                const existingProcessNode = currentEdges.find(
+                                    (edge) => edge.source === parentNodeId && edge.target.startsWith('process-')
+                                );
+
+                                let updatedEdges = [...currentEdges];
+
+                                if (existingProcessNode) {
+                                    // Remove all edges associated with the old ProcessNode and its descendants
+                                    const descendantIds = getDescendantIds(existingProcessNode.target, currentNodes);
+
+                                    updatedEdges = updatedEdges.filter(
+                                        (edge) =>
+                                            ![existingProcessNode.target, ...descendantIds].includes(edge.target)
+                                    );
+                                }
+
+                                // Add the new edge connecting the ProductNode to the new ProcessNode
+                                const newEdge: Edge = {
+                                    id: `edge-${parentNodeId}-${newProcessNode.id}`,
+                                    source: parentNodeId,
+                                    target: newProcessNode.id,
+                                };
+
+                                return [...updatedEdges, newEdge];
+                            });
+
                             return updatedNodes;
-                        });
-
-                        setEdges((currentEdges) => {
-                            // Remove any existing edge connecting the old ProcessNode to the ProductNode
-                            const updatedEdges = currentEdges.filter(
-                                (edge) => edge.source !== parentNodeId || edge.target !== `process-${processId}`
-                            );
-
-                            // Add the new edge connecting the ProductNode to the new ProcessNode
-                            const newEdge: Edge = {
-                                id: `edge-${parentNodeId}-${newProcessNode.id}`,
-                                source: parentNodeId,
-                                target: newProcessNode.id,
-                            };
-
-                            return [...updatedEdges, newEdge];
                         });
                     }
                 }
@@ -172,6 +189,15 @@ const TreeRenderer: React.FC = () => {
 
         fetchAndBuildProcessNode();
     }, [selectedProcessMap, buildProcessNode]);
+
+    // Utility function to get all descendant ids of a given node id
+    const getDescendantIds = (nodeId: string, nodes: Node[]): string[] => {
+        const directChildren = nodes.filter((node) => node.parentId === nodeId);
+        const allDescendants = directChildren.flatMap((child) =>
+            [child.id, ...getDescendantIds(child.id, nodes)]
+        );
+        return allDescendants;
+    };
 
     return (
         <div className="w-full h-full relative">
