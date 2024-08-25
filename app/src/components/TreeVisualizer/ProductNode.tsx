@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Node, Edge, Handle, Position } from '@xyflow/react';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 import { generateUniqueId } from '@/utils/generateUniqueId';
-import { InfluenceProduct, InfluenceProcess } from '@/types/influenceTypes';
+import { InfluenceProcess } from '@/types/influenceTypes';
 import useInfluenceProducts from '@/hooks/useInfluenceProducts';
 
 interface ProductNodeProps {
