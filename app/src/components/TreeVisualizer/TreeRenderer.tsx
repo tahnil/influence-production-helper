@@ -47,8 +47,9 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { ReactFlow, addEdge, applyEdgeChanges, applyNodeChanges, Edge, Node } from '@xyflow/react';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProductNode from './ProductNode';
-import ProcessNode from './ProcessNode';
+// import ProcessNode from './ProcessNode';
 import '@xyflow/react/dist/style.css';
+import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
 
 interface ProductionChainData {
     // Define this interface based on your requirements later
@@ -56,15 +57,18 @@ interface ProductionChainData {
 
 const nodeTypes = {
     productNode: ProductNode,
-    processNode: ProcessNode,
+    // processNode: ProcessNode,
 };
 
 const TreeRenderer: React.FC = () => {
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
     const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
     const [parentNodeId, setParentNodeId] = useState<string | null>(null);
+    const [productNode, setProductNode] = useState<Node | null>(null);
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
+
+    const { buildProductNode } = useProductNodeBuilder();
 
     const onNodesChange = useCallback(
         (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -82,11 +86,31 @@ const TreeRenderer: React.FC = () => {
     );
 
     useEffect(() => {
-        if (selectedProductId) {
-            setNodes([]); // Reset nodes when a new product is selected
-            setEdges([]); // Reset edges
+        const fetchAndBuildNode = async () => {
+            if (selectedProductId) {
+                setNodes([]); // Reset nodes when a new product is selected
+                setEdges([]); // Reset edges
+
+                const rootNode = await buildProductNode(
+                    selectedProductId,
+                    selectedProcessId,
+                    setSelectedProcessId,
+                );
+                
+                if (rootNode) {
+                    setNodes([rootNode]); // Set the new root node
+                }
+            }
+        };
+
+        fetchAndBuildNode();
+    }, [selectedProductId, buildProductNode]);
+
+    useEffect(() => {
+        if (selectedProcessId) {
+            console.log('Selected Process ID:', selectedProcessId);
         }
-    }, [selectedProductId]);
+    }, [selectedProcessId]);
 
     return (
         <div className="w-full h-full relative">

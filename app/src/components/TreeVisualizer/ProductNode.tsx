@@ -1,110 +1,60 @@
 // components/TreeVisualizer/ProductNode.tsx
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { Node, Edge, Handle, Position } from '@xyflow/react';
-import useProcessesByProductId from '@/hooks/useProcessesByProductId';
-import { generateUniqueId } from '@/utils/generateUniqueId';
-import { InfluenceProcess } from '@/types/influenceTypes';
-import useInfluenceProducts from '@/hooks/useInfluenceProducts';
+import React, { useState } from 'react';
+import { Node, Handle, Position, NodeProps } from '@xyflow/react';
+import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 
-interface ProductNodeProps {
-  selectedProductId: string | null;
-  setNodes: (nodes: Node[]) => void;
-  setEdges: (edges: Edge[]) => void;
-  setSelectedProcessId: (processId: string | null) => void;
-  setParentNodeId: (parentNodeId: string | null) => void;
-}
+export type ProductNode = Node<
+  {
+    InfluenceProduct: InfluenceProduct;
+    image: string;
+    processesByProductId: InfluenceProcess[];
+    selectedProcessId: string | null;
+    onSelectProcess: (processId: string) => void;
+  }
+>;
 
-const ProductNode: React.FC<ProductNodeProps> = ({
-  selectedProductId,
-  setNodes,
-  setEdges,
-  setSelectedProcessId,
-  setParentNodeId,
-}) => {
-  const [productNode, setProductNode] = useState<Node | null>(null);
-  const { getProcessesByProductId } = useProcessesByProductId();
-  const { influenceProducts } = useInfluenceProducts();
+const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
+  const { InfluenceProduct, image, processesByProductId, selectedProcessId, onSelectProcess } = data;
 
-  useEffect(() => {
-    if (!selectedProductId) {
-      console.log('No product selected, selectedProductId is null or empty');
-      return;
-    };
+  const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = InfluenceProduct;
 
-    const createRootNode = async () => {
-      const rootNodeId = generateUniqueId();
-      const selectedProduct = influenceProducts.find(product => product.id === selectedProductId);
-
-      if (!selectedProduct) {
-        console.error(`Product with id ${selectedProductId} not found`);
-        return;
-      }
-
-      try {
-        const processes = await getProcessesByProductId(selectedProductId);
-
-        const rootNode: Node = {
-          id: rootNodeId,
-          type: 'productNode',
-          position: { x: 0, y: 0 },
-          data: {
-            InfluenceProduct: selectedProduct, // Store the detailed product data
-            ProductionChainData: {}, // Initialize empty ProductionChainData (to be defined later)
-            processes, // Store the fetched processes in the node data
-            onProcessSelected: async (processId: string) => {
-              setSelectedProcessId(processId); // Trigger process creation
-              setParentNodeId(rootNodeId); // Set the parent node ID for the process
-            },
-          },
-        };
-
-        console.log('A new Root ProductNode has been created:\n', rootNode);
-
-        setNodes([rootNode]);
-        setEdges([]);
-        setProductNode(rootNode);
-
-      } catch (error) {
-        console.error('Error fetching processes for product with id:' + selectedProductId);
-        console.error(error);
-      }
-    };
-
-    createRootNode();
-  }, [selectedProductId, getProcessesByProductId, setNodes, setEdges, setSelectedProcessId, setParentNodeId]);
-
-  const handleSelectProcess = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const selectedProcessId = event.target.value;
-      if (selectedProcessId && productNode) {
-        productNode.data.onProcessSelected(selectedProcessId);
-      }
-    },
-    [productNode]
-  );
-
-  if (!productNode) return null;
-
-  const { InfluenceProduct, processes } = productNode.data;
+  const handleSelectProcess = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const processId = event.target.value;
+    onSelectProcess(processId);
+  };
 
   return (
-    <div className="product-node">
-      <Handle type="target" position={Position.Top} />
-      <div>
-        <label htmlFor={`process-select-${productNode.id}`}>
+    <div className="product-node p-4 bg-black border rounded shadow-sm">
+      <Handle type="target" position={Position.Top} className="bg-blue-500" />
+      <div className="flex flex-col items-center">
+        <h1>{name}</h1>
+        <p>Stats: {weight} kg | {volume} L | {type} | {category}</p>
+        {image && (
+          <img
+            src={image}
+            alt={`${InfluenceProduct.name} image`}
+            className="mb-2 w-16 h-16 object-contain"
+          />
+        )}
+        <label htmlFor={`process-select-${id}`} className="text-sm font-medium">
           Select Process for {InfluenceProduct.name}:
         </label>
-        <select id={`process-select-${productNode.id}`} onChange={handleSelectProcess}>
+        <select
+          id={`process-select-${id}`}
+          value={selectedProcessId || ''}
+          onChange={handleSelectProcess}
+          className="mt-2 p-1 border rounded text-sm bg-gray-800"
+        >
           <option value="">Select a process</option>
-          {processes.map((process: InfluenceProcess) => (
+          {processesByProductId.map((process: InfluenceProcess) => (
             <option key={process.id} value={process.id}>
               {process.name}
             </option>
           ))}
         </select>
       </div>
-      <Handle type="source" position={Position.Bottom} style={{ left: 10 }} />
+      <Handle type="source" position={Position.Bottom} className="bg-green-500" />
     </div>
   );
 };

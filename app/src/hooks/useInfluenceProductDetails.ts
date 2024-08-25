@@ -12,7 +12,7 @@ const fetchProductDetails = async (id: string): Promise<InfluenceProduct> => {
 };
 
 const useProductDetails = () => {
-  const [productDetails, setProductDetails] = useState<InfluenceProduct | null>(null);
+  const [productDetails, setProductDetails] = useState<InfluenceProduct>();
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
