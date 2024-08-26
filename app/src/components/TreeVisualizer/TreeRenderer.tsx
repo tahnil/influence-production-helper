@@ -56,6 +56,11 @@ interface ProductionChainData {
     // Define this interface based on your requirements later
 }
 
+interface ProcessSelection {
+    nodeId: string;
+    processId: string;
+}
+
 const nodeTypes = {
     productNode: ProductNode,
     processNode: ProcessNode,
@@ -66,7 +71,7 @@ const TreeRenderer: React.FC = () => {
     const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
-    const [selectedProcessMap, setSelectedProcessMap] = useState<{ [key: string]: string | null }>({});
+    const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
 
     const { buildProductNode } = useProductNodeBuilder();
     const { buildProcessNode } = useProcessNodeBuilder();
@@ -97,23 +102,21 @@ const TreeRenderer: React.FC = () => {
         };
     };
 
-    const handleSelectProcess = useCallback(debounce((processId: string, nodeId: string) => {
-        // Store the object with the node ID and process ID in the state
-        setSelectedProcessMap((prevMap) => {
-            if (prevMap[nodeId] !== processId) {
-                return {
-                    ...prevMap,
-                    [nodeId]: processId
-                };
-            }
-            return prevMap;
-        });
+    const handleSelectProcess = useCallback(
+        debounce((processId: string, nodeId: string) => {
+            // Add a new log entry with the node ID and process ID to the state
+            setSelectedProcessMap((prevMap) => [
+                ...prevMap,
+                { nodeId, processId },
+            ]);
 
-        console.log('Selected Process Map:', {
-            ...selectedProcessMap,
-            [nodeId]: processId,
-        });
-    }, 300), []);
+            console.log('Selected Process Map:', [
+                ...selectedProcessMap,
+                { nodeId, processId },
+            ]);
+        }, 300),
+        [selectedProcessMap]
+    );
 
     useEffect(() => {
         const fetchAndBuildRootNode = async () => {
@@ -138,10 +141,9 @@ const TreeRenderer: React.FC = () => {
 
     useEffect(() => {
         const fetchAndBuildProcessNode = async () => {
-            const processEntries = Object.entries(selectedProcessMap);
-            if (processEntries.length > 0) {
-                const lastEntry = processEntries[processEntries.length - 1];
-                const [parentNodeId, processId] = lastEntry;
+            if (selectedProcessMap.length > 0) {
+                const lastEntry = selectedProcessMap[selectedProcessMap.length - 1];
+                const { nodeId: parentNodeId, processId } = lastEntry;
 
                 if (processId && parentNodeId) {
                     const result = await buildProcessNode(processId, parentNodeId, handleSelectProcess);
