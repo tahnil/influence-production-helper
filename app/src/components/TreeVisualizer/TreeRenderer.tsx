@@ -1,50 +1,21 @@
 // components/TreeVisualizer/TreeRenderer.tsx
-// 
-// The TreeRenderer component is a React component that visualizes a hierarchical tree structure using D3.js. 
-// It allows users to select a product, which then populates the tree with nodes representing the product and 
-// its associated processes. Users can further interact with the tree by selecting processes for each product 
-// node, dynamically updating the tree with additional nodes representing the inputs required for the selected processes.
-// 
-// ########################
-// Key Components and Hooks
-// ########################
-// 
-// 1. TreeRenderer Component
-// — Manages the state for the selected product, desired amount, and the tree data.
-// — Renders the product selector and the D3 visualization container.
-// — Utilizes custom hooks to fetch data and build the tree nodes.
-// 2. Custom Hooks
-// — useInfluenceProducts: Fetches the list of products available in the system.
-// — useProcessesByProductId: Fetches processes associated with a specific product.
-// — useProcessNodeBuilder: Builds process nodes by fetching inputs and calculating values.
-// — useProductNodeBuilder: Builds product nodes including their details and associated processes.
-// 3. D3 Utilities
-// — initializeD3Tree: Initializes the D3 tree with the root node, setting up nodes and links in the tree layout.
-// — updateD3Tree: Updates the existing D3 tree with new nodes and links as the tree data changes.
-// — injectForeignObjects: Adds interactive elements (foreign objects) to D3 nodes, such as process selection dropdowns, and copy-to-clipboard functionality.
-// 
-// ########################
-// Detailed Explanation of Each Component and Function
-// ########################
-// 
-// — State Management: Uses useState to manage the selected product ID, tree data, the desired end product amount, and the current transform state of the D3 tree.
-// — Refs: Uses useRef to manage references to the D3 container, the root node of the tree, and the update function for the D3 tree.
-// — Product Selection: The handleSelectProduct function updates the selected product ID, fetches associated processes, and builds the root node of the tree.
-// — Tree Rendering: The useEffect hook listens for changes in the rootNode and initializes the D3 tree, ensuring that the visualization updates appropriately.
-// — Injecting Foreign Objects: Another useEffect hook injects foreign objects (like dropdowns and interactive elements) into the D3 nodes, allowing for user interaction with the tree visualization.
-// — Error Handling: Uses conditional rendering to display error messages if data fetching fails or if there's an issue with building process nodes.
-//
-// ########################
-// The TreeRenderer component and its associated hooks and utilities manage a dynamic D3 tree visualization. 
-// It allows users to select a product, initializes the tree with the selected product as the root node, 
-// and dynamically updates the tree based on user interactions (such as selecting processes). The 
-// architecture is modular, with custom hooks handling data fetching and node building, and D3 utilities 
-// managing the rendering and updating of the tree visualization. This structure ensures that the tree 
-// remains responsive to user inputs and updates in real time.
-// ########################
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { ReactFlow, addEdge, applyEdgeChanges, applyNodeChanges, Edge, Node, NodeChange, EdgeChange, Connection } from '@xyflow/react';
+import {
+    ReactFlow,
+    addEdge,
+    applyEdgeChanges,
+    applyNodeChanges,
+    Edge,
+    Node,
+    NodeChange,
+    EdgeChange,
+    Connection,
+    ReactFlowProvider,
+    useReactFlow,
+    Position,
+} from '@xyflow/react';
+import Dagre from '@dagrejs/dagre';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProductNode from './ProductNode';
 import ProcessNode from './ProcessNode';
@@ -56,6 +27,12 @@ interface ProductionChainData {
     // Define this interface based on your requirements later
 }
 
+export interface LayoutedNode extends Node {
+    position: { x: number; y: number };
+    targetPosition: Position;
+    sourcePosition: Position;
+}
+
 interface ProcessSelection {
     nodeId: string;
     processId: string;
@@ -64,6 +41,46 @@ interface ProcessSelection {
 const nodeTypes = {
     productNode: ProductNode,
     processNode: ProcessNode,
+};
+
+const getLayoutedElements = (
+    nodes: Node[], 
+    edges: Edge[], 
+    direction = 'TB'
+) => {
+    const dagreGraph = new Dagre.graphlib.Graph();
+    dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+    const isHorizontal = direction === 'LR';
+    dagreGraph.setGraph({ rankdir: direction });
+
+    nodes.forEach((node) => {
+        dagreGraph.setNode(node.id, {
+            width: node.measured?.width || 172, // Use measured width if available, otherwise fallback
+            height: node.measured?.height || 36, // Use measured height if available, otherwise fallback
+        });
+    });
+
+    edges.forEach((edge) => {
+        dagreGraph.setEdge(edge.source, edge.target);
+    });
+
+    Dagre.layout(dagreGraph);
+
+    const layoutedNodes: LayoutedNode[] = nodes.map((node) => {
+        const nodeWithPosition = dagreGraph.node(node.id);
+        return {
+            ...node,
+            position: {
+                x: nodeWithPosition.x - (node.measured?.width || 172) / 2,
+                y: nodeWithPosition.y - (node.measured?.height || 36) / 2,
+            },
+            targetPosition: isHorizontal ? Position.Left : Position.Top,
+            sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
+        } as LayoutedNode;
+    });
+
+    return { nodes: layoutedNodes as LayoutedNode[], edges };
 };
 
 const TreeRenderer: React.FC = () => {
@@ -194,9 +211,10 @@ const TreeRenderer: React.FC = () => {
                                 target: processNode.id,
                             });
 
-                            // Update the nodes and edges state
-                            setEdges(updatedEdges);
-                            return updatedNodes;
+                            const layouted = getLayoutedElements(updatedNodes, updatedEdges);
+
+                            setEdges(layouted.edges);
+                            return layouted.nodes;
                         });
                     }
                 }
@@ -247,4 +265,10 @@ const TreeRenderer: React.FC = () => {
     );
 };
 
-export default TreeRenderer;
+export default function () {
+    return (
+        <ReactFlowProvider>
+            <TreeRenderer />
+        </ReactFlowProvider>
+    );
+}
