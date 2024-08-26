@@ -86,6 +86,19 @@ const TreeRenderer: React.FC = () => {
         []
     );
 
+    const handleSelectProcess = useCallback((processId: string, nodeId: string) => {
+        // Store the object with the node ID and process ID in the state
+        setSelectedProcessMap((prevMap) => ({
+            ...prevMap,
+            [nodeId]: processId,
+        }));
+
+        console.log('Selected Process Map:', {
+            ...selectedProcessMap,
+            [nodeId]: processId,
+        });
+    }, []);
+
     useEffect(() => {
         const fetchAndBuildRootNode = async () => {
             if (selectedProductId) {
@@ -106,19 +119,6 @@ const TreeRenderer: React.FC = () => {
 
         fetchAndBuildRootNode();
     }, [selectedProductId, buildProductNode]);
-
-    const handleSelectProcess = (processId: string, nodeId: string) => {
-        // Store the object with the node ID and process ID in the state
-        setSelectedProcessMap((prevMap) => ({
-            ...prevMap,
-            [nodeId]: processId,
-        }));
-
-        console.log('Selected Process Map:', {
-            ...selectedProcessMap,
-            [nodeId]: processId,
-        });
-    };
 
     useEffect(() => {
         const fetchAndBuildProcessNode = async () => {
