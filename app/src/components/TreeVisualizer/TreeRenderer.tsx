@@ -187,15 +187,12 @@ const TreeRenderer: React.FC = () => {
 
                             updatedEdges = [...updatedEdges, ...newEdges];
 
-                            // Step 6: Add the edge between the root ProductNode and the first ProcessNode
-                            const rootNode = updatedNodes[0]; // Assume the first node is the root product node
-                            if (rootNode.id === parentNodeId) {
-                                updatedEdges.push({
-                                    id: `edge-${rootNode.id}-${processNode.id}`,
-                                    source: rootNode.id,
-                                    target: processNode.id,
-                                });
-                            }
+                            // Step 6: Add the edge between the parent ProductNode and the ProcessNode
+                            updatedEdges.push({
+                                id: `edge-${parentNodeId}-${processNode.id}`,
+                                source: parentNodeId,
+                                target: processNode.id,
+                            });
 
                             // Update the nodes and edges state
                             setEdges(updatedEdges);
