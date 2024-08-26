@@ -150,12 +150,13 @@ const TreeRenderer: React.FC = () => {
                         const { processNode, productNodes } = result;
 
                         setNodes((currentNodes) => {
+                            let updatedNodes = [...currentNodes];
+                            let updatedEdges = [...edges];
+
                             // Step 1: Find the existing ProcessNode with the same parentId
-                            const existingProcessNode = currentNodes.find(
+                            const existingProcessNode = updatedNodes.find(
                                 (node) => node.parentId === parentNodeId && node.type === 'processNode'
                             );
-
-                            let updatedNodes = [...currentNodes];
 
                             if (existingProcessNode) {
                                 // Step 2: Recursively find and remove all descendants
@@ -165,10 +166,38 @@ const TreeRenderer: React.FC = () => {
                                 updatedNodes = updatedNodes.filter(
                                     (node) => ![existingProcessNode.id, ...descendantIds].includes(node.id)
                                 );
+
+                                // Also remove all edges connected to these nodes
+                                updatedEdges = updatedEdges.filter(
+                                    (edge) => ![existingProcessNode.id, ...descendantIds].includes(edge.source)
+                                );
                             }
 
                             // Step 4: Add the new ProcessNode and its child ProductNodes
-                            return [...updatedNodes, processNode, ...productNodes];
+                            updatedNodes = [...updatedNodes, processNode, ...productNodes];
+
+                            // Step 5: Create edges between the ProcessNode and each ProductNode
+                            const newEdges = productNodes.map((productNode) => ({
+                                id: `edge-${processNode.id}-${productNode.id}`,
+                                source: processNode.id,
+                                target: productNode.id,
+                            }));
+
+                            updatedEdges = [...updatedEdges, ...newEdges];
+
+                            // Step 6: Add the edge between the root ProductNode and the first ProcessNode
+                            const rootNode = updatedNodes[0]; // Assume the first node is the root product node
+                            if (rootNode.id === parentNodeId) {
+                                updatedEdges.push({
+                                    id: `edge-${rootNode.id}-${processNode.id}`,
+                                    source: rootNode.id,
+                                    target: processNode.id,
+                                });
+                            }
+
+                            // Update the nodes and edges state
+                            setEdges(updatedEdges);
+                            return updatedNodes;
                         });
                     }
                 }
