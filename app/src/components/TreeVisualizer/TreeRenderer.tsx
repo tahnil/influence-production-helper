@@ -90,7 +90,7 @@ const TreeRenderer: React.FC = () => {
 
     const debounce = (fn: AnyFunction, delay: number) => {
         let timeoutId: NodeJS.Timeout | undefined;
-    
+
         return (...args: any[]) => {
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => fn(...args), delay);
@@ -144,60 +144,15 @@ const TreeRenderer: React.FC = () => {
                 const [parentNodeId, processId] = lastEntry;
 
                 if (processId && parentNodeId) {
-                    const newProcessNode = await buildProcessNode(processId, parentNodeId);
+                    const result = await buildProcessNode(processId, parentNodeId, handleSelectProcess);
 
-                    if (newProcessNode) {
-                        setNodes((currentNodes) => {
-                            // Find existing ProcessNode for this ProductNode
-                            const existingProcessNode = currentNodes.find(
-                                (node) => node.parentId === parentNodeId && node.type === 'processNode'
-                            );
-
-                            let updatedNodes = [...currentNodes];
-
-                            if (existingProcessNode) {
-                                // Get all descendants of the existing ProcessNode
-                                const descendantIds = getDescendantIds(existingProcessNode.id, updatedNodes);
-
-                                // Remove the existing ProcessNode and its descendants
-                                updatedNodes = updatedNodes.filter(
-                                    (node) => ![existingProcessNode.id, ...descendantIds].includes(node.id)
-                                );
-                            }
-
-                            // Add the new ProcessNode
-                            updatedNodes = [...updatedNodes, newProcessNode];
-
-                            setEdges((currentEdges) => {
-                                // Find existing ProcessNode for this ProductNode
-                                const existingProcessNode = currentEdges.find(
-                                    (edge) => edge.source === parentNodeId && edge.target.startsWith('process-')
-                                );
-
-                                let updatedEdges = [...currentEdges];
-
-                                if (existingProcessNode) {
-                                    // Remove all edges associated with the old ProcessNode and its descendants
-                                    const descendantIds = getDescendantIds(existingProcessNode.target, currentNodes);
-
-                                    updatedEdges = updatedEdges.filter(
-                                        (edge) =>
-                                            ![existingProcessNode.target, ...descendantIds].includes(edge.target)
-                                    );
-                                }
-
-                                // Add the new edge connecting the ProductNode to the new ProcessNode
-                                const newEdge: Edge = {
-                                    id: `edge-${parentNodeId}-${newProcessNode.id}`,
-                                    source: parentNodeId,
-                                    target: newProcessNode.id,
-                                };
-
-                                return [...updatedEdges, newEdge];
-                            });
-
-                            return updatedNodes;
-                        });
+                    if (result) {
+                        const { processNode, productNodes } = result;
+                        setNodes((currentNodes) => [
+                            ...currentNodes,
+                            processNode,
+                            ...productNodes,
+                        ]);
                     }
                 }
             }
