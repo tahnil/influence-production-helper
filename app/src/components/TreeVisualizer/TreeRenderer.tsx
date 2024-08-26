@@ -88,10 +88,15 @@ const TreeRenderer: React.FC = () => {
 
     const handleSelectProcess = useCallback((processId: string, nodeId: string) => {
         // Store the object with the node ID and process ID in the state
-        setSelectedProcessMap((prevMap) => ({
-            ...prevMap,
-            [nodeId]: processId,
-        }));
+        setSelectedProcessMap((prevMap) => {
+            if (prevMap[nodeId] !== processId) {
+                return {
+                    ...prevMap,
+                    [nodeId]: processId
+                };
+            }
+            return prevMap;
+        });
 
         console.log('Selected Process Map:', {
             ...selectedProcessMap,
