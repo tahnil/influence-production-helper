@@ -180,10 +180,16 @@ const TreeRenderer: React.FC = () => {
 
     // Utility function to get all descendant ids of a given node id
     const getDescendantIds = (nodeId: string, nodes: Node[]): string[] => {
+        // Find all direct children (ProductNodes)
         const directChildren = nodes.filter((node) => node.parentId === nodeId);
-        const allDescendants = directChildren.flatMap((child) =>
-            [child.id, ...getDescendantIds(child.id, nodes)]
-        );
+
+        // Recursively find all descendants for each direct child
+        const allDescendants = directChildren.reduce<string[]>((acc, child) => {
+            const childDescendants = getDescendantIds(child.id, nodes);
+            return [...acc, child.id, ...childDescendants];
+        }, []);
+
+        // Return the list of all descendant IDs
         return allDescendants;
     };
 
