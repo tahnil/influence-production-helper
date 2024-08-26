@@ -86,7 +86,18 @@ const TreeRenderer: React.FC = () => {
         []
     );
 
-    const handleSelectProcess = useCallback((processId: string, nodeId: string) => {
+    type AnyFunction = (...args: any[]) => void;
+
+    const debounce = (fn: AnyFunction, delay: number) => {
+        let timeoutId: NodeJS.Timeout | undefined;
+    
+        return (...args: any[]) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => fn(...args), delay);
+        };
+    };
+
+    const handleSelectProcess = useCallback(debounce((processId: string, nodeId: string) => {
         // Store the object with the node ID and process ID in the state
         setSelectedProcessMap((prevMap) => {
             if (prevMap[nodeId] !== processId) {
@@ -102,7 +113,7 @@ const TreeRenderer: React.FC = () => {
             ...selectedProcessMap,
             [nodeId]: processId,
         });
-    }, []);
+    }, 300), []);
 
     useEffect(() => {
         const fetchAndBuildRootNode = async () => {
