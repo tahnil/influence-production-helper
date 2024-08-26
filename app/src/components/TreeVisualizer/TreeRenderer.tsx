@@ -44,19 +44,22 @@
 // ########################
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { ReactFlow, addEdge, applyEdgeChanges, applyNodeChanges, Edge, Node } from '@xyflow/react';
+import { ReactFlow, addEdge, applyEdgeChanges, applyNodeChanges, Edge, Node, NodeChange, EdgeChange, Connection } from '@xyflow/react';
+import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import Dagre from '@dagrejs/dagre';
 import ProductNode from './ProductNode';
 import ProcessNode from './ProcessNode';
-import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
-import useInfluenceProducts from '@/hooks/useInfluenceProducts';
-import useProcessesByProductId from '@/hooks/useProcessesByProductId';
-import { generateUniqueId } from '@/utils/generateUniqueId';
 import '@xyflow/react/dist/style.css';
-import { InfluenceProcess } from '@/types/influenceTypes';
+import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
+import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
 
 interface ProductionChainData {
     // Define this interface based on your requirements later
+}
+
+interface ProcessSelection {
+    nodeId: string;
+    processId: string;
 }
 
 const nodeTypes = {
@@ -93,24 +96,28 @@ const getLayoutedElements = (nodes, edges, direction = 'TB') => {
 };
 
 const TreeRenderer: React.FC = () => {
-    const { influenceProducts } = useInfluenceProducts();
-    const { getProcessesByProductId } = useProcessesByProductId();
+    const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+    const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
+    const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
+
+    const { buildProductNode } = useProductNodeBuilder();
+    const { buildProcessNode } = useProcessNodeBuilder();
 
     const onNodesChange = useCallback(
-        (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-        [setNodes]
+        (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
+        []
     );
 
     const onEdgesChange = useCallback(
-        (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-        [setEdges]
+        (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+        []
     );
 
     const onConnect = useCallback(
-        (connection) => setEdges((eds) => addEdge(connection, eds)),
-        [setEdges]
+        (connection: Connection) => setEdges((eds) => addEdge(connection, eds)),
+        []
     );
 
     useEffect(() => {
@@ -121,153 +128,135 @@ const TreeRenderer: React.FC = () => {
         }
     }, [nodes, edges]);
 
-    const removeNodeAndDescendants = useCallback(
-        (nodeId: string) => {
-            const descendantEdges = edges.filter((edge) => edge.source === nodeId);
+    type AnyFunction = (...args: any[]) => void;
 
-            descendantEdges.forEach((edge) => removeNodeAndDescendants(edge.target));
+    const debounce = (fn: AnyFunction, delay: number) => {
+        let timeoutId: NodeJS.Timeout | undefined;
 
-            // Remove the node and its associated edges
-            setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-            setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
-        },
-        [edges]
+        return (...args: any[]) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => fn(...args), delay);
+        };
+    };
+
+    const handleSelectProcess = useCallback(
+        debounce((processId: string, nodeId: string) => {
+            // Add a new log entry with the node ID and process ID to the state
+            setSelectedProcessMap((prevMap) => [
+                ...prevMap,
+                { nodeId, processId },
+            ]);
+
+            console.log('Selected Process Map:', [
+                ...selectedProcessMap,
+                { nodeId, processId },
+            ]);
+        }, 300),
+        [selectedProcessMap]
     );
 
-    const handleProcessSelected = useCallback(
-        async (parentNodeId: string, parentNode: Node, selectedProcessId: string) => {
-            const processNodeId = generateUniqueId(); // Generate a unique ID for the process node
+    useEffect(() => {
+        const fetchAndBuildRootNode = async () => {
+            if (selectedProductId) {
+                setNodes([]); // Reset nodes when a new product is selected
+                setEdges([]); // Reset edges
 
-            // Use the parentNode passed directly to find the selected process
-            const selectedProcess = parentNode.data.processes.find(
-                (process: InfluenceProcess) => process.id === selectedProcessId
-            );
+                const rootNode = await buildProductNode(
+                    selectedProductId,
+                    selectedProcessId,
+                    handleSelectProcess,
+                );
 
-            if (!selectedProcess) {
-                console.error(`Process with id ${selectedProcessId} not found`);
-                return;
-            }
-
-            // Check if there is an existing process node connected to this parent product node
-            const existingProcessNode = nodes.find(
-                (node) => node.parentId === parentNodeId && node.type === 'processNode'
-            );
-
-            if (existingProcessNode) {
-                removeNodeAndDescendants(existingProcessNode.id);
-            }
-
-            // Create the new process node
-            const newProcessNode: Node = {
-                id: processNodeId,
-                type: 'processNode',
-                position: { x: 200, y: 100 },
-                data: {
-                    processName: selectedProcess.name,
-                    inputProducts: selectedProcess.inputs.map((input) => input.productId),
-                },
-                parentId: parentNodeId,
-            };
-
-            // Create new product nodes for the inputs
-            const inputProductNodesPromises = newProcessNode.data.inputProducts.map(
-                async (productId, index) => {
-                    const inputProductNodeId = generateUniqueId();
-
-                    const selectedProduct = influenceProducts.find((product) => product.id === productId);
-                    if (!selectedProduct) {
-                        console.error(`Product with id ${productId} not found`);
-                        return null;
-                    }
-
-                    const processes = await getProcessesByProductId(productId);
-
-                    const newProductNode: Node = {
-                        id: inputProductNodeId,
-                        type: 'productNode',
-                        position: { x: 400, y: index * 100 },
-                        data: {
-                            InfluenceProduct: selectedProduct,
-                            ProductionChainData: {}, // Initialize empty ProductionChainData (to be defined later)
-                            processes, // Store the fetched processes in the node data
-                            onProcessSelected: (process: string) =>
-                                handleProcessSelected(inputProductNodeId, newProductNode, process),
-                        },
-                        parentId: processNodeId, // This product node's parent is the process node
-                    };
-
-                    console.log('A new ProductNode has been created for a ProcessNode:\n', newProductNode);
-
-                    return newProductNode;
+                if (rootNode) {
+                    setNodes([rootNode]); // Set the new root node
                 }
-            );
-
-            const inputProductNodes = (await Promise.all(inputProductNodesPromises)).filter(Boolean);
-
-            console.log('A new ProcessNode has been created:\n', newProcessNode);
-            console.log('One or many children ProductNode has been created:\n', inputProductNodes);
-
-            setNodes((nds) => nds.concat(newProcessNode, ...inputProductNodes));
-
-            // Create an edge to connect the process node to the product node
-            const newEdge: Edge = {
-                id: generateUniqueId(),
-                source: parentNodeId,
-                target: processNodeId,
-            };
-
-            // Create edges to connect the process node to the input product nodes
-            const inputProductEdges = inputProductNodes.map((inputNode) => ({
-                id: generateUniqueId(),
-                source: processNodeId,
-                target: inputNode.id,
-            }));
-
-            setEdges((eds) => eds.concat(newEdge, ...inputProductEdges));
-        },
-        [nodes, edges, removeNodeAndDescendants, influenceProducts, getProcessesByProductId]
-    );
-
-    const handleProductSelect = useCallback(
-        async (productId: string) => {
-            const rootNodeId = generateUniqueId(); // Generate unique ID for the root product node
-            const selectedProduct = influenceProducts.find((product) => product.id === productId);
-
-            if (!selectedProduct) {
-                console.error(`Product with id ${productId} not found`);
-                return;
             }
+        };
 
-            try {
-                // Fetch processes that yield this product
-                const processes = await getProcessesByProductId(productId);
+        fetchAndBuildRootNode();
+    }, [selectedProductId, buildProductNode]);
 
-                const initialNode: Node = {
-                    id: rootNodeId,
-                    type: 'productNode',
-                    position: { x: 0, y: 0 },
-                    data: {
-                        InfluenceProduct: selectedProduct, // Store the detailed product data
-                        ProductionChainData: {}, // Initialize empty ProductionChainData (to be defined later)
-                        processes, // Store the fetched processes in the node data
-                        onProcessSelected: async (processId: string) => {
-                            handleProcessSelected(rootNodeId, initialNode, processId); // Pass initialNode directly
-                        },
-                    },
-                };
+    useEffect(() => {
+        const fetchAndBuildProcessNode = async () => {
+            if (selectedProcessMap.length > 0) {
+                const lastEntry = selectedProcessMap[selectedProcessMap.length - 1];
+                const { nodeId: parentNodeId, processId } = lastEntry;
 
-                console.log('A new Root ProductNode has been created:\n', initialNode);
+                if (processId && parentNodeId) {
+                    const result = await buildProcessNode(processId, parentNodeId, handleSelectProcess);
 
-                // Update nodes and edges to start from scratch
-                setNodes([initialNode]);
-                setEdges([]);
+                    if (result) {
+                        const { processNode, productNodes } = result;
 
-            } catch (error) {
-                console.error('Error fetching processes:', error);
+                        setNodes((currentNodes) => {
+                            let updatedNodes = [...currentNodes];
+                            let updatedEdges = [...edges];
+
+                            // Step 1: Find the existing ProcessNode with the same parentId
+                            const existingProcessNode = updatedNodes.find(
+                                (node) => node.parentId === parentNodeId && node.type === 'processNode'
+                            );
+
+                            if (existingProcessNode) {
+                                // Step 2: Recursively find and remove all descendants
+                                const descendantIds = getDescendantIds(existingProcessNode.id, updatedNodes);
+
+                                // Remove the existing ProcessNode and its descendants
+                                updatedNodes = updatedNodes.filter(
+                                    (node) => ![existingProcessNode.id, ...descendantIds].includes(node.id)
+                                );
+
+                                // Also remove all edges connected to these nodes
+                                updatedEdges = updatedEdges.filter(
+                                    (edge) => ![existingProcessNode.id, ...descendantIds].includes(edge.source)
+                                );
+                            }
+
+                            // Step 4: Add the new ProcessNode and its child ProductNodes
+                            updatedNodes = [...updatedNodes, processNode, ...productNodes];
+
+                            // Step 5: Create edges between the ProcessNode and each ProductNode
+                            const newEdges = productNodes.map((productNode) => ({
+                                id: `edge-${processNode.id}-${productNode.id}`,
+                                source: processNode.id,
+                                target: productNode.id,
+                            }));
+
+                            updatedEdges = [...updatedEdges, ...newEdges];
+
+                            // Step 6: Add the edge between the parent ProductNode and the ProcessNode
+                            updatedEdges.push({
+                                id: `edge-${parentNodeId}-${processNode.id}`,
+                                source: parentNodeId,
+                                target: processNode.id,
+                            });
+
+                            // Update the nodes and edges state
+                            setEdges(updatedEdges);
+                            return updatedNodes;
+                        });
+                    }
+                }
             }
-        },
-        [handleProcessSelected, influenceProducts, getProcessesByProductId]
-    );
+        };
+
+        fetchAndBuildProcessNode();
+    }, [selectedProcessMap, buildProcessNode]);
+
+    // Utility function to get all descendant ids of a given node id
+    const getDescendantIds = (nodeId: string, nodes: Node[]): string[] => {
+        // Find all direct children (ProductNodes)
+        const directChildren = nodes.filter((node) => node.parentId === nodeId);
+
+        // Recursively find all descendants for each direct child
+        const allDescendants = directChildren.reduce<string[]>((acc, child) => {
+            const childDescendants = getDescendantIds(child.id, nodes);
+            return [...acc, child.id, ...childDescendants];
+        }, []);
+
+        // Return the list of all descendant IDs
+        return allDescendants;
+    };
 
     return (
         <div className="w-full h-full relative">
@@ -285,7 +274,7 @@ const TreeRenderer: React.FC = () => {
                     <div className="absolute bottom-4 right-4 bg-background p-4 shadow-lg rounded-lg z-10 max-h-[90vh] overflow-y-auto w-[35ch]">
                         <h2 className="text-xl font-semibold mb-4">Controls</h2>
                         <ProductSelector
-                            onProductSelect={handleProductSelect}
+                            onProductSelect={setSelectedProductId}
                             className="p-2 border rounded border-gray-300 mb-4 w-full"
                         />
                     </div>

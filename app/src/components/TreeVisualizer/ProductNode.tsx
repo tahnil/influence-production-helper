@@ -1,49 +1,60 @@
 // components/TreeVisualizer/ProductNode.tsx
 
-import { useCallback } from 'react';
-import { Handle, Position } from '@xyflow/react';
-import { InfluenceProduct, InfluenceProcess } from '@/types/influenceTypes';
+import React from 'react';
+import { Node, Handle, Position, NodeProps } from '@xyflow/react';
+import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 
-interface ProductNodeProps {
-  id: string;
-  data: {
-    InfluenceProduct: InfluenceProduct;  // Updated to match the new structure
-    ProductionChainData: any;  // Placeholder for now; update as needed
-    processes: InfluenceProcess[];  // Array of processes
-    onProcessSelected: (processId: string) => void;
+export type ProductNode = Node<
+  {
+    InfluenceProduct: InfluenceProduct;
+    image: string;
+    processesByProductId: InfluenceProcess[];
+    selectedProcessId: string | null;
+    onSelectProcess: (processId: string, nodeId: string) => void;
+  }
+>;
+
+const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
+  const { InfluenceProduct, image, processesByProductId, selectedProcessId, onSelectProcess } = data;
+
+  const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = InfluenceProduct;
+
+  const handleSelectProcess = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const processId = event.target.value;
+    onSelectProcess(processId, id);
   };
-}
-
-const handleStyle = { left: 10 };
-
-const ProductNode: React.FC<ProductNodeProps> = ({ id, data }) => {
-  const { InfluenceProduct, processes, onProcessSelected } = data;
-
-  const handleSelectProcess = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const selectedProcessId = event.target.value;
-      if (selectedProcessId) {
-        onProcessSelected(selectedProcessId);
-    }
-    },
-    [onProcessSelected]
-  );
 
   return (
-    <div className="product-node">
-      <Handle type="target" position={Position.Top} />
-      <div>
-        <label htmlFor={`process-select-${id}`}>Select Process for {InfluenceProduct.name}:</label>
-        <select id={`process-select-${id}`} onChange={handleSelectProcess}>
+    <div className="product-node p-4 bg-black border rounded shadow-sm">
+      <Handle type="target" position={Position.Top} className="bg-blue-500" />
+      <div className="flex flex-col items-center">
+        <h1>{name}</h1>
+        <p>Stats: {weight} kg | {volume} L | {type} | {category}</p>
+        {image && (
+          <img
+            src={image}
+            alt={`${InfluenceProduct.name} image`}
+            className="mb-2 w-16 h-16 object-contain"
+          />
+        )}
+        <label htmlFor={`process-select-${id}`} className="text-sm font-medium">
+          Select Process for {InfluenceProduct.name}:
+        </label>
+        <select
+          id={`process-select-${id}`}
+          value={selectedProcessId || ''}
+          onChange={handleSelectProcess}
+          className="mt-2 p-1 border rounded text-sm bg-gray-800"
+        >
           <option value="">Select a process</option>
-          {processes.map((process: InfluenceProcess) => (
+          {processesByProductId.map((process: InfluenceProcess) => (
             <option key={process.id} value={process.id}>
               {process.name}
             </option>
           ))}
         </select>
       </div>
-      <Handle type="source" position={Position.Bottom} style={handleStyle} />
+      <Handle type="source" position={Position.Bottom} className="bg-green-500" />
     </div>
   );
 };
