@@ -148,11 +148,28 @@ const TreeRenderer: React.FC = () => {
 
                     if (result) {
                         const { processNode, productNodes } = result;
-                        setNodes((currentNodes) => [
-                            ...currentNodes,
-                            processNode,
-                            ...productNodes,
-                        ]);
+
+                        setNodes((currentNodes) => {
+                            // Step 1: Find the existing ProcessNode with the same parentId
+                            const existingProcessNode = currentNodes.find(
+                                (node) => node.parentId === parentNodeId && node.type === 'processNode'
+                            );
+
+                            let updatedNodes = [...currentNodes];
+
+                            if (existingProcessNode) {
+                                // Step 2: Recursively find and remove all descendants
+                                const descendantIds = getDescendantIds(existingProcessNode.id, updatedNodes);
+
+                                // Remove the existing ProcessNode and its descendants
+                                updatedNodes = updatedNodes.filter(
+                                    (node) => ![existingProcessNode.id, ...descendantIds].includes(node.id)
+                                );
+                            }
+
+                            // Step 4: Add the new ProcessNode and its child ProductNodes
+                            return [...updatedNodes, processNode, ...productNodes];
+                        });
                     }
                 }
             }
