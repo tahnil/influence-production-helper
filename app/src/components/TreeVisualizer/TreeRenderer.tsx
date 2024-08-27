@@ -12,7 +12,6 @@ import {
     EdgeChange,
     Connection,
     ReactFlowProvider,
-    useReactFlow,
     Position,
 } from '@xyflow/react';
 import Dagre from '@dagrejs/dagre';
@@ -59,12 +58,12 @@ const TreeRenderer: React.FC = () => {
         edgesep: 10,       // Separation between edges
         marginx: 20,       // Horizontal margin around the graph
         marginy: 20,       // Vertical margin around the graph
-        acyclicer:  'greedy',
-        ranker: 'tight-tree', 
+        acyclicer: 'greedy',
+        ranker: 'tight-tree',
         minlen: 2,
-        weight: 1, 
-        labelpos: 'r', 
-        labeloffset: 10, 
+        weight: 1,
+        labelpos: 'r',
+        labeloffset: 10,
         direction: 'LR',
     });
 
@@ -91,28 +90,28 @@ const TreeRenderer: React.FC = () => {
     const updateDagreConfig = (newConfig) => {
         setDagreConfig((prevConfig) => {
             const updatedConfig = { ...prevConfig, ...newConfig };
-            
+
             const layouted = getLayoutedElements(nodes, edges, updatedConfig.rankdir);
-    
+
             setNodes(layouted.nodes);
             setEdges(layouted.edges);
-    
+
             return updatedConfig;
         });
     };
 
     const getLayoutedElements = (
-        nodes: Node[], 
-        edges: Edge[], 
+        nodes: Node[],
+        edges: Edge[],
         direction: string
     ) => {
         const dagreGraph = new Dagre.graphlib.Graph();
         dagreGraph.setDefaultEdgeLabel(() => ({}));
-    
+
         const isHorizontal = direction === dagreConfig.direction;
-    
-        dagreGraph.setGraph({ 
-            rankdir: direction, 
+
+        dagreGraph.setGraph({
+            rankdir: direction,
             align: dagreConfig.align,
             nodesep: dagreConfig.nodesep,
             edgesep: dagreConfig.edgesep,
@@ -122,14 +121,15 @@ const TreeRenderer: React.FC = () => {
             acyclicer: dagreConfig.acyclicer,
             ranker: dagreConfig.ranker,
         });
-    
+
         nodes.forEach((node) => {
-            dagreGraph.setNode(node.id, {
-                width: node.measured?.width || 172, // Use measured width if available, otherwise fallback
-                height: node.measured?.height || 36, // Use measured height if available, otherwise fallback
-            });
+            const width = node.measured?.width || 166; // Fallback to 172 if width is missing
+            const height = node.measured?.height || 66; // Fallback to 36 if height is missing
+
+            dagreGraph.setNode(node.id, { width, height });
+            console.log(`Node ${node.id} set with width: ${width}, height: ${height}`);
         });
-    
+
         edges.forEach((edge) => {
             dagreGraph.setEdge(edge.source, edge.target, {
                 minlen: dagreConfig.minlen,
@@ -138,13 +138,13 @@ const TreeRenderer: React.FC = () => {
                 labeloffset: dagreConfig.labeloffset,
             });
         });
-    
+
         Dagre.layout(dagreGraph);
-    
+
         const layoutedNodes: LayoutedNode[] = nodes.map((node) => {
             const nodeWithPosition = dagreGraph.node(node.id);
             console.log(`Node ${node.id}: `, nodeWithPosition);
-    
+
             return {
                 ...node,
                 position: {
@@ -156,9 +156,9 @@ const TreeRenderer: React.FC = () => {
                 data: { ...node.data, label: `(${nodeWithPosition.x}, ${nodeWithPosition.y})` },
             } as LayoutedNode;
         });
-    
+
         return { nodes: layoutedNodes as LayoutedNode[], edges };
-    };    
+    };
 
     const debounce = (fn: AnyFunction, delay: number) => {
         let timeoutId: NodeJS.Timeout | undefined;
@@ -308,9 +308,9 @@ const TreeRenderer: React.FC = () => {
                             onProductSelect={setSelectedProductId}
                             className="p-2 border rounded border-gray-300 mb-4 w-full"
                         />
-                        <ControlPanel 
-                        dagreConfig={dagreConfig} 
-                        updateDagreConfig={updateDagreConfig} 
+                        <ControlPanel
+                            dagreConfig={dagreConfig}
+                            updateDagreConfig={updateDagreConfig}
                         />
                     </div>
                 </ReactFlow>
