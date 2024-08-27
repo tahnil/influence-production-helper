@@ -29,6 +29,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
       <Handle type="target" position={Position.Top} className="bg-blue-500" />
       <div className="flex flex-col items-center">
         <h1>{name}</h1>
+        <p>{id}</p>
         <p>Stats: {weight} kg | {volume} L | {type} | {category}</p>
         {image && (
           <img

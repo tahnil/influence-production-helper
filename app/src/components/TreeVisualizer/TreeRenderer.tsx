@@ -22,6 +22,7 @@ import ProcessNode from './ProcessNode';
 import '@xyflow/react/dist/style.css';
 import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
+import ControlPanel from './DagreControlPanel';
 
 interface ProductionChainData {
     // Define this interface based on your requirements later
@@ -43,52 +44,29 @@ const nodeTypes = {
     processNode: ProcessNode,
 };
 
-const getLayoutedElements = (
-    nodes: Node[], 
-    edges: Edge[], 
-    direction = 'TB'
-) => {
-    const dagreGraph = new Dagre.graphlib.Graph();
-    dagreGraph.setDefaultEdgeLabel(() => ({}));
-
-    const isHorizontal = direction === 'LR';
-    dagreGraph.setGraph({ rankdir: direction });
-
-    nodes.forEach((node) => {
-        dagreGraph.setNode(node.id, {
-            width: node.measured?.width || 172, // Use measured width if available, otherwise fallback
-            height: node.measured?.height || 36, // Use measured height if available, otherwise fallback
-        });
-    });
-
-    edges.forEach((edge) => {
-        dagreGraph.setEdge(edge.source, edge.target);
-    });
-
-    Dagre.layout(dagreGraph);
-
-    const layoutedNodes: LayoutedNode[] = nodes.map((node) => {
-        const nodeWithPosition = dagreGraph.node(node.id);
-        return {
-            ...node,
-            position: {
-                x: nodeWithPosition.x - (node.measured?.width || 172) / 2,
-                y: nodeWithPosition.y - (node.measured?.height || 36) / 2,
-            },
-            targetPosition: isHorizontal ? Position.Left : Position.Top,
-            sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
-        } as LayoutedNode;
-    });
-
-    return { nodes: layoutedNodes as LayoutedNode[], edges };
-};
-
 const TreeRenderer: React.FC = () => {
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
     const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
+
+    const [dagreConfig, setDagreConfig] = useState({
+        align: 'DR',
+        rankdir: 'TB',     // Direction for node ranks: 'TB', 'BT', 'LR', 'RL'
+        nodesep: 50,       // Horizontal separation between nodes
+        ranksep: 70,       // Vertical separation between nodes
+        edgesep: 10,       // Separation between edges
+        marginx: 20,       // Horizontal margin around the graph
+        marginy: 20,       // Vertical margin around the graph
+        acyclicer:  'greedy',
+        ranker: 'tight-tree', 
+        minlen: 2,
+        weight: 1, 
+        labelpos: 'r', 
+        labeloffset: 10, 
+        direction: 'LR',
+    });
 
     const { buildProductNode } = useProductNodeBuilder();
     const { buildProcessNode } = useProcessNodeBuilder();
@@ -109,6 +87,78 @@ const TreeRenderer: React.FC = () => {
     );
 
     type AnyFunction = (...args: any[]) => void;
+
+    const updateDagreConfig = (newConfig) => {
+        setDagreConfig((prevConfig) => {
+            const updatedConfig = { ...prevConfig, ...newConfig };
+            
+            const layouted = getLayoutedElements(nodes, edges, updatedConfig.rankdir);
+    
+            setNodes(layouted.nodes);
+            setEdges(layouted.edges);
+    
+            return updatedConfig;
+        });
+    };
+
+    const getLayoutedElements = (
+        nodes: Node[], 
+        edges: Edge[], 
+        direction: string
+    ) => {
+        const dagreGraph = new Dagre.graphlib.Graph();
+        dagreGraph.setDefaultEdgeLabel(() => ({}));
+    
+        const isHorizontal = direction === dagreConfig.direction;
+    
+        dagreGraph.setGraph({ 
+            rankdir: direction, 
+            align: dagreConfig.align,
+            nodesep: dagreConfig.nodesep,
+            edgesep: dagreConfig.edgesep,
+            ranksep: dagreConfig.ranksep,
+            marginx: dagreConfig.marginx,
+            marginy: dagreConfig.marginy,
+            acyclicer: dagreConfig.acyclicer,
+            ranker: dagreConfig.ranker,
+        });
+    
+        nodes.forEach((node) => {
+            dagreGraph.setNode(node.id, {
+                width: node.measured?.width || 172, // Use measured width if available, otherwise fallback
+                height: node.measured?.height || 36, // Use measured height if available, otherwise fallback
+            });
+        });
+    
+        edges.forEach((edge) => {
+            dagreGraph.setEdge(edge.source, edge.target, {
+                minlen: dagreConfig.minlen,
+                weight: dagreConfig.weight,
+                labelpos: dagreConfig.labelpos,
+                labeloffset: dagreConfig.labeloffset,
+            });
+        });
+    
+        Dagre.layout(dagreGraph);
+    
+        const layoutedNodes: LayoutedNode[] = nodes.map((node) => {
+            const nodeWithPosition = dagreGraph.node(node.id);
+            console.log(`Node ${node.id}: `, nodeWithPosition);
+    
+            return {
+                ...node,
+                position: {
+                    x: nodeWithPosition.x, // Directly use Dagre's calculated x position
+                    y: nodeWithPosition.y, // Directly use Dagre's calculated y position
+                },
+                targetPosition: isHorizontal ? Position.Left : Position.Top,
+                sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
+                data: { ...node.data, label: `(${nodeWithPosition.x}, ${nodeWithPosition.y})` },
+            } as LayoutedNode;
+        });
+    
+        return { nodes: layoutedNodes as LayoutedNode[], edges };
+    };    
 
     const debounce = (fn: AnyFunction, delay: number) => {
         let timeoutId: NodeJS.Timeout | undefined;
@@ -211,7 +261,7 @@ const TreeRenderer: React.FC = () => {
                                 target: processNode.id,
                             });
 
-                            const layouted = getLayoutedElements(updatedNodes, updatedEdges);
+                            const layouted = getLayoutedElements(updatedNodes, updatedEdges, '');
 
                             setEdges(layouted.edges);
                             return layouted.nodes;
@@ -257,6 +307,10 @@ const TreeRenderer: React.FC = () => {
                         <ProductSelector
                             onProductSelect={setSelectedProductId}
                             className="p-2 border rounded border-gray-300 mb-4 w-full"
+                        />
+                        <ControlPanel 
+                        dagreConfig={dagreConfig} 
+                        updateDagreConfig={updateDagreConfig} 
                         />
                     </div>
                 </ReactFlow>

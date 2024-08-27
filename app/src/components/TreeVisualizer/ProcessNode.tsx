@@ -20,6 +20,7 @@ const ProcessNode: React.FC<NodeProps<ProcessNode>> = ({ id, data }) => {
       <Handle type="target" position={Position.Top} className="bg-blue-500" />
       <div className="flex flex-col items-center">
         <strong className="text-white">{processDetails.name}</strong>
+        <p>{id}</p>
         <p className="text-gray-300 text-sm mb-2">{processDetails.description}</p>
         <ul className="list-disc list-inside text-gray-200">
           {inputProducts.map((input) => (
