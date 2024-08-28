@@ -12,7 +12,7 @@ import {
     EdgeChange,
     Connection,
     ReactFlowProvider,
-    Position,
+    useNodesInitialized,
 } from '@xyflow/react';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProductNode from './ProductNode';
@@ -20,7 +20,7 @@ import ProcessNode from './ProcessNode';
 import '@xyflow/react/dist/style.css';
 import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
-import ControlPanel from './DagreControlPanel';
+import ControlPanel from './ControlPanel';
 import useDagreLayout from '@/utils/TreeVisualizer/useDagreLayout';
 
 interface ProcessSelection {
@@ -39,6 +39,8 @@ const TreeRenderer: React.FC = () => {
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
+    
+    const nodesInitialized = useNodesInitialized();
 
     const [dagreConfig, setDagreConfig] = useState({
         align: 'DR',
@@ -56,6 +58,13 @@ const TreeRenderer: React.FC = () => {
         labeloffset: 10,
         direction: 'LR',
     });
+
+    const updateDagreConfig = (newConfig: Partial<typeof dagreConfig>) => {
+        setDagreConfig((prevConfig) => ({
+            ...prevConfig,
+            ...newConfig,
+        }));
+    };
 
     const { buildProductNode } = useProductNodeBuilder();
     const { buildProcessNode } = useProcessNodeBuilder();
@@ -75,7 +84,6 @@ const TreeRenderer: React.FC = () => {
         []
     );
 
-    // Use the Dagre layout hook to update nodes and edges when they are initialized
     const debounce = (fn: Function, delay: number) => {
         let timeoutId: NodeJS.Timeout | undefined;
 
@@ -98,10 +106,16 @@ const TreeRenderer: React.FC = () => {
                 { nodeId, processId },
             ]);
         }, 300),
-        [selectedProcessMap]
+        []
     );
 
-    useDagreLayout(dagreConfig, nodes, edges, setNodes, setEdges);
+    useEffect(() => {
+        if (nodesInitialized && nodes.length > 0 && edges.length > 0) {
+            const { nodes: layoutedNodes, edges: layoutedEdges } = useDagreLayout(nodes, edges, dagreConfig);
+            setNodes(layoutedNodes);
+            setEdges(layoutedEdges);
+        }
+    }, [nodesInitialized, dagreConfig]);
 
     useEffect(() => {
         const fetchAndBuildRootNode = async () => {
@@ -224,10 +238,10 @@ const TreeRenderer: React.FC = () => {
                             onProductSelect={setSelectedProductId}
                             className="p-2 border rounded border-gray-300 mb-4 w-full"
                         />
-                        {/* <ControlPanel
+                        <ControlPanel
                             dagreConfig={dagreConfig}
                             updateDagreConfig={updateDagreConfig}
-                        /> */}
+                        />
                     </div>
                 </ReactFlow>
             </div>

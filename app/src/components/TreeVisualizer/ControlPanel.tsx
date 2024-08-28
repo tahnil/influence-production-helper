@@ -1,6 +1,7 @@
 import React from 'react';
+import { ControlPanelProps } from '@/types/dagreTypes';
 
-const ControlPanel = ({ dagreConfig, updateDagreConfig }) => {
+const ControlPanel: React.FC<ControlPanelProps> = ({ dagreConfig, updateDagreConfig }) => {
     return (
         <div className="control-panel space-y-4">
             <h3 className="text-lg font-semibold">Layout Configuration</h3>
