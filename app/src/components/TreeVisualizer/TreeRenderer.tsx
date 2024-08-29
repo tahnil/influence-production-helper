@@ -113,13 +113,8 @@ const TreeRenderer: React.FC = () => {
 
     useEffect(() => {
         if (nodesInitialized) {
-            console.log("Nodes Initialized:", nodesInitialized);
-            nodes.forEach((node) => {
-                console.log(`Node ID: ${node.id}, Width: ${node.measured?.width}, Height: ${node.measured?.height}`);
-            });
-            
             const { nodes: layoutedNodes, edges: layoutedEdges } = useDagreLayout(nodes, edges, dagreConfig);
-            
+
             const smoothstepEdges = layoutedEdges.map((edge) => ({
                 ...edge,
                 type: 'smoothstep',
@@ -143,7 +138,12 @@ const TreeRenderer: React.FC = () => {
                 );
 
                 if (rootNode) {
-                    setNodes([rootNode]); // Set the new root node
+                    const namedRootNode = {
+                        ...rootNode,
+                        id: 'root',
+                    };
+
+                    setNodes([namedRootNode]); // Set the new root node
                 }
             }
         };
