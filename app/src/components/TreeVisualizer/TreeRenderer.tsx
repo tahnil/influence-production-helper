@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
     ReactFlow,
+    MiniMap,
     addEdge,
     applyEdgeChanges,
     applyNodeChanges,
@@ -13,6 +14,7 @@ import {
     Connection,
     ReactFlowProvider,
     useNodesInitialized,
+    getSmoothStepPath,
 } from '@xyflow/react';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProductNode from './ProductNode';
@@ -45,13 +47,13 @@ const TreeRenderer: React.FC = () => {
     const [dagreConfig, setDagreConfig] = useState({
         align: 'DR',
         rankdir: 'TB',
-        nodesep: 80,
-        ranksep: 100,
+        nodesep: 20,
+        ranksep: 70,
         edgesep: 10,
-        marginx: 20,
-        marginy: 20,
+        marginx: 0,
+        marginy: 0,
         acyclicer: 'greedy',
-        ranker: 'tight-tree',
+        ranker: 'network-simplex',
         minlen: 2,
         weight: 1,
         labelpos: 'r',
@@ -115,10 +117,16 @@ const TreeRenderer: React.FC = () => {
             nodes.forEach((node) => {
                 console.log(`Node ID: ${node.id}, Width: ${node.measured?.width}, Height: ${node.measured?.height}`);
             });
-
+            
             const { nodes: layoutedNodes, edges: layoutedEdges } = useDagreLayout(nodes, edges, dagreConfig);
+            
+            const smoothstepEdges = layoutedEdges.map((edge) => ({
+                ...edge,
+                type: 'smoothstep',
+            }));
+
             setNodes(layoutedNodes);
-            setEdges(layoutedEdges);
+            setEdges(smoothstepEdges);
         }
     }, [nodesInitialized, dagreConfig]);
 
@@ -236,8 +244,11 @@ const TreeRenderer: React.FC = () => {
                     nodeTypes={nodeTypes}
                     fitView
                     style={{ backgroundColor: '#282C34' }}
+                    minZoom={0.01}
+                    maxZoom={1}
+                    nodesDraggable={false}
                 >
-                    <div className="absolute bottom-4 right-4 bg-background p-4 shadow-lg rounded-lg z-10 max-h-[90vh] overflow-y-auto w-[35ch]">
+                    <div className="absolute bottom-4 left-4 bg-background p-4 shadow-lg rounded-lg z-10 max-h-[90vh] overflow-y-auto w-[35ch]">
                         <h2 className="text-xl font-semibold mb-4">Controls</h2>
                         <ProductSelector
                             onProductSelect={setSelectedProductId}
@@ -248,6 +259,7 @@ const TreeRenderer: React.FC = () => {
                             updateDagreConfig={updateDagreConfig}
                         />
                     </div>
+                    <MiniMap nodeStrokeWidth={3} />
                 </ReactFlow>
             </div>
         </div>
