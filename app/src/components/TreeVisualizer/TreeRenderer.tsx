@@ -39,7 +39,7 @@ const TreeRenderer: React.FC = () => {
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
-    
+
     const nodesInitialized = useNodesInitialized();
 
     const [dagreConfig, setDagreConfig] = useState({
@@ -110,7 +110,12 @@ const TreeRenderer: React.FC = () => {
     );
 
     useEffect(() => {
-        if (nodesInitialized && nodes.length > 0 && edges.length > 0) {
+        if (nodesInitialized) {
+            console.log("Nodes Initialized:", nodesInitialized);
+            nodes.forEach((node) => {
+                console.log(`Node ID: ${node.id}, Width: ${node.measured?.width}, Height: ${node.measured?.height}`);
+            });
+
             const { nodes: layoutedNodes, edges: layoutedEdges } = useDagreLayout(nodes, edges, dagreConfig);
             setNodes(layoutedNodes);
             setEdges(layoutedEdges);
