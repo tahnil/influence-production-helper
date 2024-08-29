@@ -31,10 +31,7 @@ function useDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     });
 
     nodes.forEach((node) => {
-        const nodeWidth = node.measured?.width || nodeFallbackWidth;
-        const nodeHeight = node.measured?.height || nodeFallbackHeight;
-
-        dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+        dagreGraph.setNode(node.id, { width: node.measured?.width || nodeFallbackWidth, height: node.measured?.height || nodeFallbackHeight });
     });
 
     edges.forEach((edge) => {
@@ -46,20 +43,19 @@ function useDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     // Map the positions from Dagre back to React Flow nodes
     const layoutedNodes = nodes.map((node) => {
         const nodeWithPosition = dagreGraph.node(node.id);
-        console.log(`node:`,node,`\nnodeWithPosition`,nodeWithPosition);
 
-        // Start with absolute positioning
         let relativeX = nodeWithPosition.x - (node.measured?.width || nodeFallbackWidth) / 2;
         let relativeY = nodeWithPosition.y - (node.measured?.height || nodeFallbackHeight) / 2;
 
         if (node.parentId) {
             const parentNode = dagreGraph.node(node.parentId);
             if (parentNode) {
-                // Adjust the child's position relative to the parent's center
-                relativeX = (nodeWithPosition.x - nodeWithPosition.x) + (parentNode.width || nodeFallbackWidth) / 2 - (node.measured?.width || nodeFallbackWidth) / 2;
-                console.log('Adjusted relativeX:', nodeWithPosition.x ,'-', parentNode.x ,') + (', parentNode.width ,'||', nodeFallbackWidth ,') / 2 - (',node.measured?.width, '||', nodeFallbackWidth ,') / 2');
-                relativeY = (nodeWithPosition.y - nodeWithPosition.y) + (parentNode.height || nodeFallbackHeight);
-                console.log('Adjusted relativeY:', nodeWithPosition.y ,'-', nodeWithPosition.y ,' + ', parentNode.height ,'||', nodeFallbackHeight);
+                // Adjust the child’s position relative to the parent’s top-left corner
+                relativeX = nodeWithPosition.x - parentNode.x;
+                relativeY = nodeWithPosition.y - parentNode.y;
+
+                console.log('Adjusted relativeX:', relativeX);
+                console.log('Adjusted relativeY:', relativeY);
             }
         }
 
