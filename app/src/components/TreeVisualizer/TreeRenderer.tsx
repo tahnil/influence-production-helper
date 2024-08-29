@@ -254,10 +254,10 @@ const TreeRenderer: React.FC = () => {
                             onProductSelect={setSelectedProductId}
                             className="p-2 border rounded border-gray-300 mb-4 w-full"
                         />
-                        <ControlPanel
+                        {/* <ControlPanel
                             dagreConfig={dagreConfig}
                             updateDagreConfig={updateDagreConfig}
-                        />
+                        /> */}
                     </div>
                     <MiniMap nodeStrokeWidth={3} />
                 </ReactFlow>
