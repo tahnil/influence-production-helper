@@ -32,14 +32,27 @@ function useDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
 
     Dagre.layout(dagreGraph);
 
+    // Map the positions from Dagre back to React Flow nodes
     const layoutedNodes = nodes.map((node) => {
         const nodeWithPosition = dagreGraph.node(node.id);
+
+        // Calculate relative position if the node has a parent
+        let relativeX = nodeWithPosition.x - nodeWidth / 2;
+        let relativeY = nodeWithPosition.y - nodeHeight / 2;
+
+        if (node.parentId) {
+            const parentNode = dagreGraph.node(node.parentId);
+            if (parentNode) {
+                relativeX -= parentNode.x - nodeWidth / 2;
+                relativeY -= parentNode.y - nodeHeight / 2;
+            }
+        }
 
         return {
             ...node,
             position: {
-                x: nodeWithPosition.x - nodeWidth / 2,
-                y: nodeWithPosition.y - nodeHeight / 2,
+                x: relativeX,
+                y: relativeY,
             },
             targetPosition: isHorizontal ? Position.Left : Position.Top,
             sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
