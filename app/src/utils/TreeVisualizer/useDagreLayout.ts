@@ -51,8 +51,14 @@ function useDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
             const parentNode = dagreGraph.node(node.parentId);
             if (parentNode) {
                 // Adjust the child’s position relative to the parent’s top-left corner
-                relativeX = nodeWithPosition.x - parentNode.x;
-                relativeY = nodeWithPosition.y - parentNode.y;
+                // centerOfNodeWithPosition ==> (nodeWithPosition.x + nodeWithPosition.width / 2)
+                // centerOfParentNode ==> (parentNode.x + parentNode.width / 2)
+
+                // (parentNode.measured.width - node.measured.width) / 2
+
+                relativeX = nodeWithPosition.x - parentNode.x + (parentNode.width - (node.measured?.width || nodeFallbackWidth)) / 2;
+                console.log(`Calculation as formula: ${nodeWithPosition.x} - ${parentNode.x} - (${parentNode.width} - (${node.measured?.width} || ${nodeFallbackWidth}) / 2 = ${relativeX}`);
+                relativeY = nodeWithPosition.y - parentNode.y + (parentNode.height - (node.measured?.height || nodeFallbackHeight)) / 2;
 
                 console.log('Adjusted relativeX:', relativeX);
                 console.log('Adjusted relativeY:', relativeY);
