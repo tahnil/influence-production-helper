@@ -45,8 +45,8 @@ const TreeRenderer: React.FC = () => {
     const [dagreConfig, setDagreConfig] = useState({
         align: 'DR',
         rankdir: 'TB',
-        nodesep: 50,
-        ranksep: 70,
+        nodesep: 80,
+        ranksep: 100,
         edgesep: 10,
         marginx: 20,
         marginy: 20,
