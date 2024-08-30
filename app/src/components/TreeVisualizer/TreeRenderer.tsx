@@ -18,7 +18,7 @@ import {
 } from '@xyflow/react';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProductNode from './ProductNode';
-import { ProductNode as ProductNodeType } from '@/types/reactFlowTypes';
+import { ProductNode as ProductNodeType } from '@/types/reactFlowTypes'
 import ProcessNode from './ProcessNode';
 import '@xyflow/react/dist/style.css';
 import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
@@ -146,6 +146,7 @@ const TreeRenderer: React.FC = () => {
                 const rootNode = await buildProductNode(
                     selectedProductId,
                     selectedProcessId,
+                    desiredAmount,
                     handleSelectProcess,
                 );
 
@@ -153,10 +154,6 @@ const TreeRenderer: React.FC = () => {
                     const namedRootNode = {
                         ...rootNode,
                         id: 'root',
-                        data: {
-                            ...rootNode.data,
-                            amount: desiredAmount,
-                        }
                     };
 
                     setNodes([namedRootNode]); // Set the new root node
@@ -174,8 +171,14 @@ const TreeRenderer: React.FC = () => {
                 const { nodeId: parentNodeId, processId } = lastEntry;
 
                 if (processId && parentNodeId) {
-                    const result = await buildProcessNode(processId, parentNodeId, handleSelectProcess);
-
+                    // Find the parent node and its amount
+                    const parentNode = nodes.find((node) => node.id === parentNodeId);
+                    const parentNodeAmount: number = (parentNode as ProductNodeType)?.data?.amount ?? 1;
+                    const parentNodeProductId: string = (parentNode as ProductNodeType)?.data?.productDetails?.id ?? '';
+                    // console.log(`Amount for parentNode`, parentNode ,`: ${parentNodeAmount}`);
+                    
+                    // Build the process node
+                    const result = await buildProcessNode(processId, parentNodeId, parentNodeAmount, parentNodeProductId, handleSelectProcess);
                     if (result) {
                         const { processNode, productNodes } = result;
 

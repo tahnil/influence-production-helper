@@ -31,7 +31,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   } = data;
 
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = productDetails;
-  console.log('ProductNode data:', data);
+  // console.log('ProductNode data:', data);
 
   const formattedAmount = formatNumber(amount, {
     minimumFractionDigits: 0,

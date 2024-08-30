@@ -15,6 +15,7 @@ const useProductNodeBuilder = () => {
     const buildProductNode = useCallback(async (
         selectedProductId: string,
         selectedProcessId: string | null,
+        amount: number,
         onSelectProcess: (processId: string, nodeId: string) => void,
     ): Promise<Node | null> => {
         try {
@@ -29,6 +30,7 @@ const useProductNodeBuilder = () => {
                 type: 'productNode',
                 position: { x: 0, y: 0 },
                 data: {
+                    amount,
                     productDetails,
                     image: productImage,
                     processesByProductId,

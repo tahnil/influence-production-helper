@@ -17,6 +17,8 @@ const useProcessNodeBuilder = () => {
     const buildProcessNode = useCallback(async (
         selectedProcessId: string,
         parentId: string,
+        parentNodeAmount: number,
+        parentNodeProductId: string,
         onSelectProcess: (processId: string, nodeId: string) => void
     ): Promise<{ processNode: Node, productNodes: Node[] } | null> => {
         try {
@@ -31,6 +33,20 @@ const useProcessNodeBuilder = () => {
 
             const processNodeId = generateUniqueId();
 
+            const output = processDetails.outputs.find(output => output.productId === parentNodeProductId);
+            // console.log(`### ProcessNode builder Step 1 ###
+            //     \nparentId: ${parentNodeProductId}
+            //     \noutput.productId: ${output?.productId}
+            //     \nprocessDetails: `,processDetails,`
+            //     \noutputs: `,processDetails.outputs,`
+            //     \noutput: `, output );
+            
+            const outputUnitsPerSR = output ? parseFloat(output.unitsPerSR): 0;
+            // console.log(`### ProcessNode builder Step 2 ###\noutput.unitsPerSR: ${output?.unitsPerSR}\noutputUnitsPerSR: ${outputUnitsPerSR}`);
+            
+            const totalRuns = parentNodeAmount / outputUnitsPerSR || 1;
+            // console.log(`### ProcessNode builder Step 3 ###\noutput: ${output}\noutputUnitsPerSR: ${outputUnitsPerSR}\ntotalRuns: ${totalRuns}`);
+
             const newProcessNode: Node = {
                 id: processNodeId,
                 type: 'processNode',
@@ -40,14 +56,19 @@ const useProcessNodeBuilder = () => {
                     processDetails,
                     inputProducts,
                     image: buildingIcon,
+                    totalRuns,
                 },
             };
 
             // Build input ProductNodes
             const productNodesPromises = inputProducts.map(async (inputProduct) => {
+                const amount = parseFloat(inputProduct.unitsPerSR) * totalRuns;
+                console.log(`### ProcessNode builder Step 4 ###\ninputProduct:`, inputProduct ,`\ninputProduct.unitsPerSR: `, inputProduct.unitsPerSR ,`\namount: ${amount}`);
+                
                 const productNode = await buildProductNode(
                     inputProduct.product.id,
                     null, // No selected process initially for these nodes
+                    amount,
                     onSelectProcess
                 );
 
