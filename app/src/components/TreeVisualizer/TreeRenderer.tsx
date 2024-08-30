@@ -27,6 +27,8 @@ import ControlPanel from './ControlPanel';
 import useDagreLayout from '@/utils/TreeVisualizer/useDagreLayout';
 import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
 import IngredientsList from './IngredientsList';
+import AmountInput from './AmountInput';
+import useDesiredAmount from '@/utils/TreeVisualizer/useDesiredAmount';
 
 interface ProcessSelection {
     nodeId: string;
@@ -45,6 +47,7 @@ const TreeRenderer: React.FC = () => {
     const [edges, setEdges] = useState<Edge[]>([]);
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
     const [ingredients, setIngredients] = useState<string[]>([]);
+    const [desiredAmount, setDesiredAmount] = useState<number>(1);
 
     const nodesInitialized = useNodesInitialized();
 
@@ -226,6 +229,11 @@ const TreeRenderer: React.FC = () => {
         fetchAndBuildProcessNode();
     }, [selectedProcessMap, buildProcessNode]);
 
+    useEffect(() => {
+        // Call the business logic function when the desired amount changes
+        useDesiredAmount(desiredAmount, nodes);
+    }, [desiredAmount, nodes]);
+
     // Utility function to get all descendant ids of a given node id
     const getDescendantIds = (nodeId: string, nodes: Node[]): string[] => {
         // Find all direct children (ProductNodes)
@@ -262,6 +270,11 @@ const TreeRenderer: React.FC = () => {
                         <ProductSelector
                             onProductSelect={setSelectedProductId}
                             className="p-2 border rounded border-gray-300 mb-4 w-full"
+                        />
+                        <AmountInput 
+                            desiredAmount={desiredAmount} 
+                            onChange={setDesiredAmount} 
+                            label="Desired Amount" 
                         />
                         {/* <ControlPanel
                             dagreConfig={dagreConfig}
