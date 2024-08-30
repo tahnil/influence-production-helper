@@ -238,15 +238,12 @@ const TreeRenderer: React.FC = () => {
 
     useEffect(() => {
         if (nodesInitialized) {
-            setNodes((prevNodes) => {
-                const updatedNodes = prevNodes.map(node => {
-                    const updatedNode = { ...node };
-                    const updatedNodeData = useDesiredAmount([updatedNode], desiredAmount);
-                    return { ...updatedNode, data: { ...updatedNodeData[0].data } };
-                });
-                return updatedNodes;
-            });
-        };
+            const updatedNodes = useDesiredAmount(nodes, desiredAmount);
+            const { nodes: layoutedNodes, edges: layoutedEdges } = useDagreLayout(updatedNodes, edges, dagreConfig);
+
+            setNodes(layoutedNodes);
+            setEdges(layoutedEdges);
+        }
     }, [desiredAmount, nodesInitialized]);
 
     // Utility function to get all descendant ids of a given node id

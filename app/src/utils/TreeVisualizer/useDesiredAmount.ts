@@ -1,57 +1,69 @@
-// utils/TreeVisualizer/useDesiredAmount.ts
-
-import { ProductNode, ProcessNode } from '@/types/reactFlowTypes';
 import { Node } from '@xyflow/react';
+import { ProductNode, ProcessNode } from '@/types/reactFlowTypes';
 
 export default function useDesiredAmount(nodes: Node[], desiredAmount: number): Node[] {
-    // Utility function to update the values of the nodes
-    const updateNodeValues = (node: Node, parentNode?: Node): Node => {
-        if (node.type === 'productNode') {
-            const productNode = node as ProductNode;
+    const updateProcessNode = (processNode: ProcessNode, parentNode: ProductNode): ProcessNode => {
+        const output = processNode.data.processDetails.outputs.find(
+            output => output.productId === parentNode.data.productDetails.id
+        );
 
-            if (!parentNode) {
-                // This is the root node, set its amount based on the desired amount
-                productNode.data.amount = desiredAmount;
-            } else if (parentNode.type === 'processNode') {
-                const processNode = parentNode as ProcessNode;
-                const input = processNode.data.inputProducts.find(
-                    input => input.product.id === productNode.data.productDetails.id
-                );
-                if (input) {
-                    const unitsPerSR = parseFloat(input.unitsPerSR || '0');
-                    productNode.data.amount = processNode.data.totalRuns * unitsPerSR;
-                }
-            }
+        if (output) {
+            const outputUnitsPerSR = parseFloat(output.unitsPerSR || '0');
+            processNode.data.totalRuns = parentNode.data.amount / outputUnitsPerSR;
+            processNode.data.totalDuration =
+                processNode.data.totalRuns * parseFloat(processNode.data.processDetails.bAdalianHoursPerAction || '0');
+        }
+        return processNode;
+    };
 
-            // Recalculate totalWeight and totalVolume
+    const updateProductNode = (productNode: ProductNode, parentNode: ProcessNode): ProductNode => {
+        const input = parentNode.data.inputProducts.find(
+            input => input.product.id === productNode.data.productDetails.id
+        );
+
+        if (input) {
+            const unitsPerSR = parseFloat(input.unitsPerSR || '0');
+            productNode.data.amount = parentNode.data.totalRuns * unitsPerSR;
             productNode.data.totalWeight =
                 productNode.data.amount * parseFloat(productNode.data.productDetails.massKilogramsPerUnit || '0');
             productNode.data.totalVolume =
                 productNode.data.amount * parseFloat(productNode.data.productDetails.volumeLitersPerUnit || '0');
-        } else if (node.type === 'processNode') {
-            const processNode = node as ProcessNode;
+        }
+        return productNode;
+    };
 
+    const updateNodeRecursively = (node: Node, allNodes: Node[], parentNode?: Node): Node => {
+        // Retain the existing position of the node
+        let updatedNode = { ...node, position: node.position };
+
+        if (node.type === 'productNode') {
+            if (!parentNode) {
+                updatedNode.data.amount = desiredAmount;
+            } else if (parentNode.type === 'processNode') {
+                updatedNode = updateProductNode(updatedNode as ProductNode, parentNode as ProcessNode);
+            }
+        } else if (node.type === 'processNode') {
             if (parentNode && parentNode.type === 'productNode') {
-                const parentProductNode = parentNode as ProductNode;
-                const output = processNode.data.processDetails.outputs.find(
-                    output => output.productId === parentProductNode.data.productDetails.id
-                );
-                if (output) {
-                    const unitsPerSR = parseFloat(output.unitsPerSR || '0');
-                    processNode.data.totalRuns = parentProductNode.data.amount / unitsPerSR;
-                    processNode.data.totalDuration =
-                        processNode.data.totalRuns * parseFloat(processNode.data.processDetails.bAdalianHoursPerAction || '0');
-                }
+                updatedNode = updateProcessNode(updatedNode as ProcessNode, parentNode as ProductNode);
             }
         }
 
-        return node;
+        const childNodes = allNodes.filter(n => n.parentId === node.id);
+        childNodes.forEach(childNode => {
+            updateNodeRecursively(childNode, allNodes, updatedNode);
+        });
+
+        return updatedNode;
     };
 
-    // Iterate over the nodes and update their values
+    const rootNode = nodes.find(n => n.id === 'root');
+    if (!rootNode) return nodes;
+
     const updatedNodes = nodes.map(node => {
-        const parentNode = nodes.find(n => n.id === node.parentId);
-        return updateNodeValues(node, parentNode);
+        if (node.id === rootNode.id) {
+            return updateNodeRecursively(node, nodes);
+        }
+        return node;
     });
 
     return updatedNodes;
