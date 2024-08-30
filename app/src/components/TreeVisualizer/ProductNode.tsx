@@ -95,7 +95,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
             id={`process-select-${id}`}
             value={selectedProcessId || ''}
             onChange={handleSelectProcess}
-            className="mt-2 p-1 border rounded text-sm bg-gray-800 text-white w-full"
+            className="mt-2 p-1 border rounded text-sm bg-gray-800 text-white w-full nodrag nopan nowheel"
           >
             <option value="">-- Select a Process --</option>
             {processesByProductId.map((process: InfluenceProcess) => (
