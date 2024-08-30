@@ -18,12 +18,15 @@ import {
 } from '@xyflow/react';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProductNode from './ProductNode';
+import { ProductNode as ProductNodeType } from '@/types/reactFlowTypes';
 import ProcessNode from './ProcessNode';
 import '@xyflow/react/dist/style.css';
 import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
 import ControlPanel from './ControlPanel';
 import useDagreLayout from '@/utils/TreeVisualizer/useDagreLayout';
+import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
+import IngredientsList from './IngredientsList';
 
 interface ProcessSelection {
     nodeId: string;
@@ -41,6 +44,7 @@ const TreeRenderer: React.FC = () => {
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
+    const [ingredients, setIngredients] = useState<string[]>([]);
 
     const nodesInitialized = useNodesInitialized();
 
@@ -111,6 +115,11 @@ const TreeRenderer: React.FC = () => {
         []
     );
 
+    useEffect(() => {
+        const newIngredients = useIngredientsList(nodes);
+        setIngredients(newIngredients);
+    }, [nodes]);
+    
     useEffect(() => {
         if (nodesInitialized) {
             const { nodes: layoutedNodes, edges: layoutedEdges } = useDagreLayout(nodes, edges, dagreConfig);
@@ -244,7 +253,7 @@ const TreeRenderer: React.FC = () => {
                     nodeTypes={nodeTypes}
                     fitView
                     style={{ backgroundColor: '#282C34' }}
-                    minZoom={0.01}
+                    minZoom={0.1}
                     maxZoom={1}
                     nodesDraggable={false}
                 >
@@ -258,8 +267,12 @@ const TreeRenderer: React.FC = () => {
                             dagreConfig={dagreConfig}
                             updateDagreConfig={updateDagreConfig}
                         /> */}
+                        <IngredientsList ingredients={ingredients} /> {/* Display ingredients list */}
                     </div>
-                    <MiniMap nodeStrokeWidth={3} />
+                    <MiniMap 
+                        nodeStrokeWidth={3} 
+                        pannable={true}
+                    />
                 </ReactFlow>
             </div>
         </div>

@@ -1,27 +1,24 @@
 import React from 'react';
 import { Node, Handle, Position, NodeProps } from '@xyflow/react';
-import { ProcessInput } from '@/types/influenceTypes';
+import { InfluenceProcess, ProcessInput } from '@/types/influenceTypes';
 
 export type ProcessNode = Node<
   {
-    processDetails: {
-      name: string;
-      description: string;
-    };
+    processDetails: InfluenceProcess;
     inputProducts: ProcessInput[];
   }
 >;
 
 const ProcessNode: React.FC<NodeProps<ProcessNode>> = ({ id, data }) => {
   const { processDetails, inputProducts } = data;
+  const { name, buildingId, bAdalianHoursPerAction, mAdalianHoursPerSR } = processDetails;
 
   return (
     <div className="process-node p-4 bg-gray-800 border rounded shadow-sm">
       <Handle type="target" position={Position.Top} className="bg-blue-500" />
       <div className="flex flex-col items-center">
-        <strong className="text-white">{processDetails.name}</strong>
+        <strong className="text-white">{name}</strong>
         <p>{id}</p>
-        <p className="text-gray-300 text-sm mb-2">{processDetails.description}</p>
         <ul className="list-disc list-inside text-gray-200">
           {inputProducts.map((input) => (
             <li key={input.product.name}>
