@@ -29,7 +29,7 @@ const useProductNodeBuilder = () => {
                 type: 'productNode',
                 position: { x: 0, y: 0 },
                 data: {
-                    InfluenceProduct: productDetails,
+                    productDetails,
                     image: productImage,
                     processesByProductId,
                     selectedProcessId,

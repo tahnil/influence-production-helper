@@ -7,8 +7,8 @@ export interface ProductNodeData extends Record<string, unknown> {
     amount: number;
     totalWeight: number;
     totalVolume: number;
-    InfluenceProduct: InfluenceProduct;
     image: string;
+    productDetails: InfluenceProduct;
     processesByProductId: InfluenceProcess[];
     selectedProcessId: string | null;
     onSelectProcess: (processId: string, nodeId: string) => void;

@@ -31,7 +31,7 @@ function useIngredientsList(nodes: Node[]): string[] {
     // Aggregate ingredients from leaf nodes
     const ingredients = nodes
         .filter(isLeafNode)
-        .map(node => (node.data as ProductNodeData).InfluenceProduct.name)
+        .map(node => (node.data as ProductNodeData).productDetails.name)
         .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
 
     return ingredients;

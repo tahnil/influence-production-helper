@@ -6,18 +6,18 @@ import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 
 export type ProductNode = Node<
   {
-    InfluenceProduct: InfluenceProduct;
-    image: string;
+    productDetails: InfluenceProduct;
     processesByProductId: InfluenceProcess[];
+    image: string;
     selectedProcessId: string | null;
     onSelectProcess: (processId: string, nodeId: string) => void;
   }
 >;
 
 const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
-  const { InfluenceProduct, image, processesByProductId, selectedProcessId, onSelectProcess } = data;
+  const { productDetails, image, processesByProductId, selectedProcessId, onSelectProcess } = data;
 
-  const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = InfluenceProduct;
+  const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = productDetails;
 
   const handleSelectProcess = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const processId = event.target.value;
@@ -34,12 +34,12 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
         {image && (
           <img
             src={image}
-            alt={`${InfluenceProduct.name} image`}
+            alt={`${productDetails.name} image`}
             className="mb-2 w-16 h-16 object-contain"
           />
         )}
         <label htmlFor={`process-select-${id}`} className="text-sm font-medium">
-          Select Process for {InfluenceProduct.name}:
+          Select Process for {productDetails.name}:
         </label>
         <select
           id={`process-select-${id}`}
