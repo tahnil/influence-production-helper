@@ -17,7 +17,7 @@ export interface ProductNodeData extends Record<string, unknown> {
 export interface ProcessNodeData extends Record<string, unknown> {
     totalDuration: number;
     totalRuns: number;
-    imageBase64: string;
+    image: string;
     processDetails: InfluenceProcess;
     inputProducts: ProcessInput[];
 }

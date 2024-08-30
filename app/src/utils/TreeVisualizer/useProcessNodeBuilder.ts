@@ -6,10 +6,12 @@ import { generateUniqueId } from '../generateUniqueId';
 import useProcessDetails from '@/hooks/useProcessDetails';
 import useInputsByProcessId from '@/hooks/useInputsByProcessId';
 import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
+import useBuildingIcon from '@/hooks/useBuildingIcon';
 
 const useProcessNodeBuilder = () => {
     const { getProcessDetails } = useProcessDetails();
     const { getInputsByProcessId } = useInputsByProcessId();
+    const { getBuildingIcon } = useBuildingIcon();
     const { buildProductNode } = useProductNodeBuilder();
 
     const buildProcessNode = useCallback(async (
@@ -20,7 +22,11 @@ const useProcessNodeBuilder = () => {
         try {
             const [processDetails, inputProducts] = await Promise.all([
                 getProcessDetails(selectedProcessId),
-                getInputsByProcessId(selectedProcessId),
+                getInputsByProcessId(selectedProcessId)
+            ]);
+
+            const [buildingIcon] = await Promise.all([
+                getBuildingIcon(processDetails.buildingId),
             ]);
 
             const processNodeId = generateUniqueId();
@@ -33,6 +39,7 @@ const useProcessNodeBuilder = () => {
                 data: {
                     processDetails,
                     inputProducts,
+                    image: buildingIcon,
                 },
             };
 
