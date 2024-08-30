@@ -122,7 +122,7 @@ const TreeRenderer: React.FC = () => {
         const newIngredients = useIngredientsList(nodes);
         setIngredients(newIngredients);
     }, [nodes]);
-    
+
     useEffect(() => {
         if (nodesInitialized) {
             const { nodes: layoutedNodes, edges: layoutedEdges } = useDagreLayout(nodes, edges, dagreConfig);
@@ -153,6 +153,10 @@ const TreeRenderer: React.FC = () => {
                     const namedRootNode = {
                         ...rootNode,
                         id: 'root',
+                        data: {
+                            ...rootNode.data,
+                            amount: desiredAmount,
+                        }
                     };
 
                     setNodes([namedRootNode]); // Set the new root node
@@ -230,10 +234,17 @@ const TreeRenderer: React.FC = () => {
     }, [selectedProcessMap, buildProcessNode]);
 
     useEffect(() => {
-        // Call the business logic function when the desired amount changes
-        const updatedNodes = useDesiredAmount(nodes, desiredAmount);
-        setNodes(updatedNodes);
-    }, [desiredAmount]);
+        if (nodesInitialized) {
+            setNodes((prevNodes) => {
+                const updatedNodes = prevNodes.map(node => {
+                    const updatedNode = { ...node };
+                    const updatedNodeData = useDesiredAmount([updatedNode], desiredAmount);
+                    return { ...updatedNode, data: { ...updatedNodeData[0].data } };
+                });
+                return updatedNodes;
+            });
+        };
+    }, [desiredAmount, nodesInitialized]);
 
     // Utility function to get all descendant ids of a given node id
     const getDescendantIds = (nodeId: string, nodes: Node[]): string[] => {
@@ -272,10 +283,10 @@ const TreeRenderer: React.FC = () => {
                             onProductSelect={setSelectedProductId}
                             className="p-2 border rounded border-gray-300 mb-4 w-full"
                         />
-                        <AmountInput 
-                            desiredAmount={desiredAmount} 
-                            onChange={setDesiredAmount} 
-                            label="Desired Amount" 
+                        <AmountInput
+                            desiredAmount={desiredAmount}
+                            onChange={setDesiredAmount}
+                            label="Desired Amount"
                         />
                         {/* <ControlPanel
                             dagreConfig={dagreConfig}
@@ -283,8 +294,8 @@ const TreeRenderer: React.FC = () => {
                         /> */}
                         <IngredientsList ingredients={ingredients} /> {/* Display ingredients list */}
                     </div>
-                    <MiniMap 
-                        nodeStrokeWidth={3} 
+                    <MiniMap
+                        nodeStrokeWidth={3}
                         pannable={true}
                     />
                 </ReactFlow>
