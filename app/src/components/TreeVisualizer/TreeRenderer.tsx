@@ -80,7 +80,7 @@ const TreeRenderer: React.FC = () => {
 
     const onNodesChange = useCallback(
         (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
-        []
+        [nodes]
     );
 
     const onEdgesChange = useCallback(

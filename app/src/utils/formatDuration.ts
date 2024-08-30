@@ -11,18 +11,18 @@ export const formatDuration = (totalRuns: number, mAdalianHoursPerSR: string): s
     const maxRealWorldHours = daysInYear * hoursInDay;
 
     if (totalRealWorldHours > maxRealWorldHours) {
-        return '>&thinsp;1 year';
+        return '>\u20091 year';
     } else if (totalRealWorldHours < 1) {
         const minutes = Math.floor(totalRealWorldHours * 60);
         const seconds = Math.floor((totalRealWorldHours * 3600) % 60);
-        return `${minutes}&thinsp;m&ensp;${seconds}&thinsp;s`;
+        return `${minutes}\u2009m\u2002${seconds}\u2009s`;
     } else if (totalRealWorldHours < hoursInDay) {
         const hours = Math.floor(totalRealWorldHours);
         const minutes = Math.floor((totalRealWorldHours % 1) * 60);
-        return `${hours}&thinsp;h&ensp;${minutes}&thinsp;m`;
+        return `${hours}\u2009h\u2002${minutes}\u2009m`;
     } else {
         const days = Math.floor(totalRealWorldHours / 24);
         const hours = Math.floor(totalRealWorldHours % 24);
-        return `${days}&thinsp;d&ensp;${hours}&thinsp;h`;
+        return `${days}\u2009d\u2002${hours}\u2009h`;
     }
 };
