@@ -231,8 +231,9 @@ const TreeRenderer: React.FC = () => {
 
     useEffect(() => {
         // Call the business logic function when the desired amount changes
-        useDesiredAmount(desiredAmount, nodes);
-    }, [desiredAmount, nodes]);
+        const updatedNodes = useDesiredAmount(nodes, desiredAmount);
+        setNodes(updatedNodes);
+    }, [desiredAmount]);
 
     // Utility function to get all descendant ids of a given node id
     const getDescendantIds = (nodeId: string, nodes: Node[]): string[] => {
