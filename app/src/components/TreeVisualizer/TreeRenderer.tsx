@@ -276,6 +276,7 @@ const TreeRenderer: React.FC = () => {
                     minZoom={0.1}
                     maxZoom={1}
                     nodesDraggable={false}
+                    colorMode="dark"
                 >
                     <div className="absolute bottom-4 left-4 bg-background p-4 shadow-lg rounded-lg z-10 max-h-[90vh] overflow-y-auto w-[35ch]">
                         <h2 className="text-xl font-semibold mb-4">Controls</h2>
@@ -297,6 +298,8 @@ const TreeRenderer: React.FC = () => {
                     <MiniMap
                         nodeStrokeWidth={3}
                         pannable={true}
+                        inversePan={true}
+                        maskColor='rgba(30,30,30,1)'
                     />
                 </ReactFlow>
             </div>
