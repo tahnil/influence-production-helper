@@ -5,6 +5,7 @@ import { Node, Handle, Position, NodeProps } from '@xyflow/react';
 import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 import { formatNumber } from '@/utils/formatNumber';
 import Image from 'next/image';
+import ProcessSelector from './ProcessSelector'; // Import the new component
 
 export type ProductNode = Node<
   {
@@ -51,9 +52,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     scaleType: 'volume',
   });
 
-
-  const handleSelectProcess = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const processId = event.target.value;
+  const handleProcessSelect = (processId: string) => {
     onSelectProcess(processId, id);
   };
 
@@ -92,19 +91,12 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
           <label htmlFor={`process-select-${id}`} className="text-sm font-medium text-white">
             Select Process for {name}:
           </label>
-          <select
-            id={`process-select-${id}`}
-            value={selectedProcessId || ''}
-            onChange={handleSelectProcess}
-            className="mt-2 p-1 border rounded text-sm bg-gray-800 text-white w-full nodrag nopan nowheel"
-          >
-            <option value="">-- Select a Process --</option>
-            {processesByProductId.map((process: InfluenceProcess) => (
-              <option key={process.id} value={process.id}>
-                {process.name}
-              </option>
-            ))}
-          </select>
+          <ProcessSelector
+            processes={processesByProductId}
+            selectedProcessId={selectedProcessId}
+            onProcessSelect={handleProcessSelect}
+            className="w-full mt-2"
+          />
         </div>
       </div>
       <Handle type="source" position={Position.Bottom} className="bg-green-500" />
