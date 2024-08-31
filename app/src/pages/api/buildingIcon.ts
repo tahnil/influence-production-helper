@@ -11,24 +11,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: 'Missing buildingId' });
         }
 
-        // Construct the image file path
+        // Construct the image directory path
         const imageDir = path.join(process.cwd(), 'src', 'assets', 'images', 'building_icons');
 
-        // Check if the image file exists
+        // Check if the image file exists for the given buildingId
         const files = fs.readdirSync(imageDir).filter(file => file.startsWith(`${buildingId}-`));
+        let filePath: string;
+
         if (files.length === 0) {
-            return res.status(404).json({ error: 'Image not found' });
+            // If the image is not found, use the fallback image
+            filePath = path.join(imageDir, '0-notfound.svg');
+        } else {
+            // If the image is found, use the first matching file
+            filePath = path.join(imageDir, files[0]);
         }
 
-        const filePath = path.join(imageDir, files[0]);
+        // Read the SVG file
         const fileData = fs.readFileSync(filePath);
         const base64Image = Buffer.from(fileData).toString('base64');
-        // console.log('filePath:', filePath, '\nfileData:', fileData, '\nbase64Image:', base64Image);
+
         res.status(200).json({ base64Image: `data:image/svg+xml;base64,${base64Image}` });
     } catch (error) {
         console.error('Error reading SVG file:', error);
         res.status(500).json({
-            error: 'Failed to load building icon'
+            error: 'Failed to load building icon',
         });
     }
 }
