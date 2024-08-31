@@ -29,12 +29,12 @@ export default function useDesiredAmount(nodes: Node[], desiredAmount: number): 
             productNode.data.totalWeight =
                 productNode.data.amount * parseFloat(productNode.data.productDetails.massKilogramsPerUnit || '0');
             
-            console.log('productNode: ', productNode, 
-                '\nparentNode: ', parentNode, 
-                '\nproductNode.data.amount: ', productNode.data.amount, 
-                '\nunitsPerSR: ', unitsPerSR, 
-                '\nproductNode.data.totalWeight: ', productNode.data.totalWeight,
-                '\nproductNode.data.productDetails.massKilogramsPerUnit: ', productNode.data.productDetails.massKilogramsPerUnit);
+            // console.log('productNode: ', productNode, 
+            //     '\nparentNode: ', parentNode, 
+            //     '\nproductNode.data.amount: ', productNode.data.amount, 
+            //     '\nunitsPerSR: ', unitsPerSR, 
+            //     '\nproductNode.data.totalWeight: ', productNode.data.totalWeight,
+            //     '\nproductNode.data.productDetails.massKilogramsPerUnit: ', productNode.data.productDetails.massKilogramsPerUnit);
 
             productNode.data.totalVolume =
                 productNode.data.amount * parseFloat(productNode.data.productDetails.volumeLitersPerUnit || '0');

@@ -63,7 +63,7 @@ const useProcessNodeBuilder = () => {
             // Build input ProductNodes
             const productNodesPromises = inputProducts.map(async (inputProduct) => {
                 const amount = parseFloat(inputProduct.unitsPerSR) * totalRuns;
-                console.log(`### ProcessNode builder Step 4 ###\ninputProduct:`, inputProduct ,`\ninputProduct.unitsPerSR: `, inputProduct.unitsPerSR ,`\namount: ${amount}`);
+                // console.log(`### ProcessNode builder Step 4 ###\ninputProduct:`, inputProduct ,`\ninputProduct.unitsPerSR: `, inputProduct.unitsPerSR ,`\namount: ${amount}`);
                 
                 const productNode = await buildProductNode(
                     inputProduct.product.id,

@@ -83,8 +83,8 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                           ? null
                           : product.id;
                       setSelectedProductId(newSelectedProductId);
-                      console.log(`selectedProductId: `,selectedProductId);
-                      console.log(`product.id: `,product.id);
+                      // console.log(`selectedProductId: `,selectedProductId);
+                      // console.log(`product.id: `,product.id);
                       onProductSelect(product.id);  // Pass the product ID to the parent component
                       setOpen(false);
                     }}

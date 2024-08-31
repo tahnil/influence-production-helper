@@ -15,7 +15,7 @@ function useDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         console.warn("Not all nodes have dimensions. Delaying Dagre layout.");
         return { nodes, edges };
     } else {
-        console.log("All nodes have dimensions. Proceeding with Dagre layout.");
+        // console.log("All nodes have dimensions. Proceeding with Dagre layout.");
     }
 
     dagreGraph.setGraph({
