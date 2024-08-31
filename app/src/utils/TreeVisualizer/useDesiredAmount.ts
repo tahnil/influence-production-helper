@@ -1,3 +1,5 @@
+// utils/TreeVisualizer/useDesiredAmount.ts
+
 import { Node } from '@xyflow/react';
 import { ProductNode, ProcessNode } from '@/types/reactFlowTypes';
 
@@ -45,8 +47,15 @@ export default function useDesiredAmount(nodes: Node[], desiredAmount: number): 
         let updatedNode = { ...node, position: node.position };
 
         if (node.type === 'productNode') {
+            const productNode = updatedNode as ProductNode;
+
             if (!parentNode) {
+                // Root node scenario
                 updatedNode.data.amount = desiredAmount;
+                updatedNode.data.totalWeight =
+                    desiredAmount * parseFloat(productNode.data.productDetails.massKilogramsPerUnit || '0');
+                updatedNode.data.totalVolume =
+                    desiredAmount * parseFloat(productNode.data.productDetails.volumeLitersPerUnit || '0');
             } else if (parentNode.type === 'processNode') {
                 updatedNode = updateProductNode(updatedNode as ProductNode, parentNode as ProcessNode);
             }
@@ -69,9 +78,9 @@ export default function useDesiredAmount(nodes: Node[], desiredAmount: number): 
 
     const updatedNodes = nodes.map(node => {
         if (node.id === rootNode.id) {
-            return updateNodeRecursively(node, nodes);
+            return updateNodeRecursively(rootNode, nodes);
         }
-        return node;
+        return updateNodeRecursively(node, nodes, rootNode);
     });
 
     return updatedNodes;
