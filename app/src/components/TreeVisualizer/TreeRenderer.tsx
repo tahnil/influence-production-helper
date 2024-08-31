@@ -24,11 +24,11 @@ import '@xyflow/react/dist/style.css';
 import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
 import ControlPanel from './ControlPanel';
-import useDagreLayout from '@/utils/TreeVisualizer/useDagreLayout';
+import applyDagreLayout from '@/utils/TreeVisualizer/applyDagreLayout';
 import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
 import IngredientsList from './IngredientsList';
 import AmountInput from './AmountInput';
-import useDesiredAmount from '@/utils/TreeVisualizer/useDesiredAmount';
+import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
 
 interface ProcessSelection {
     nodeId: string;
@@ -122,7 +122,7 @@ const TreeRenderer: React.FC = () => {
     );
 
     const ingredients = useIngredientsList(nodes);
-    const updatedAmount = useMemo(() => useDesiredAmount(nodes, desiredAmount), [desiredAmount]);
+    const updatedAmount = useMemo(() => calculateDesiredAmount(nodes, desiredAmount), [desiredAmount]);
 
     useEffect(() => {
         if (nodesInitialized && nodes.every(node => node.measured?.width && node.measured?.height)) {
@@ -135,7 +135,7 @@ const TreeRenderer: React.FC = () => {
 
     useEffect(() => {
         if (nodesReady) {
-            const { layoutedNodes, layoutedEdges } = useDagreLayout(nodes, edges, dagreConfig);
+            const { layoutedNodes, layoutedEdges } = applyDagreLayout(nodes, edges, dagreConfig);
             setNodes(layoutedNodes);
             setEdges(layoutedEdges);
         }
@@ -303,10 +303,17 @@ const TreeRenderer: React.FC = () => {
     );
 };
 
-export default function () {
+TreeRenderer.displayName = 'TreeRenderer';
+
+const TreeRendererWithProvider: React.FC = () => {
     return (
         <ReactFlowProvider>
             <TreeRenderer />
         </ReactFlowProvider>
     );
 }
+
+TreeRendererWithProvider.displayName = 'TreeRendererWithProvider';
+
+export default TreeRendererWithProvider;
+export { TreeRenderer };

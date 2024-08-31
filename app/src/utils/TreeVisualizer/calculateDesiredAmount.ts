@@ -1,9 +1,9 @@
-// utils/TreeVisualizer/useDesiredAmount.ts
+// utils/TreeVisualizer/calculateDesiredAmount.ts
 
 import { Node } from '@xyflow/react';
 import { ProductNode, ProcessNode } from '@/types/reactFlowTypes';
 
-export default function useDesiredAmount(nodes: Node[], desiredAmount: number): Node[] {
+export default function calculateDesiredAmount(nodes: Node[], desiredAmount: number): Node[] {
     const updateProcessNode = (processNode: ProcessNode, parentNode: ProductNode): ProcessNode => {
         const output = processNode.data.processDetails.outputs.find(
             output => output.productId === parentNode.data.productDetails.id

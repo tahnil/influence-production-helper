@@ -2,7 +2,7 @@ import { DagreConfig } from '@/types/dagreTypes';
 import Dagre from '@dagrejs/dagre';
 import { Node, Edge, Position } from '@xyflow/react';
 
-function useDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig): { layoutedNodes: Node[]; layoutedEdges: Edge[] } {
+function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig): { layoutedNodes: Node[]; layoutedEdges: Edge[] } {
 
     const nodeFallbackWidth = 200;
     const nodeFallbackHeight = 100;
@@ -73,4 +73,4 @@ function useDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig): { la
     return { layoutedNodes, layoutedEdges };
 }
 
-export default useDagreLayout;
+export default applyDagreLayout;
