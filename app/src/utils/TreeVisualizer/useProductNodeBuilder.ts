@@ -25,12 +25,20 @@ const useProductNodeBuilder = () => {
                 getProductImage(selectedProductId),
             ]);
 
+            const weight: number = productDetails.massKilogramsPerUnit ? parseFloat(productDetails.massKilogramsPerUnit) : 0;
+            const totalWeight = amount * weight;
+
+            const volume: number = productDetails.volumeLitersPerUnit? parseFloat(productDetails.volumeLitersPerUnit) : 0;
+            const totalVolume = amount * volume;
+
             const newProductNode: Node = {
                 id: generateUniqueId(),
                 type: 'productNode',
                 position: { x: 0, y: 0 },
                 data: {
                     amount,
+                    totalWeight,
+                    totalVolume,
                     productDetails,
                     image: productImage,
                     processesByProductId,
