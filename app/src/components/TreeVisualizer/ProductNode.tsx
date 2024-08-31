@@ -95,7 +95,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
             processes={processesByProductId}
             selectedProcessId={selectedProcessId}
             onProcessSelect={handleProcessSelect}
-            className="w-full border-lunarGreen-700 bg-lunarGreen-800"
+            className="w-full border-lunarGreen-700 bg-lunarGreen-500"
             style={{
               '--popover': 'hsl(210, 40%, 10%)', // Custom popover background color
               '--popover-foreground': 'hsl(210, 40%, 90%)', // Custom popover text color
