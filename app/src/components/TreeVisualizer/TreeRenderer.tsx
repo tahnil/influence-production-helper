@@ -46,7 +46,6 @@ const TreeRenderer: React.FC = () => {
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
-    const [ingredients, setIngredients] = useState<string[]>([]);
     const [desiredAmount, setDesiredAmount] = useState<number>(1);
 
     const nodesInitialized = useNodesInitialized();
@@ -68,15 +67,15 @@ const TreeRenderer: React.FC = () => {
         direction: 'LR',
     });
 
+    const { buildProductNode } = useProductNodeBuilder();
+    const { buildProcessNode } = useProcessNodeBuilder();
+
     const updateDagreConfig = (newConfig: Partial<typeof dagreConfig>) => {
         setDagreConfig((prevConfig) => ({
             ...prevConfig,
             ...newConfig,
         }));
     };
-
-    const { buildProductNode } = useProductNodeBuilder();
-    const { buildProcessNode } = useProcessNodeBuilder();
 
     const onNodesChange = useCallback(
         (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -121,10 +120,7 @@ const TreeRenderer: React.FC = () => {
         []
     );
 
-    useEffect(() => {
-        const newIngredients = useIngredientsList(nodes);
-        setIngredients(newIngredients);
-    }, [nodes]);
+    const ingredients = useIngredientsList(nodes);
 
     useEffect(() => {
         if (nodesInitialized) {
