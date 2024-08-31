@@ -1,6 +1,6 @@
 // components/TreeVisualizer/TreeRenderer.tsx
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
     ReactFlow,
     MiniMap,
@@ -47,6 +47,7 @@ const TreeRenderer: React.FC = () => {
     const [edges, setEdges] = useState<Edge[]>([]);
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
     const [desiredAmount, setDesiredAmount] = useState<number>(1);
+    const [nodesReady, setNodesReady] = useState(false);
 
     const nodesInitialized = useNodesInitialized();
 
@@ -79,7 +80,7 @@ const TreeRenderer: React.FC = () => {
 
     const onNodesChange = useCallback(
         (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
-        [nodes]
+        []
     );
 
     const onEdgesChange = useCallback(
@@ -121,20 +122,21 @@ const TreeRenderer: React.FC = () => {
     );
 
     const ingredients = useIngredientsList(nodes);
+    const updatedNodes = useMemo(() => useDesiredAmount(nodes, desiredAmount), [nodes, desiredAmount]);
+    
+    useEffect(() => {
+        if (nodesInitialized && nodes.every(node => node.measured?.width && node.measured?.height)) {
+            setNodesReady(true);
+        }
+    }, [nodesInitialized, nodes]);
 
     useEffect(() => {
-        if (nodesInitialized) {
-            const { nodes: layoutedNodes, edges: layoutedEdges } = useDagreLayout(nodes, edges, dagreConfig);
-
-            const smoothstepEdges = layoutedEdges.map((edge) => ({
-                ...edge,
-                type: 'smoothstep',
-            }));
-
+        if (nodesReady) {
+            const { layoutedNodes, layoutedEdges } = useDagreLayout(nodes, edges, dagreConfig);
             setNodes(layoutedNodes);
-            setEdges(smoothstepEdges);
+            setEdges(layoutedEdges);
         }
-    }, [nodesInitialized, dagreConfig]);
+    }, [nodesReady, nodes, edges, dagreConfig]);
 
     useEffect(() => {
         const fetchAndBuildRootNode = async () => {
@@ -236,16 +238,6 @@ const TreeRenderer: React.FC = () => {
 
         fetchAndBuildProcessNode();
     }, [selectedProcessMap, buildProcessNode]);
-
-    useEffect(() => {
-        if (nodesInitialized) {
-            const updatedNodes = useDesiredAmount(nodes, desiredAmount);
-            const { nodes: layoutedNodes, edges: layoutedEdges } = useDagreLayout(updatedNodes, edges, dagreConfig);
-
-            setNodes(layoutedNodes);
-            setEdges(layoutedEdges);
-        }
-    }, [desiredAmount, nodesInitialized]);
 
     // Utility function to get all descendant ids of a given node id
     const getDescendantIds = (nodeId: string, nodes: Node[]): string[] => {

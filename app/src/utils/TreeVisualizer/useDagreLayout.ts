@@ -2,9 +2,7 @@ import { DagreConfig } from '@/types/dagreTypes';
 import Dagre from '@dagrejs/dagre';
 import { Node, Edge, Position } from '@xyflow/react';
 
-function useDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
-    const dagreGraph = new Dagre.graphlib.Graph();
-    dagreGraph.setDefaultEdgeLabel(() => ({}));
+function useDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig): { layoutedNodes: Node[]; layoutedEdges: Edge[] } {
 
     const nodeFallbackWidth = 200;
     const nodeFallbackHeight = 100;
@@ -13,10 +11,11 @@ function useDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
 
     if (!allNodesHaveDimensions) {
         console.warn("Not all nodes have dimensions. Delaying Dagre layout.");
-        return { nodes, edges };
-    } else {
-        // console.log("All nodes have dimensions. Proceeding with Dagre layout.");
+        return { layoutedNodes: nodes, layoutedEdges: edges };
     }
+
+    const dagreGraph = new Dagre.graphlib.Graph();
+    dagreGraph.setDefaultEdgeLabel(() => ({}));
 
     dagreGraph.setGraph({
         rankdir: config.rankdir,
@@ -66,7 +65,12 @@ function useDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         };
     });
 
-    return { nodes: layoutedNodes, edges };
+    const layoutedEdges = edges.map((edge) => ({
+        ...edge,
+        type: 'smoothstep',
+    }));
+
+    return { layoutedNodes, layoutedEdges };
 }
 
 export default useDagreLayout;
