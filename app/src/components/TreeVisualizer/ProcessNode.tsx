@@ -5,6 +5,7 @@ import { Node, Handle, Position, NodeProps } from '@xyflow/react';
 import { InfluenceProcess, ProcessInput } from '@/types/influenceTypes';
 import { formatDuration } from '@/utils/formatDuration';
 import { formatNumber } from '@/utils/formatNumber';
+import Image from 'next/image';
 
 export type ProcessNode = Node<
   {
@@ -36,7 +37,7 @@ const ProcessNode: React.FC<NodeProps<ProcessNode>> = ({ id, data }) => {
       <div id="processNodeCard" className="flex flex-col items-center">
         <div id="titleSection" className="p-2 bg-falcon-800 w-full flex justify-center items-center gap-2.5 grid grid-cols-3">
           <div id="buildingIcon" className="p-2">
-            <img src={image} alt={name} className="object-contain w-16 h-16" />
+            <Image src={image} alt={name} className='object-contain w-16 h-16'/>
           </div>
           <div id="processName" className="col-span-2">
             <h2 className="text-xl font-bold text-white">{name}</h2>

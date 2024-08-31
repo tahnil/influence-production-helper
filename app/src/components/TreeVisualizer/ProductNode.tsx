@@ -4,6 +4,7 @@ import React from 'react';
 import { Node, Handle, Position, NodeProps } from '@xyflow/react';
 import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 import { formatNumber } from '@/utils/formatNumber';
+import Image from 'next/image';
 
 export type ProductNode = Node<
   {
@@ -62,7 +63,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
       <div id="productNodeCard" className="flex flex-col items-center">
         <div id="titleSection" className="p-2 bg-mako-900 w-full flex justify-center items-center gap-2.5 grid grid-cols-3">
           <div className="p-2">
-            <img src={image} alt={name} className="object-contain w-16 h-16" />
+            <Image src={image} alt={name} className='object-contain w-16 h-16'/>
           </div>
           <div id="productName" className="col-span-2">
             <h2 className="text-xl font-bold text-white">{name}</h2>
