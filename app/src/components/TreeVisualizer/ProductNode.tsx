@@ -62,7 +62,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
       <div id="productNodeCard" className="flex flex-col items-center">
         <div id="titleSection" className="p-2 bg-mako-900 w-full flex justify-center items-center gap-2.5 grid grid-cols-3">
           <div className="p-2">
-            <Image src={image} width={80} height={80} alt={name} className='object-contain w-16 h-16'/>
+            <Image src={image} width={80} height={80} alt={name} className='object-contain w-16 h-16' />
           </div>
           <div id="productName" className="col-span-2">
             <h2 className="text-xl font-bold text-white">{name}</h2>
@@ -87,15 +87,19 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
             <div>{formattedVolume.unit}</div>
           </div>
         </div>
-        <div id="moreInfosSection" className="bg-lunarGreen-500 py-1 px-2.5 flex flex-wrap items-start content-start gap-1">
-          <label htmlFor={`process-select-${id}`} className="text-sm font-medium text-white">
+        <div id="moreInfosSection" className="bg-lunarGreen-500 w-full py-1 px-2.5 flex flex-wrap items-start content-start gap-1">
+          <label htmlFor={`process-select-${id}`} className="text-xs font-medium text-falconWhite uppercase">
             Select Process for {name}:
           </label>
           <ProcessSelector
             processes={processesByProductId}
             selectedProcessId={selectedProcessId}
             onProcessSelect={handleProcessSelect}
-            className="w-full mt-2"
+            className="w-full border-lunarGreen-700 bg-lunarGreen-800"
+            style={{
+              '--popover': 'hsl(210, 40%, 10%)', // Custom popover background color
+              '--popover-foreground': 'hsl(210, 40%, 90%)', // Custom popover text color
+            } as React.CSSProperties}
           />
         </div>
       </div>
