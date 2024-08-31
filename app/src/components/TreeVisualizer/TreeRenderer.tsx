@@ -89,8 +89,8 @@ const TreeRenderer: React.FC = () => {
     );
 
     const onConnect = useCallback(
-        (connection: Connection) => 
-            setEdges((eds) => 
+        (connection: Connection) =>
+            setEdges((eds) =>
                 addEdge({ ...connection, type: 'smoothstep' }, eds)
             ),
         []
@@ -122,13 +122,16 @@ const TreeRenderer: React.FC = () => {
     );
 
     const ingredients = useIngredientsList(nodes);
-    const updatedNodes = useMemo(() => useDesiredAmount(nodes, desiredAmount), [nodes, desiredAmount]);
-    
+    const updatedAmount = useMemo(() => useDesiredAmount(nodes, desiredAmount), [desiredAmount]);
+
     useEffect(() => {
         if (nodesInitialized && nodes.every(node => node.measured?.width && node.measured?.height)) {
             setNodesReady(true);
+        } else {
+            setNodesReady(false);
         }
     }, [nodesInitialized, nodes]);
+
 
     useEffect(() => {
         if (nodesReady) {
@@ -136,7 +139,7 @@ const TreeRenderer: React.FC = () => {
             setNodes(layoutedNodes);
             setEdges(layoutedEdges);
         }
-    }, [nodesReady, nodes, edges, dagreConfig]);
+    }, [nodesReady, updatedAmount, dagreConfig]);
 
     useEffect(() => {
         const fetchAndBuildRootNode = async () => {
@@ -177,7 +180,7 @@ const TreeRenderer: React.FC = () => {
                     const parentNodeAmount: number = (parentNode as ProductNodeType)?.data?.amount ?? 1;
                     const parentNodeProductId: string = (parentNode as ProductNodeType)?.data?.productDetails?.id ?? '';
                     // console.log(`Amount for parentNode`, parentNode ,`: ${parentNodeAmount}`);
-                    
+
                     // Build the process node
                     const result = await buildProcessNode(processId, parentNodeId, parentNodeAmount, parentNodeProductId, handleSelectProcess);
                     if (result) {
@@ -215,7 +218,7 @@ const TreeRenderer: React.FC = () => {
                                 id: `edge-${processNode.id}-${productNode.id}`,
                                 source: processNode.id,
                                 target: productNode.id,
-                                type:'smoothstep',
+                                type: 'smoothstep',
                             }));
 
                             updatedEdges = [...updatedEdges, ...newEdges];
@@ -225,7 +228,7 @@ const TreeRenderer: React.FC = () => {
                                 id: `edge-${parentNodeId}-${processNode.id}`,
                                 source: parentNodeId,
                                 target: processNode.id,
-                                type:'smoothstep',
+                                type: 'smoothstep',
                             });
 
                             setEdges(updatedEdges);
