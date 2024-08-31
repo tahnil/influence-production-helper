@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Influence Production Helper
 
-## Getting Started
+This project is a production helper tool for the Influence game, consisting of a Next.js application and an SDK for interacting with the Influence ecosystem.
 
-First, run the development server:
+## Project Structure
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+The project is divided into two main parts:
+
+1. `/app`: A Next.js application for visualizing production chains
+2. `/sdk`: A JavaScript SDK for interacting with Influence contracts and data
+
+## App Features
+
+- Interactive production chain visualization using React Flow and Dagre
+- Dynamic node rendering for products and processes
+- API endpoints for fetching product and process data
+- Responsive UI components using Tailwind CSS
+
+### Getting Started with the App
+
+1. Navigate to the `/app` directory
+2. Install dependencies: `npm install`
+3. Run the development server: `npm run dev`
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+# Influence SDK Features
+
+- Utilities for interacting with Influence contracts on Ethereum and Starknet
+- Production chain data processing
+- Snapshot information for Starknet migration
+
+## Using the SDK
+
+1. Install the SDK: `npm install @influenceth/sdk`
+2. Import and use the SDK in your project:
+
+```javascript
+import { starknetContracts, ethereumContracts } from '@influenceth/sdk'
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## API Access
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The project includes API endpoints for accessing Influence game data. To use the API:
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+1. Request access and obtain API credentials from the Influence Discord
+2. Authenticate using the provided endpoints
+3. Include the access token in your API requests
 
-## Learn More
+# Contributing
 
-To learn more about Next.js, take a look at the following resources:
+Contributions are welcome! Please check out the issues page for open tasks or submit a pull request with your improvements.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+This project is open source. Please refer to the LICENSE files, if they are present, in the `/app` and `/sdk` directories for specific licensing information.
