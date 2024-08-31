@@ -89,7 +89,10 @@ const TreeRenderer: React.FC = () => {
     );
 
     const onConnect = useCallback(
-        (connection: Connection) => setEdges((eds) => addEdge(connection, eds)),
+        (connection: Connection) => 
+            setEdges((eds) => 
+                addEdge({ ...connection, type: 'smoothstep' }, eds)
+            ),
         []
     );
 
@@ -214,6 +217,7 @@ const TreeRenderer: React.FC = () => {
                                 id: `edge-${processNode.id}-${productNode.id}`,
                                 source: processNode.id,
                                 target: productNode.id,
+                                type:'smoothstep',
                             }));
 
                             updatedEdges = [...updatedEdges, ...newEdges];
@@ -223,6 +227,7 @@ const TreeRenderer: React.FC = () => {
                                 id: `edge-${parentNodeId}-${processNode.id}`,
                                 source: parentNodeId,
                                 target: processNode.id,
+                                type:'smoothstep',
                             });
 
                             setEdges(updatedEdges);
