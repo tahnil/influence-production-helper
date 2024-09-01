@@ -10,11 +10,10 @@ export interface ProductNodeData extends Record<string, unknown> {
     image: string;
     productDetails: InfluenceProduct;
     processesByProductId: InfluenceProcess[];
-    // add new field for processes that have this product as input
-    selectedProcessId: string | null; // we need to rename this field to distinguish between a selected process that yields this product (current field) and a selected process for the derived products view
-    onSelectProcess: (processId: string, nodeId: string) => void; // dito rename
-    // selectedDerivedProcessId: string | null;
-    // onSelectDerivedProcess: (processId: string, nodeId: string) => void;
+    selectedProcessId: string | null;
+    onSelectProcess: (processId: string, nodeId: string) => void;
+    ancestorProcessId?: string;
+    descendantProcessId?: string;
 }
 
 export interface ProcessNodeData extends Record<string, unknown> {
@@ -23,7 +22,8 @@ export interface ProcessNodeData extends Record<string, unknown> {
     image: string;
     processDetails: InfluenceProcess;
     inputProducts: ProcessInput[];
-    // outPutProducts: ProcessOutput[];
+    ancestorProductIds?: string[];
+    descendantProductIds?: string[];
 }
 
 export type ProcessNode = ReactFlowNode<ProcessNodeData>;

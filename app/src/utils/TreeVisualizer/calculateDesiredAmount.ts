@@ -3,7 +3,7 @@
 import { Node } from '@xyflow/react';
 import { ProductNode, ProcessNode } from '@/types/reactFlowTypes';
 
-export default function calculateDesiredAmount(nodes: Node[], desiredAmount: number): Node[] {
+export default function calculateDesiredAmount(nodes: Node[], desiredAmount: number, rootNodeId: string): Node[] {
     const updateProcessNode = (processNode: ProcessNode, parentNode: ProductNode): ProcessNode => {
         const output = processNode.data.processDetails.outputs.find(
             output => output.productId === parentNode.data.productDetails.id
@@ -73,7 +73,7 @@ export default function calculateDesiredAmount(nodes: Node[], desiredAmount: num
         return updatedNode;
     };
 
-    const rootNode = nodes.find(n => n.id === 'root');
+    const rootNode = nodes.find(n => n.id === rootNodeId);
     if (!rootNode) return nodes;
 
     const updatedNodes = nodes.map(node => {

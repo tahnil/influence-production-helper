@@ -19,8 +19,8 @@ const useProcessNodeBuilder = () => {
         parentId: string,
         parentNodeAmount: number,
         parentNodeProductId: string,
-        onSelectProcess: (processId: string, nodeId: string) => void,
-        onSerialize: (focalProductId: string) => void,
+        handleSelectProcess: (processId: string, nodeId: string) => void,
+        handleSerialize: (focalProductId: string) => void,
     ): Promise<{ processNode: Node, productNodes: Node[] } | null> => {
         try {
             const [processDetails, inputProducts] = await Promise.all([
@@ -41,10 +41,10 @@ const useProcessNodeBuilder = () => {
             //     \nprocessDetails: `,processDetails,`
             //     \noutputs: `,processDetails.outputs,`
             //     \noutput: `, output );
-            
-            const outputUnitsPerSR = output ? parseFloat(output.unitsPerSR): 0;
+
+            const outputUnitsPerSR = output ? parseFloat(output.unitsPerSR) : 0;
             // console.log(`### ProcessNode builder Step 2 ###\noutput.unitsPerSR: ${output?.unitsPerSR}\noutputUnitsPerSR: ${outputUnitsPerSR}`);
-            
+
             const totalRuns = parentNodeAmount / outputUnitsPerSR || 1;
             // console.log(`### ProcessNode builder Step 3 ###\noutput: ${output}\noutputUnitsPerSR: ${outputUnitsPerSR}\ntotalRuns: ${totalRuns}`);
 
@@ -58,6 +58,7 @@ const useProcessNodeBuilder = () => {
                     inputProducts,
                     image: buildingIcon,
                     totalRuns,
+                    descendantProductIds: [parentId],
                 },
             };
 
@@ -65,19 +66,25 @@ const useProcessNodeBuilder = () => {
             const productNodesPromises = inputProducts.map(async (inputProduct) => {
                 const amount = parseFloat(inputProduct.unitsPerSR) * totalRuns;
                 // console.log(`### ProcessNode builder Step 4 ###\ninputProduct:`, inputProduct ,`\ninputProduct.unitsPerSR: `, inputProduct.unitsPerSR ,`\namount: ${amount}`);
-                
+
                 const productNode = await buildProductNode(
                     inputProduct.product.id,
-                    null, // No selected process initially for these nodes
                     amount,
-                    onSelectProcess,
-                    onSerialize,
                 );
 
                 if (productNode) {
                     // Set the ProcessNode as the parent of this ProductNode
-                    productNode.parentId = processNodeId;
-                    return productNode;
+                    // productNode.parentId = processNodeId;
+                    const newProductNode = {
+                        ...productNode,
+                        parentId: processNodeId,
+                        data: {
+                            ...productNode.data,
+                            handleSelectProcess,
+                            handleSerialize,
+                        }
+                    };
+                    return newProductNode;
                 }
 
                 return null;

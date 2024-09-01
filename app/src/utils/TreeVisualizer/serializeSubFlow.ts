@@ -1,4 +1,4 @@
-// utils/TreeVisualizer/serializeReactFlowToProductScheme.ts
+// utils/TreeVisualizer/serializeSubFlow.ts
 
 import { ProductNode as ProductNodeType } from '@/components/TreeVisualizer/ProductNode';
 import { ProcessNode as ProcessNodeType } from '@/components/TreeVisualizer/ProcessNode';
@@ -6,7 +6,7 @@ import { ProductScheme, ProductSchemeProcess, ProductSchemeProduct } from '@/typ
 import { generateUniqueId } from '../generateUniqueId';
 import { Node } from '@xyflow/react';
 
-function serializeReactFlowToProductScheme(
+function serializeSubFlow(
     focalProductId: string,
     nodes: Node[]
 ): ProductScheme {
@@ -114,4 +114,4 @@ function serializeReactFlowToProductScheme(
     };
 }
 
-export default serializeReactFlowToProductScheme;
+export default serializeSubFlow;

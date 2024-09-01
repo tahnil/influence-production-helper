@@ -12,7 +12,12 @@ interface AmountInputProps {
     className?: string;
 }
 
-const AmountInput: React.FC<AmountInputProps> = ({ desiredAmount, onChange, label, className }) => {
+const AmountInput: React.FC<AmountInputProps> = ({ 
+    desiredAmount, 
+    onChange, 
+    label, 
+    className 
+}) => {
     const handleInputChange = (event: { floatValue: number | undefined }) => {
         const value = event.floatValue !== undefined ? event.floatValue : 1;
         onChange(value || 1);

@@ -9,15 +9,17 @@ import ProcessSelector from './ProcessSelector';
 
 export type ProductNode = Node<
   {
-    productDetails: InfluenceProduct;
-    processesByProductId: InfluenceProcess[];
     amount: number;
     totalWeight: number;
     totalVolume: number;
     image: string;
+    productDetails: InfluenceProduct;
+    processesByProductId: InfluenceProcess[];
     selectedProcessId: string | null;
-    onSelectProcess: (processId: string, nodeId: string) => void;
-    onSerialize: (focalProductId: string) => void; // New prop for triggering serialization
+    handleSelectProcess: (processId: string, nodeId: string) => void;
+    handleSerialize: (focalProductId: string) => void; // New prop for triggering serialization
+    ancestorProcessId?: string;
+    descendantProcessId?: string;
   }
 >;
 
@@ -30,8 +32,10 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     totalVolume,
     image,
     selectedProcessId,
-    onSelectProcess,
-    onSerialize,
+    handleSelectProcess,
+    handleSerialize,
+    ancestorProcessId,
+    descendantProcessId,
   } = data;
 
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = productDetails;
@@ -55,7 +59,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   });
 
   const handleProcessSelect = (processId: string) => {
-    onSelectProcess(processId, id);
+    handleSelectProcess(processId, id);
   };
 
   return (
@@ -106,7 +110,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
         </div>
         <button 
           className="bg-blue-500 text-white py-1 px-4 rounded mt-2"
-          onClick={() => onSerialize(id)} // Pass the node's id to the serialize function
+          onClick={() => handleSerialize(id)} // Pass the node's id to the serialize function
         >
           Serialize Node
         </button>

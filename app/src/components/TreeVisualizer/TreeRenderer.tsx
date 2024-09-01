@@ -29,7 +29,7 @@ import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
 import IngredientsList from './IngredientsList';
 import AmountInput from './AmountInput';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
-import serializeReactFlowToProductScheme from '@/utils/TreeVisualizer/serializeReactFlowToProductScheme';
+import serializeSubFlow from '@/utils/TreeVisualizer/serializeSubFlow';
 
 interface ProcessSelection {
     nodeId: string;
@@ -49,13 +49,14 @@ const TreeRenderer: React.FC = () => {
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
     const [desiredAmount, setDesiredAmount] = useState<number>(1);
     const [nodesReady, setNodesReady] = useState(false);
+    const [rootNodeId, setRootNodeId] = useState<string>('root');
 
     const nodesInitialized = useNodesInitialized();
     const nodesRef = useRef<Node[]>([]);
 
     useEffect(() => {
         nodesRef.current = nodes;
-    }, [nodes]);    
+    }, [nodes]);
 
     const [dagreConfig, setDagreConfig] = useState({
         align: 'DR',
@@ -131,17 +132,17 @@ const TreeRenderer: React.FC = () => {
         (focalProductId: string) => {
             const latestNodes = nodesRef.current;
             if (focalProductId && latestNodes.length > 0) {
-                const productScheme = serializeReactFlowToProductScheme(focalProductId, latestNodes);
+                const productScheme = serializeSubFlow(focalProductId, latestNodes);
                 console.log('Serialized Product Scheme:', productScheme);
             } else {
-                console.log('No focal product selected or nodes are empty.\nfocalProductId: ',focalProductId,'\nnodes: ',nodes);
+                console.log('No focal product selected or nodes are empty.\nfocalProductId: ', focalProductId, '\nnodes: ', nodes);
             }
         },
         []
     );
 
     const ingredients = useIngredientsList(nodes);
-    const updatedAmount = useMemo(() => calculateDesiredAmount(nodes, desiredAmount), [desiredAmount]);
+    const updatedAmount = useMemo(() => calculateDesiredAmount(nodes, desiredAmount, rootNodeId), [desiredAmount]);
 
     useEffect(() => {
         if (nodesInitialized && nodes.every(node => node.measured?.width && node.measured?.height)) {
@@ -168,19 +169,22 @@ const TreeRenderer: React.FC = () => {
 
                 const rootNode = await buildProductNode(
                     selectedProductId,
-                    selectedProcessId,
                     desiredAmount,
-                    handleSelectProcess,
-                    handleSerialize,
                 );
 
                 if (rootNode) {
+                    console.log('Yep, there root node:', rootNode);
                     const namedRootNode = {
                         ...rootNode,
-                        id: 'root',
+                        data: {
+                            ...rootNode.data,
+                            handleSelectProcess,
+                            handleSerialize,
+                        }
                     };
 
                     setNodes([namedRootNode]); // Set the new root node
+                    setRootNodeId(namedRootNode.id); // Set the root node ID
                 }
             }
         };
@@ -203,10 +207,10 @@ const TreeRenderer: React.FC = () => {
 
                     // Build the process node
                     const result = await buildProcessNode(
-                        processId, 
-                        parentNodeId, 
-                        parentNodeAmount, 
-                        parentNodeProductId, 
+                        processId,
+                        parentNodeId,
+                        parentNodeAmount,
+                        parentNodeProductId,
                         handleSelectProcess,
                         handleSerialize,
                     );

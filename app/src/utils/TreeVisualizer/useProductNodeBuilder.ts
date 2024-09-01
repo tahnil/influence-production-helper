@@ -14,10 +14,7 @@ const useProductNodeBuilder = () => {
 
     const buildProductNode = useCallback(async (
         selectedProductId: string,
-        selectedProcessId: string | null,
         amount: number,
-        onSelectProcess: (processId: string, nodeId: string) => void,
-        onSerialize: (focalProductId: string) => void,
     ): Promise<Node | null> => {
         try {
             const [productDetails, processesByProductId, productImage] = await Promise.all([
@@ -43,9 +40,6 @@ const useProductNodeBuilder = () => {
                     productDetails,
                     image: productImage,
                     processesByProductId,
-                    selectedProcessId,
-                    onSelectProcess,
-                    onSerialize,
                 },
             };
 
