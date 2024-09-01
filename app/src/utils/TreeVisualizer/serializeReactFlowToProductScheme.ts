@@ -14,8 +14,12 @@ function serializeReactFlowToProductScheme(
     const processMap = new Map<string, ProductSchemeProcess>();
     const parentMap = new Map<string, string>(); // Maps node IDs to their parent IDs
 
-    // Step 1: Traverse and serialize nodes
-    nodes.forEach(node => {
+    const getNodeById = (id: string): Node | undefined => nodes.find(node => node.id === id);
+
+    const traverseNode = (nodeId: string) => {
+        const node = getNodeById(nodeId);
+        if (!node) return;
+
         if (node.type === 'productNode') {
             const productNode = node as ProductNodeType;
             const product: ProductSchemeProduct = {
@@ -24,6 +28,16 @@ function serializeReactFlowToProductScheme(
                 producedBy: undefined,
                 utilizedBy: undefined
             };
+
+            // Recursively traverse parent process if it exists
+            if (node.parentId) {
+                const parentProcessNode = getNodeById(node.parentId);
+                if (parentProcessNode && parentProcessNode.type === 'processNode') {
+                    traverseNode(node.parentId);
+                    product.producedBy = processMap.get(node.parentId);
+                }
+            }
+
             productMap.set(productNode.id, product);
         } else if (node.type === 'processNode') {
             const processNode = node as ProcessNodeType;
@@ -33,35 +47,28 @@ function serializeReactFlowToProductScheme(
                 primaryOutputId: processNode.parentId, // Use parentId as the primary output ID
                 inputs: [],
                 outputs: [],
-                // isResourceExtraction: processNode.data.processDetails.isResourceExtraction
             };
+
+            // Recursively traverse input products
+            if (processNode.data.inputProducts) {
+                processNode.data.inputProducts.forEach(inputProduct => {
+                    traverseNode(inputProduct.product.id);
+                    process.inputs?.push(productMap.get(inputProduct.product.id)!);
+                });
+            }
+
+            // Recursively traverse output products
+            if (processNode.parentId) {
+                traverseNode(processNode.parentId);
+                process.outputs?.push(productMap.get(processNode.parentId)!);
+            }
+
             processMap.set(processNode.id, process);
         }
+    };
 
-        // Track the parent-child relationship
-        if (node.parentId) {
-            parentMap.set(node.id, node.parentId);
-        }
-    });
-
-    // Step 2: Establish hierarchical relationships
-    parentMap.forEach((parentId, nodeId) => {
-        if (productMap.has(parentId)) {
-            const parentProduct = productMap.get(parentId)!;
-            if (processMap.has(nodeId)) {
-                const childProcess = processMap.get(nodeId)!;
-                parentProduct.utilizedBy = childProcess;
-                childProcess.inputs?.push(parentProduct);
-            }
-        } else if (processMap.has(parentId)) {
-            const parentProcess = processMap.get(parentId)!;
-            if (productMap.has(nodeId)) {
-                const childProduct = productMap.get(nodeId)!;
-                parentProcess.outputs?.push(childProduct);
-                childProduct.producedBy = parentProcess;
-            }
-        }
-    });
+    // Start the traversal from the focal product
+    traverseNode(focalProductId);
 
     // Step 3: Identify the focal product and construct the ProductScheme
     const focalProduct = productMap.get(focalProductId);

@@ -1,6 +1,6 @@
 // components/TreeVisualizer/TreeRenderer.tsx
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
     ReactFlow,
     MiniMap,
@@ -51,6 +51,11 @@ const TreeRenderer: React.FC = () => {
     const [nodesReady, setNodesReady] = useState(false);
 
     const nodesInitialized = useNodesInitialized();
+    const nodesRef = useRef<Node[]>([]);
+
+    useEffect(() => {
+        nodesRef.current = nodes;
+    }, [nodes]);    
 
     const [dagreConfig, setDagreConfig] = useState({
         align: 'DR',
@@ -124,11 +129,12 @@ const TreeRenderer: React.FC = () => {
 
     const handleSerialize = useCallback(
         (focalProductId: string) => {
-            if (focalProductId && nodes.length > 0) {
-                const productScheme = serializeReactFlowToProductScheme(focalProductId, nodes);
+            const latestNodes = nodesRef.current;
+            if (focalProductId && latestNodes.length > 0) {
+                const productScheme = serializeReactFlowToProductScheme(focalProductId, latestNodes);
                 console.log('Serialized Product Scheme:', productScheme);
             } else {
-                console.log('No focal product selected or nodes are empty');
+                console.log('No focal product selected or nodes are empty.\nfocalProductId: ',focalProductId,'\nnodes: ',nodes);
             }
         },
         []

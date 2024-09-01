@@ -31,7 +31,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     image,
     selectedProcessId,
     onSelectProcess,
-    onSerialize // Destructure the new prop
+    onSerialize,
   } = data;
 
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = productDetails;
