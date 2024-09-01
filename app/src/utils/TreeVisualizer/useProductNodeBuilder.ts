@@ -17,6 +17,7 @@ const useProductNodeBuilder = () => {
         selectedProcessId: string | null,
         amount: number,
         onSelectProcess: (processId: string, nodeId: string) => void,
+        onSerialize: (focalProductId: string) => void,
     ): Promise<Node | null> => {
         try {
             const [productDetails, processesByProductId, productImage] = await Promise.all([
@@ -44,6 +45,7 @@ const useProductNodeBuilder = () => {
                     processesByProductId,
                     selectedProcessId,
                     onSelectProcess,
+                    onSerialize,
                 },
             };
 

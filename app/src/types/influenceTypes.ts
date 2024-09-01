@@ -27,5 +27,10 @@ export interface InfluenceProcessInputOutput {
 
 export interface ProcessInput {
     product: InfluenceProduct;
-    unitsPerSR: string; // Assuming this is a string based on your examples, adjust if necessary
+    unitsPerSR: string;
+}
+
+export interface ProcessOutput {
+    product: InfluenceProduct;
+    unitsPerSR: string;
 }

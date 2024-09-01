@@ -19,7 +19,8 @@ const useProcessNodeBuilder = () => {
         parentId: string,
         parentNodeAmount: number,
         parentNodeProductId: string,
-        onSelectProcess: (processId: string, nodeId: string) => void
+        onSelectProcess: (processId: string, nodeId: string) => void,
+        onSerialize: (focalProductId: string) => void,
     ): Promise<{ processNode: Node, productNodes: Node[] } | null> => {
         try {
             const [processDetails, inputProducts] = await Promise.all([
@@ -69,7 +70,8 @@ const useProcessNodeBuilder = () => {
                     inputProduct.product.id,
                     null, // No selected process initially for these nodes
                     amount,
-                    onSelectProcess
+                    onSelectProcess,
+                    onSerialize,
                 );
 
                 if (productNode) {

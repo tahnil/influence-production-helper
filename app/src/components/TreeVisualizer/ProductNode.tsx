@@ -5,7 +5,7 @@ import { Node, Handle, Position, NodeProps } from '@xyflow/react';
 import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 import { formatNumber } from '@/utils/formatNumber';
 import Image from 'next/image';
-import ProcessSelector from './ProcessSelector'; // Import the new component
+import ProcessSelector from './ProcessSelector';
 
 export type ProductNode = Node<
   {
@@ -17,6 +17,7 @@ export type ProductNode = Node<
     image: string;
     selectedProcessId: string | null;
     onSelectProcess: (processId: string, nodeId: string) => void;
+    onSerialize: (focalProductId: string) => void; // New prop for triggering serialization
   }
 >;
 
@@ -29,7 +30,8 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     totalVolume,
     image,
     selectedProcessId,
-    onSelectProcess
+    onSelectProcess,
+    onSerialize // Destructure the new prop
   } = data;
 
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = productDetails;
@@ -102,6 +104,12 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
             } as React.CSSProperties}
           />
         </div>
+        <button 
+          className="bg-blue-500 text-white py-1 px-4 rounded mt-2"
+          onClick={() => onSerialize(id)} // Pass the node's id to the serialize function
+        >
+          Serialize Node
+        </button>
       </div>
       <Handle type="source" position={Position.Bottom} className="bg-green-500" />
     </div>

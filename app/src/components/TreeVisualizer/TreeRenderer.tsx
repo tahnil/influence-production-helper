@@ -18,7 +18,7 @@ import {
 } from '@xyflow/react';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProductNode from './ProductNode';
-import { ProductNode as ProductNodeType } from '@/types/reactFlowTypes'
+import { ProductNode as ProductNodeType, ProcessNode as ProcessNodeType } from '@/types/reactFlowTypes';
 import ProcessNode from './ProcessNode';
 import '@xyflow/react/dist/style.css';
 import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
@@ -29,6 +29,7 @@ import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
 import IngredientsList from './IngredientsList';
 import AmountInput from './AmountInput';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
+import serializeReactFlowToProductScheme from '@/utils/TreeVisualizer/serializeReactFlowToProductScheme';
 
 interface ProcessSelection {
     nodeId: string;
@@ -121,6 +122,18 @@ const TreeRenderer: React.FC = () => {
         []
     );
 
+    const handleSerialize = useCallback(
+        (focalProductId: string) => {
+            if (focalProductId && nodes.length > 0) {
+                const productScheme = serializeReactFlowToProductScheme(focalProductId, nodes);
+                console.log('Serialized Product Scheme:', productScheme);
+            } else {
+                console.log('No focal product selected or nodes are empty');
+            }
+        },
+        []
+    );
+
     const ingredients = useIngredientsList(nodes);
     const updatedAmount = useMemo(() => calculateDesiredAmount(nodes, desiredAmount), [desiredAmount]);
 
@@ -152,6 +165,7 @@ const TreeRenderer: React.FC = () => {
                     selectedProcessId,
                     desiredAmount,
                     handleSelectProcess,
+                    handleSerialize,
                 );
 
                 if (rootNode) {
@@ -182,7 +196,14 @@ const TreeRenderer: React.FC = () => {
                     // console.log(`Amount for parentNode`, parentNode ,`: ${parentNodeAmount}`);
 
                     // Build the process node
-                    const result = await buildProcessNode(processId, parentNodeId, parentNodeAmount, parentNodeProductId, handleSelectProcess);
+                    const result = await buildProcessNode(
+                        processId, 
+                        parentNodeId, 
+                        parentNodeAmount, 
+                        parentNodeProductId, 
+                        handleSelectProcess,
+                        handleSerialize,
+                    );
                     if (result) {
                         const { processNode, productNodes } = result;
 
@@ -311,7 +332,7 @@ const TreeRendererWithProvider: React.FC = () => {
             <TreeRenderer />
         </ReactFlowProvider>
     );
-}
+};
 
 TreeRendererWithProvider.displayName = 'TreeRendererWithProvider';
 
