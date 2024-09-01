@@ -9,11 +9,13 @@ import Image from 'next/image';
 
 export type ProcessNode = Node<
   {
-    processDetails: InfluenceProcess;
-    inputProducts: ProcessInput[];
     totalDuration: number;
     totalRuns: number;
     image: string;
+    processDetails: InfluenceProcess;
+    inputProducts: ProcessInput[];
+    ancestorProductIds?: string[];
+    descendantProductIds?: string[];
   }
 >;
 

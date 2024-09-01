@@ -11,7 +11,8 @@ export interface ProductNodeData extends Record<string, unknown> {
     productDetails: InfluenceProduct;
     processesByProductId: InfluenceProcess[];
     selectedProcessId: string | null;
-    onSelectProcess: (processId: string, nodeId: string) => void;
+    handleSelectProcess: (processId: string, nodeId: string) => void;
+    handleSerialize: (focalProductId: string) => void;
     ancestorProcessId?: string;
     descendantProcessId?: string;
 }
