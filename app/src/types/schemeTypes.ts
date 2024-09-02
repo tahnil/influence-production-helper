@@ -1,3 +1,6 @@
+// we need to rewrite this file for the purpose of saving, retrieving, and applying schemes
+// I expect that we still need a ProductScheme and a TreeScheme of sorts
+
 import { ProcessNodeData, ProductNodeData } from "./reactFlowTypes";
 
 export interface ProductSchemeProduct {

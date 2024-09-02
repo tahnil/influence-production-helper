@@ -29,7 +29,7 @@ import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
 import IngredientsList from './IngredientsList';
 import AmountInput from './AmountInput';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
-import serializeSubFlow from '@/utils/TreeVisualizer/serializeSubFlow';
+import serializeProductionChain from '@/utils/TreeVisualizer/serializeProductionChain';
 
 interface ProcessSelection {
     nodeId: string;
@@ -124,6 +124,7 @@ const TreeRenderer: React.FC = () => {
                 ...selectedProcessMap,
                 { nodeId, processId },
             ]);
+
         }, 300),
         []
     );
@@ -132,7 +133,7 @@ const TreeRenderer: React.FC = () => {
         (focalProductId: string) => {
             const latestNodes = nodesRef.current;
             if (focalProductId && latestNodes.length > 0) {
-                const productScheme = serializeSubFlow(focalProductId, latestNodes);
+                const productScheme = serializeProductionChain(focalProductId, latestNodes);
                 console.log('Serialized Product Scheme:', productScheme);
             } else {
                 console.log('No focal product selected or nodes are empty.\nfocalProductId: ', focalProductId, '\nnodes: ', nodes);
@@ -261,6 +262,15 @@ const TreeRenderer: React.FC = () => {
                                 target: processNode.id,
                                 type: 'smoothstep',
                             });
+
+                            // Step 7: Set the ancestorId in the data properties of the parent ProductNode to the id of current ProcessNode
+                            const parentProductNode = updatedNodes.find(
+                                (node) => node.id === parentNodeId && node.type === 'productNode'
+                            );
+
+                            if (parentProductNode) {
+                                parentProductNode.data.ancestorIds = [processNode.id];
+                            }
 
                             setEdges(updatedEdges);
                             return updatedNodes;

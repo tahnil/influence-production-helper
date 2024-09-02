@@ -13,8 +13,8 @@ export interface ProductNodeData extends Record<string, unknown> {
     selectedProcessId: string | null;
     handleSelectProcess: (processId: string, nodeId: string) => void;
     handleSerialize: (focalProductId: string) => void;
-    ancestorProcessId?: string;
-    descendantProcessId?: string;
+    ancestorIds?: string[];
+    descendantIds?: string[];
 }
 
 export interface ProcessNodeData extends Record<string, unknown> {
@@ -23,8 +23,8 @@ export interface ProcessNodeData extends Record<string, unknown> {
     image: string;
     processDetails: InfluenceProcess;
     inputProducts: ProcessInput[];
-    ancestorProductIds?: string[];
-    descendantProductIds?: string[];
+    ancestorIds?: string[];
+    descendantIds?: string[];
 }
 
 export type ProcessNode = ReactFlowNode<ProcessNodeData>;

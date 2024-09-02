@@ -34,6 +34,9 @@ const useProcessNodeBuilder = () => {
 
             const processNodeId = generateUniqueId();
 
+            const ancestorIds: string[] = [];
+            const descendantIds: string[] = [];
+
             const output = processDetails.outputs.find(output => output.productId === parentNodeProductId);
             // console.log(`### ProcessNode builder Step 1 ###
             //     \nparentId: ${parentNodeProductId}
@@ -48,20 +51,6 @@ const useProcessNodeBuilder = () => {
             const totalRuns = parentNodeAmount / outputUnitsPerSR || 1;
             // console.log(`### ProcessNode builder Step 3 ###\noutput: ${output}\noutputUnitsPerSR: ${outputUnitsPerSR}\ntotalRuns: ${totalRuns}`);
 
-            const newProcessNode: Node = {
-                id: processNodeId,
-                type: 'processNode',
-                position: { x: 0, y: 0 },
-                parentId: parentId,
-                data: {
-                    processDetails,
-                    inputProducts,
-                    image: buildingIcon,
-                    totalRuns,
-                    descendantProductIds: [parentId],
-                },
-            };
-
             // Build input ProductNodes
             const productNodesPromises = inputProducts.map(async (inputProduct) => {
                 const amount = parseFloat(inputProduct.unitsPerSR) * totalRuns;
@@ -73,8 +62,9 @@ const useProcessNodeBuilder = () => {
                 );
 
                 if (productNode) {
-                    // Set the ProcessNode as the parent of this ProductNode
-                    // productNode.parentId = processNodeId;
+                    // Update ancestorIds with the new product node's ID
+                    ancestorIds.push(productNode.id);
+
                     const newProductNode = {
                         ...productNode,
                         parentId: processNodeId,
@@ -82,8 +72,11 @@ const useProcessNodeBuilder = () => {
                             ...productNode.data,
                             handleSelectProcess,
                             handleSerialize,
+                            ancestorIds: [...ancestorIds],
+                            descendantIds: [processNodeId],
                         }
                     };
+
                     return newProductNode;
                 }
 
@@ -91,6 +84,21 @@ const useProcessNodeBuilder = () => {
             });
 
             const productNodes = (await Promise.all(productNodesPromises)).filter(Boolean) as Node[];
+
+            const newProcessNode: Node = {
+                id: processNodeId,
+                type: 'processNode',
+                position: { x: 0, y: 0 },
+                parentId: parentId,
+                data: {
+                    processDetails,
+                    inputProducts,
+                    image: buildingIcon,
+                    totalRuns,
+                    ancestorIds, // list of node ids of the products that are needed as inputs to this process
+                    descendantIds: [parentId], // list of node ids of the products that are produced by this process; later add also side products / other output nodes to this array
+                },
+            };
 
             return { processNode: newProcessNode, productNodes };
         } catch (err) {

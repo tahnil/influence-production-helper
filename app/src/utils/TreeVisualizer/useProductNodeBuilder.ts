@@ -40,6 +40,8 @@ const useProductNodeBuilder = () => {
                     productDetails,
                     image: productImage,
                     processesByProductId,
+                    ancestorIds: [],
+                    descendantIds: [],
                 },
             };
 

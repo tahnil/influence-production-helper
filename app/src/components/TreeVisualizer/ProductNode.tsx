@@ -18,8 +18,8 @@ export type ProductNode = Node<
     selectedProcessId: string | null;
     handleSelectProcess: (processId: string, nodeId: string) => void;
     handleSerialize: (focalProductId: string) => void; // New prop for triggering serialization
-    ancestorProcessId?: string;
-    descendantProcessId?: string;
+    ancestorIds?: string[];
+    descendantIds?: string[];
   }
 >;
 
@@ -34,8 +34,8 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     selectedProcessId,
     handleSelectProcess,
     handleSerialize,
-    ancestorProcessId,
-    descendantProcessId,
+    ancestorIds,
+    descendantIds,
   } = data;
 
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = productDetails;
