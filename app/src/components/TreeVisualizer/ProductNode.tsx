@@ -58,9 +58,37 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     scaleType: 'volume',
   });
 
-  const handleProcessSelect = (processId: string) => {
+  const handleProcessSelection = (processId: string) => {
     handleSelectProcess(processId, id);
   };
+
+  const handleSaveProductionChain = () => {
+    // Implement the logic to save the production chain here
+    // Save this ProductNode including all its ancestors in the Production Chain
+    // Add new chain to the ChainStore
+    handleSerialize(id);
+  };
+
+  const handleInsertProductionChain = () => {
+    // Implement the logic to insert the production chain here
+    // Replace this ProductNode with a saved ProductNode of the same product id, including all its ancestors in the Production Chain
+    // Apply selected chain from ChainStore
+  };
+
+  const handleSaveDerivedProducts = () => {
+    // Implement the logic to save derived products here
+    // Save this ProductNode including all its descendants in the Production Chain
+    // Add new chain to the ChainStore
+  };
+
+  const handleInsertDerivedProducts = () => {
+    // Implement the logic to insert derived products here
+    // Replace this ProductNode with a saved ProductNode of the same product id, including all its descendants in the Production Chain
+    // Apply selected chain from ChainStore
+  };
+
+  // I guess we also need a sub-component that retrieves all available chains 
+  // for the current product id, and allows the user to select one.
 
   return (
     <div className="product-node bg-mako-900 border overflow-hidden rounded-lg shadow-lg w-72">
@@ -100,7 +128,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
           <ProcessSelector
             processes={processesByProductId}
             selectedProcessId={selectedProcessId}
-            onProcessSelect={handleProcessSelect}
+            onProcessSelect={handleProcessSelection}
             className="w-full border-lunarGreen-700 bg-lunarGreen-500"
             style={{
               '--popover': 'hsl(210, 40%, 10%)', // Custom popover background color
@@ -110,7 +138,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
         </div>
         <button 
           className="bg-blue-500 text-white py-1 px-4 rounded mt-2"
-          onClick={() => handleSerialize(id)} // Pass the node's id to the serialize function
+          onClick={handleSaveProductionChain} // Pass the node's id to the serialize function
         >
           Serialize Node
         </button>
