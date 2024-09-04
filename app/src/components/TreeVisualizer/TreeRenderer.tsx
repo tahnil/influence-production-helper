@@ -30,8 +30,8 @@ import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
 import IngredientsList from './IngredientsList';
 import AmountInput from './AmountInput';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
-import serializeProductionChain from '@/utils/TreeVisualizer/serializeProductionChain';
-import { getDescendantIds } from '@/utils/TreeVisualizer/getDescendantIds'; // Import the utility function
+import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
+import { getDescendantIds } from '@/utils/TreeVisualizer/getDescendantIds';
 import { FlowProvider } from '@/contexts/FlowContext';
 import PouchDBViewer from '@/components/TreeVisualizer/PouchDbViewer';
 
@@ -140,21 +140,29 @@ const TreeRenderer: React.FC = () => {
             const latestNodes = nodesRef.current;
 
             if (focalProductId && latestNodes.length > 0 && db) {
-                const productScheme = serializeProductionChain(focalProductId, latestNodes);
-                console.log('Serialized Product Scheme:', productScheme);
+                const result = serializeProductionChain(focalProductId, latestNodes);
+                if (result === null) {
+                    console.error('Failed to serialize production chain');
+                    return;
+                }
+                const { doc, attachment } = result;
 
                 try {
-                    // Write the serialized nodes into the PouchDB database
-                    const response = await db.bulkDocs(productScheme);
+                    // First, save the document
+                    const response = await db.put(doc);
+
+                    // Then, add the attachment
+                    await db.putAttachment(doc._id, 'nodes', response.rev, attachment, 'application/json');
+
                     console.log('Saved to PouchDB:', response);
                 } catch (error) {
                     console.error('Error saving to PouchDB:', error);
                 }
             } else {
-                console.log('No focal product selected, nodes are empty, or database is not initialized.\nfocalProductId:', focalProductId, '\nnodes:', latestNodes);
+                console.log('No focal product selected, nodes are empty, or database is not initialized.');
             }
         },
-        [db] // db is a dependency of this callback
+        [db]
     );
 
     const ingredients = useIngredientsList(nodes);
