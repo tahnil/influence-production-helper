@@ -62,9 +62,6 @@ const useProcessNodeBuilder = () => {
                 );
 
                 if (productNode) {
-                    // Update ancestorIds with the new product node's ID
-                    ancestorIds.push(productNode.id);
-
                     const newProductNode = {
                         ...productNode,
                         parentId: processNodeId,
@@ -72,8 +69,8 @@ const useProcessNodeBuilder = () => {
                             ...productNode.data,
                             handleSelectProcess,
                             handleSerialize,
-                            ancestorIds: [...ancestorIds],
-                            descendantIds: [processNodeId],
+                            ancestorIds: [], // Input products have no ancestors initially
+                            descendantIds: [processNodeId], // The process node is a descendant
                         }
                     };
 
@@ -83,8 +80,10 @@ const useProcessNodeBuilder = () => {
                 return null;
             });
 
+            // After all product nodes are created
             const productNodes = (await Promise.all(productNodesPromises)).filter(Boolean) as Node[];
 
+            // Update the process node
             const newProcessNode: Node = {
                 id: processNodeId,
                 type: 'processNode',
@@ -95,8 +94,8 @@ const useProcessNodeBuilder = () => {
                     inputProducts,
                     image: buildingIcon,
                     totalRuns,
-                    ancestorIds, // list of node ids of the products that are needed as inputs to this process
-                    descendantIds: [parentId], // list of node ids of the products that are produced by this process; later add also side products / other output nodes to this array
+                    ancestorIds: productNodes.map(node => node.id), // Input products are ancestors of the process
+                    descendantIds: [parentId], // The parent product node is the descendant
                 },
             };
 
