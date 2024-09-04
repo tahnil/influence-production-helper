@@ -14,7 +14,7 @@ function serializeProductionChain(focalProductId: string, nodes: Node[]): Serial
     const serializedNodes: SerializedNode[] = [];
     const visitedNodes = new Set<string>();
 
-    function traverseAncestors(nodeId: string) {
+    function traverseAncestors(nodeId: string, isRoot: boolean = false) {
         const node = nodes.find(n => n.id === nodeId);
         if (!node || visitedNodes.has(nodeId)) {
             return;
@@ -24,9 +24,9 @@ function serializeProductionChain(focalProductId: string, nodes: Node[]): Serial
 
         const serializedNode: SerializedNode = {
             id: node.id,
-            data: node.data,
+            data: { ...node.data, isRoot }, // Store isRoot in data
             type: node.type,
-            parentId: node.parentId
+            parentId: node.parentId,
         };
         serializedNodes.push(serializedNode);
 
@@ -37,11 +37,10 @@ function serializeProductionChain(focalProductId: string, nodes: Node[]): Serial
         } else {
             console.error(`Expected ancestorIds to be an array, but got:`, node.data.ancestorIds);
         }
-        
     }
 
     // Start traversal from the focal product node
-    traverseAncestors(focalProductId);
+    traverseAncestors(focalProductId, true); // Mark the initial node as the root
 
     return serializedNodes;
 }

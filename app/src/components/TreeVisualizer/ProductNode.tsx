@@ -1,11 +1,15 @@
 // components/TreeVisualizer/ProductNode.tsx
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Node, Handle, Position, NodeProps } from '@xyflow/react';
 import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 import { formatNumber } from '@/utils/formatNumber';
-import Image from 'next/image';
 import ProcessSelector from './ProcessSelector';
+import Image from 'next/image';
+import { handleReplaceNode } from '@/utils/TreeVisualizer/handleReplaceNode'; // Import the replace function
+import { hasStoredProductionChain } from '@/utils/TreeVisualizer/hasStoredProductionChain'; // Import the new function
+import PouchDB from 'pouchdb';
+import { useFlow } from '@/contexts/FlowContext'; // Import the context
 
 export type ProductNode = Node<
   {
@@ -17,13 +21,14 @@ export type ProductNode = Node<
     processesByProductId: InfluenceProcess[];
     selectedProcessId: string | null;
     handleSelectProcess: (processId: string, nodeId: string) => void;
-    handleSerialize: (focalProductId: string) => void; // New prop for triggering serialization
+    handleSerialize: (focalProductId: string) => void;
     ancestorIds?: string[];
     descendantIds?: string[];
   }
 >;
 
 const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
+  const { nodes, edges, setNodes, setEdges } = useFlow(); // Use context to get nodes and edges
   const {
     productDetails,
     processesByProductId,
@@ -40,6 +45,18 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
 
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = productDetails;
   // console.log('ProductNode data:', data);
+  const db = new PouchDB('mydb'); // Initialize PouchDB (ensure this matches your existing setup)
+  const [hasChain, setHasChain] = useState(false);
+
+  useEffect(() => {
+    console.log('ProductNode StoreChecker mounted');
+    const checkForChain = async () => {
+      const exists = await hasStoredProductionChain(productDetails.id, db);
+      setHasChain(exists);
+    };
+
+    checkForChain();
+  }, []);
 
   const formattedAmount = formatNumber(amount, {
     minimumFractionDigits: 0,
@@ -73,6 +90,17 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     // Implement the logic to insert the production chain here
     // Replace this ProductNode with a saved ProductNode of the same product id, including all its ancestors in the Production Chain
     // Apply selected chain from ChainStore
+    handleReplaceNode(
+      id, 
+      productDetails.id, 
+      db, 
+      nodes, 
+      edges, 
+      setNodes, 
+      setEdges, 
+      handleSelectProcess, 
+      handleSerialize
+    );
   };
 
   const handleSaveDerivedProducts = () => {
@@ -136,12 +164,20 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
             } as React.CSSProperties}
           />
         </div>
-        <button 
+        <button
           className="bg-blue-500 text-white py-1 px-4 rounded mt-2"
           onClick={handleSaveProductionChain} // Pass the node's id to the serialize function
         >
           Serialize Node
         </button>
+        {hasChain && (
+          <button
+            className="bg-green-500 text-white py-1 px-4 rounded mt-2"
+            onClick={handleInsertProductionChain} // Insert the stored production chain if it exists
+          >
+            Insert Production Chain
+          </button>
+        )}
       </div>
       <Handle type="source" position={Position.Bottom} className="bg-green-500" />
     </div>

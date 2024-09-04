@@ -1,9 +1,13 @@
+// contexts/PouchDBContext.tsx
+
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import PouchDB from 'pouchdb';
 import memoryAdapter from 'pouchdb-adapter-memory';
+import PouchDBFind from 'pouchdb-find';
 
 // Register the memory adapter
 PouchDB.plugin(memoryAdapter);
+PouchDB.plugin(PouchDBFind);
 
 // Define the shape of your context
 interface PouchDBContextType {

@@ -15,6 +15,7 @@ export interface ProductNodeData extends Record<string, unknown> {
     handleSerialize: (focalProductId: string) => void;
     ancestorIds?: string[];
     descendantIds?: string[];
+    isRoot?: boolean;
 }
 
 export interface ProcessNodeData extends Record<string, unknown> {

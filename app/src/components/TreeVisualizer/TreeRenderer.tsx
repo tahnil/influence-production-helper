@@ -1,5 +1,6 @@
 // components/TreeVisualizer/TreeRenderer.tsx
 
+import { usePouchDB } from '@/contexts/PouchDBContext';
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
     ReactFlow,
@@ -30,6 +31,9 @@ import IngredientsList from './IngredientsList';
 import AmountInput from './AmountInput';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
 import serializeProductionChain from '@/utils/TreeVisualizer/serializeProductionChain';
+import { getDescendantIds } from '@/utils/TreeVisualizer/getDescendantIds'; // Import the utility function
+import { FlowProvider } from '@/contexts/FlowContext';
+import PouchDBViewer from '@/components/TreeVisualizer/PouchDbViewer';
 
 interface ProcessSelection {
     nodeId: string;
@@ -50,6 +54,8 @@ const TreeRenderer: React.FC = () => {
     const [desiredAmount, setDesiredAmount] = useState<number>(1);
     const [nodesReady, setNodesReady] = useState(false);
     const [rootNodeId, setRootNodeId] = useState<string>('root');
+
+    const { db } = usePouchDB();
 
     const nodesInitialized = useNodesInitialized();
     const nodesRef = useRef<Node[]>([]);
@@ -130,16 +136,25 @@ const TreeRenderer: React.FC = () => {
     );
 
     const handleSerialize = useCallback(
-        (focalProductId: string) => {
+        async (focalProductId: string) => {
             const latestNodes = nodesRef.current;
-            if (focalProductId && latestNodes.length > 0) {
+
+            if (focalProductId && latestNodes.length > 0 && db) {
                 const productScheme = serializeProductionChain(focalProductId, latestNodes);
                 console.log('Serialized Product Scheme:', productScheme);
+
+                try {
+                    // Write the serialized nodes into the PouchDB database
+                    const response = await db.bulkDocs(productScheme);
+                    console.log('Saved to PouchDB:', response);
+                } catch (error) {
+                    console.error('Error saving to PouchDB:', error);
+                }
             } else {
-                console.log('No focal product selected or nodes are empty.\nfocalProductId: ', focalProductId, '\nnodes: ', nodes);
+                console.log('No focal product selected, nodes are empty, or database is not initialized.\nfocalProductId:', focalProductId, '\nnodes:', latestNodes);
             }
         },
-        []
+        [db] // db is a dependency of this callback
     );
 
     const ingredients = useIngredientsList(nodes);
@@ -283,21 +298,6 @@ const TreeRenderer: React.FC = () => {
         fetchAndBuildProcessNode();
     }, [selectedProcessMap, buildProcessNode]);
 
-    // Utility function to get all descendant ids of a given node id
-    const getDescendantIds = (nodeId: string, nodes: Node[]): string[] => {
-        // Find all direct children (ProductNodes)
-        const directChildren = nodes.filter((node) => node.parentId === nodeId);
-
-        // Recursively find all descendants for each direct child
-        const allDescendants = directChildren.reduce<string[]>((acc, child) => {
-            const childDescendants = getDescendantIds(child.id, nodes);
-            return [...acc, child.id, ...childDescendants];
-        }, []);
-
-        // Return the list of all descendant IDs
-        return allDescendants;
-    };
-
     return (
         <div className="w-full h-full relative">
             <div className="tree-renderer" style={{ width: '100%', height: '100%' }}>
@@ -331,6 +331,7 @@ const TreeRenderer: React.FC = () => {
                             updateDagreConfig={updateDagreConfig}
                         /> */}
                         <IngredientsList ingredients={ingredients} /> {/* Display ingredients list */}
+                        <PouchDBViewer />
                     </div>
                     <MiniMap
                         nodeStrokeWidth={3}
@@ -349,7 +350,9 @@ TreeRenderer.displayName = 'TreeRenderer';
 const TreeRendererWithProvider: React.FC = () => {
     return (
         <ReactFlowProvider>
-            <TreeRenderer />
+            <FlowProvider>
+                <TreeRenderer />
+            </FlowProvider>
         </ReactFlowProvider>
     );
 };
