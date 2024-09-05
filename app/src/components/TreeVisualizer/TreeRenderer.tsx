@@ -140,23 +140,11 @@ const TreeRenderer: React.FC = () => {
             const latestNodes = nodesRef.current;
 
             if (focalNodeId && latestNodes.length > 0 && db) {
-                const result = serializeProductionChain(focalNodeId, latestNodes);
-                if (result === null) {
-                    console.error('Failed to serialize production chain');
-                    return;
-                }
-                const { doc, attachment } = result;
-
                 try {
-                    // First, save the document
-                    const response = await db.put(doc);
-
-                    // Then, add the attachment
-                    await db.putAttachment(doc._id, 'nodes', response.rev, attachment, 'application/json');
-
-                    console.log('Saved to PouchDB:', response);
+                    await serializeProductionChain(focalNodeId, latestNodes, db);
+                    console.log('Production chain serialized and saved successfully');
                 } catch (error) {
-                    console.error('Error saving to PouchDB:', error);
+                    console.error('Error serializing production chain:', error);
                 }
             } else {
                 console.log('No focal node selected, nodes are empty, or database is not initialized.');

@@ -9,8 +9,8 @@ import Image from 'next/image';
 import { handleReplaceNode } from '@/utils/TreeVisualizer/handleReplaceNode';
 import { hasStoredProductionChain } from '@/utils/TreeVisualizer/hasStoredProductionChain';
 import useMatchingConfigurations from '@/hooks/useMatchingConfigurations'; // New hook
-import PouchDB from 'pouchdb';
 import { useFlow } from '@/contexts/FlowContext';
+import { usePouchDB } from '@/contexts/PouchDBContext';
 
 export type ProductNode = Node<
   {
@@ -22,7 +22,7 @@ export type ProductNode = Node<
     processesByProductId: InfluenceProcess[];
     selectedProcessId: string | null;
     handleSelectProcess: (processId: string, nodeId: string) => void;
-    handleSerialize: (focalProductId: string) => void;
+    handleSerialize: (focalProductId: string) => Promise<void>;
     ancestorIds?: string[];
     descendantIds?: string[];
   }
@@ -45,7 +45,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   } = data;
 
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = productDetails;
-  const db = new PouchDB('mydb');
+  const { db } = usePouchDB();
   const [hasChain, setHasChain] = useState(false);
   const matchingConfigs = useMatchingConfigurations(productDetails.id);
   const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
@@ -83,29 +83,34 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     handleSelectProcess(processId, id);
   };
 
-  const handleSaveProductionChain = () => {
+  const handleSaveProductionChain = async () => {
     // Implement the logic to save the production chain here
     // Save this ProductNode including all its ancestors in the Production Chain
     // Add new chain to the Pouch DB
-    handleSerialize(id);
+
+    if (db) {
+      await handleSerialize(id);
+    } else {
+      console.error('PouchDB is not initialized');
+    }
   };
 
   const handleInsertProductionChain = () => {
     // Implement the logic to insert the production chain here
     // Replace this ProductNode with a saved ProductNode of the same product id, including all its ancestors in the Production Chain
     // Apply selected chain from Pouch DB
-    if (selectedConfigId) {
+    if (selectedConfigId && db) {
       handleReplaceNode(
-      id, 
+        id,
         selectedConfigId, // Use the selected config ID instead of productDetails.id
-      db, 
-      nodes, 
-      edges, 
-      setNodes, 
-      setEdges, 
-      handleSelectProcess, 
-      handleSerialize
-    );
+        db,
+        nodes,
+        edges,
+        setNodes,
+        setEdges,
+        handleSelectProcess,
+        handleSerialize
+      );
     }
   };
 
@@ -198,13 +203,13 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
                 </option>
               ))}
             </select>
-          <button
+            <button
               className="bg-green-500 text-white py-1 px-4 rounded mt-2 w-full"
               onClick={handleInsertProductionChain}
               disabled={!selectedConfigId}
-          >
-            Insert Production Chain
-          </button>
+            >
+              Insert Production Chain
+            </button>
           </div>
         )}
       </div>
