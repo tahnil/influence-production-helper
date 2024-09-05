@@ -12,6 +12,12 @@ interface ConfigNode {
     processId?: string;
     productDetails?: { name: string; id: string };
     processDetails?: { name: string; id: string };
+    amount?: number;
+    totalWeight?: number;
+    totalVolume?: number;
+    totalRuns?: number;
+    totalDuration?: number;
+    [key: string]: any;  // Allow for other properties
   };
 }
 
@@ -111,7 +117,10 @@ const PouchDBViewer: React.FC = () => {
         <ul className="list-disc pl-5">
           {productNodes.map(node => (
             <li key={node.id}>
-              {node.data.productDetails?.name || 'Unknown'} (ID: {node.data.productId})
+              {node.data.productDetails?.name || 'Unknown'} (ID: {node.data.productDetails?.id})
+              {node.data.amount !== undefined && ` - Amount: ${node.data.amount}`}
+              {node.data.totalWeight !== undefined && ` - Total Weight: ${node.data.totalWeight}`}
+              {node.data.totalVolume !== undefined && ` - Total Volume: ${node.data.totalVolume}`}
             </li>
           ))}
         </ul>
@@ -119,7 +128,9 @@ const PouchDBViewer: React.FC = () => {
         <ul className="list-disc pl-5">
           {processNodes.map(node => (
             <li key={node.id}>
-              {node.data.processDetails?.name || 'Unknown'} (ID: {node.data.processId})
+              {node.data.processDetails?.name || 'Unknown'} (ID: {node.data.processDetails?.id})
+              {node.data.totalRuns !== undefined && ` - Total Runs: ${node.data.totalRuns}`}
+              {node.data.totalDuration !== undefined && ` - Total Duration: ${node.data.totalDuration}`}
             </li>
           ))}
         </ul>

@@ -7,12 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 type SerializedNode = {
     id: string;
     type: string;
-    data: {
-        productId?: string;
-        processId?: string;
-        isRoot: boolean;
-        ancestorIds: string[];
-    }
+    data: any;  // We'll keep all data from the original node
 };
 
 export const serializeProductionChain = (focalNodeId: string, nodes: Node[]): { doc: any, attachment: Blob } | null => {
@@ -26,23 +21,12 @@ export const serializeProductionChain = (focalNodeId: string, nodes: Node[]): { 
         }
         visitedNodes.add(nodeId);
 
-        let productId: string | undefined;
-        let processId: string | undefined;
-
-        if (isProductNode(node)) {
-            productId = node.data.productDetails.id;
-        } else if (isProcessNode(node)) {
-            processId = node.data.processDetails.id;
-        }
-
         const serializedNode: SerializedNode = {
             id: node.id,
             type: node.type || 'unknown',
             data: {
-                productId,
-                processId,
+                ...node.data,
                 isRoot,
-                ancestorIds: Array.isArray(node.data.ancestorIds) ? node.data.ancestorIds : [],
             }
         };
 
