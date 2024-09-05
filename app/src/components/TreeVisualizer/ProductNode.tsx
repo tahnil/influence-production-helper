@@ -6,10 +6,11 @@ import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 import { formatNumber } from '@/utils/formatNumber';
 import ProcessSelector from './ProcessSelector';
 import Image from 'next/image';
-import { handleReplaceNode } from '@/utils/TreeVisualizer/handleReplaceNode'; // Import the replace function
-import { hasStoredProductionChain } from '@/utils/TreeVisualizer/hasStoredProductionChain'; // Import the new function
+import { handleReplaceNode } from '@/utils/TreeVisualizer/handleReplaceNode';
+import { hasStoredProductionChain } from '@/utils/TreeVisualizer/hasStoredProductionChain';
+import useMatchingConfigurations from '@/hooks/useMatchingConfigurations'; // New hook
 import PouchDB from 'pouchdb';
-import { useFlow } from '@/contexts/FlowContext'; // Import the context
+import { useFlow } from '@/contexts/FlowContext';
 
 export type ProductNode = Node<
   {
@@ -28,7 +29,7 @@ export type ProductNode = Node<
 >;
 
 const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
-  const { nodes, edges, setNodes, setEdges } = useFlow(); // Use context to get nodes and edges
+  const { nodes, edges, setNodes, setEdges } = useFlow();
   const {
     productDetails,
     processesByProductId,
@@ -44,19 +45,22 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   } = data;
 
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = productDetails;
-  // console.log('ProductNode data:', data);
-  const db = new PouchDB('mydb'); // Initialize PouchDB (ensure this matches your existing setup)
+  const db = new PouchDB('mydb');
   const [hasChain, setHasChain] = useState(false);
+  const matchingConfigs = useMatchingConfigurations(productDetails.id);
+  const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
+
+  console.log(`ProductNode ${id}: ${matchingConfigs.length} matching configurations found`);
 
   useEffect(() => {
-    console.log('ProductNode StoreChecker mounted');
+    // console.log('ProductNode StoreChecker mounted');
     const checkForChain = async () => {
       const exists = await hasStoredProductionChain(productDetails.id, db);
       setHasChain(exists);
     };
 
     checkForChain();
-  }, []);
+  }, [productDetails.id, db]);
 
   const formattedAmount = formatNumber(amount, {
     minimumFractionDigits: 0,
@@ -82,17 +86,18 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   const handleSaveProductionChain = () => {
     // Implement the logic to save the production chain here
     // Save this ProductNode including all its ancestors in the Production Chain
-    // Add new chain to the ChainStore
+    // Add new chain to the Pouch DB
     handleSerialize(id);
   };
 
   const handleInsertProductionChain = () => {
     // Implement the logic to insert the production chain here
     // Replace this ProductNode with a saved ProductNode of the same product id, including all its ancestors in the Production Chain
-    // Apply selected chain from ChainStore
-    handleReplaceNode(
+    // Apply selected chain from Pouch DB
+    if (selectedConfigId) {
+      handleReplaceNode(
       id, 
-      productDetails.id, 
+        selectedConfigId, // Use the selected config ID instead of productDetails.id
       db, 
       nodes, 
       edges, 
@@ -101,18 +106,23 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
       handleSelectProcess, 
       handleSerialize
     );
+    }
+  };
+
+  const handleConfigSelection = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedConfigId(event.target.value);
   };
 
   const handleSaveDerivedProducts = () => {
     // Implement the logic to save derived products here
     // Save this ProductNode including all its descendants in the Production Chain
-    // Add new chain to the ChainStore
+    // Add new chain to the Pouch DB
   };
 
   const handleInsertDerivedProducts = () => {
     // Implement the logic to insert derived products here
     // Replace this ProductNode with a saved ProductNode of the same product id, including all its descendants in the Production Chain
-    // Apply selected chain from ChainStore
+    // Apply selected chain from Pouch DB
   };
 
   // I guess we also need a sub-component that retrieves all available chains 
@@ -159,24 +169,43 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
             onProcessSelect={handleProcessSelection}
             className="w-full border-lunarGreen-700 bg-lunarGreen-500"
             style={{
-              '--popover': 'hsl(210, 40%, 10%)', // Custom popover background color
-              '--popover-foreground': 'hsl(210, 40%, 90%)', // Custom popover text color
+              '--popover': 'hsl(210, 40%, 10%)',
+              '--popover-foreground': 'hsl(210, 40%, 90%)',
             } as React.CSSProperties}
           />
         </div>
         <button
           className="bg-blue-500 text-white py-1 px-4 rounded mt-2"
-          onClick={handleSaveProductionChain} // Pass the node's id to the serialize function
+          onClick={handleSaveProductionChain}
         >
           Serialize Node
         </button>
-        {hasChain && (
+        {matchingConfigs.length > 0 && (
+          <div className="w-full py-1 px-2.5">
+            <label htmlFor={`config-select-${id}`} className="text-xs font-medium text-falconWhite uppercase">
+              Select Saved Configuration:
+            </label>
+            <select
+              id={`config-select-${id}`}
+              value={selectedConfigId || ''}
+              onChange={handleConfigSelection}
+              className="w-full mt-1 bg-lunarGreen-500 border border-lunarGreen-700 rounded"
+            >
+              <option value="">Select a configuration</option>
+              {matchingConfigs.map((config) => (
+                <option key={config._id} value={config._id}>
+                  {new Date(config.createdAt).toLocaleString()} ({config.nodeCount} nodes)
+                </option>
+              ))}
+            </select>
           <button
-            className="bg-green-500 text-white py-1 px-4 rounded mt-2"
-            onClick={handleInsertProductionChain} // Insert the stored production chain if it exists
+              className="bg-green-500 text-white py-1 px-4 rounded mt-2 w-full"
+              onClick={handleInsertProductionChain}
+              disabled={!selectedConfigId}
           >
             Insert Production Chain
           </button>
+          </div>
         )}
       </div>
       <Handle type="source" position={Position.Bottom} className="bg-green-500" />

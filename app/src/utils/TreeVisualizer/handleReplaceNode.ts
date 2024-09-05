@@ -1,4 +1,4 @@
-// utils/TreeVisualizer/handleReplaceNode.ts
+
 
 import { Node, Edge } from '@xyflow/react';
 import PouchDB from 'pouchdb';
@@ -9,8 +9,8 @@ import { PouchDBNodeDocument } from '@/types/pouchSchemes';
 
 export const handleReplaceNode = async (
     currentNodeId: string,
-    productId: string,
-    db: PouchDB.Database | null,
+    configId: string,
+    db: PouchDB.Database,
     nodes: Node<ProductNodeData>[],
     edges: Edge[],
     setNodes: React.Dispatch<React.SetStateAction<Node<ProductNodeData>[]>>,
@@ -18,80 +18,53 @@ export const handleReplaceNode = async (
     handleSelectProcess: (processId: string, nodeId: string) => void,
     handleSerialize: (focalProductId: string) => void
 ) => {
-    if (!db) {
-        console.error('PouchDB is not initialized');
-        return;
-    }
-
     try {
-        // Step 1: Fetch the root node of the chain from PouchDB
-        const result = await db.find({
-            selector: {
-                'data.productDetails.id': productId,
-                'data.isRoot': true,
-            },
-        });
+        // Fetch the selected configuration from PouchDB
+        const config = await db.get(configId);
+        const attachment = await db.getAttachment(configId, 'nodes');
+        if (!(attachment instanceof Blob)) {
+            throw new Error('Attachment is not a Blob');
+        }
+        const savedNodes: PouchDBNodeDocument[] = JSON.parse(await attachment.text());
 
-        const rootNode = result.docs[0] as PouchDBNodeDocument | undefined;
-        if (!rootNode) {
-            console.error('No saved root node found in PouchDB for productId:', productId);
-            return;
+        // Find the current node and its ancestors
+        const currentNode = nodes.find(node => node.id === currentNodeId);
+        if (!currentNode) {
+            throw new Error('Current node not found');
+        }
+        const ancestorIds = getAncestorIds(currentNodeId, nodes);
+        const nodesToRemove = [currentNodeId, ...ancestorIds];
+
+        // Remove the current node, its ancestors, and their edges
+        let updatedNodes = nodes.filter(node => !nodesToRemove.includes(node.id));
+        let updatedEdges = edges.filter(edge => !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target));
+
+        // Convert saved nodes to React Flow nodes
+        const newNodes: Node<ProductNodeData>[] = savedNodes.map(savedNode =>
+            createProductNodeWithCallbacks(savedNode, handleSelectProcess, handleSerialize)
+        );
+
+        // Find the root node of the saved configuration
+        const rootSavedNode = newNodes.find(node => node.data.isRoot);
+        if (!rootSavedNode) {
+            throw new Error('Root node not found in saved configuration');
         }
 
-        // Step 2: Fetch the entire chain from PouchDB using the root node's id
-        const chainResult = await db.find({
-            selector: {
-                $or: [
-                    { id: rootNode.id },
-                    { parentId: rootNode.id },
-                ],
-            },
-        });
-
-        const savedNodes = chainResult.docs as PouchDBNodeDocument[];
-
-        // Step 3: Remove the current node and its descendants from the nodes array
-        let updatedNodes = [...nodes];
-        let updatedEdges = [...edges];
-
-        const nodeToReplace = updatedNodes.find((node) => node.id === currentNodeId);
-        if (!nodeToReplace) {
-            console.error('No node found with ID:', currentNodeId);
-            return;
+        // Connect the root saved node to the parent of the replaced node
+        const parentEdge = edges.find(edge => edge.target === currentNodeId);
+        if (parentEdge) {
+            updatedEdges.push({
+                ...parentEdge,
+                target: rootSavedNode.id,
+            });
         }
 
-        const descendantIds = getDescendantIds(nodeToReplace.id, updatedNodes);
-        updatedNodes = updatedNodes.filter(
-            (node) => ![nodeToReplace.id, ...descendantIds].includes(node.id)
-        );
-        updatedEdges = updatedEdges.filter(
-            (edge) => ![nodeToReplace.id, ...descendantIds].includes(edge.source)
-        );
-
-        // Step 4: Convert saved PouchDB documents to Node format and inject callbacks
-        const convertedNodes: Node<ProductNodeData>[] = savedNodes.map((doc) =>
-            createProductNodeWithCallbacks(doc, handleSelectProcess, handleSerialize)
-        );
-
-        updatedNodes = [...updatedNodes, ...convertedNodes];
-
-        // Step 5: Update edges to connect the new nodes correctly
-        const newEdges = convertedNodes.flatMap((node) => {
-            return node.parentId
-                ? [
-                      {
-                          id: `edge-${node.parentId}-${node.id}`,
-                          source: node.parentId,
-                          target: node.id,
-                          type: 'smoothstep',
-                      },
-                  ]
-                : [];
-        });
-
+        // Add new nodes and create edges between them
+        updatedNodes = [...updatedNodes, ...newNodes];
+        const newEdges = createEdgesBetweenNodes(newNodes);
         updatedEdges = [...updatedEdges, ...newEdges];
 
-        // Step 6: Update state with the new nodes and edges
+        // Update the state
         setNodes(updatedNodes);
         setEdges(updatedEdges);
 
@@ -99,4 +72,28 @@ export const handleReplaceNode = async (
     } catch (error) {
         console.error('Error replacing node from PouchDB:', error);
     }
+};
+
+const getAncestorIds = (nodeId: string, nodes: Node<ProductNodeData>[]): string[] => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node || !node.data.ancestorIds) {
+        return [];
+    }
+    return [
+        ...node.data.ancestorIds,
+        ...node.data.ancestorIds.flatMap(id => getAncestorIds(id, nodes))];
+};
+
+const createEdgesBetweenNodes = (nodes: Node<ProductNodeData>[]): Edge[] => {
+    return nodes.flatMap(node => {
+        if (node.data && Array.isArray(node.data.ancestorIds)) {
+            return node.data.ancestorIds.map(ancestorId => ({
+                id: `edge-${ancestorId}-${node.id}`,
+                source: ancestorId,
+                target: node.id,
+                type: 'smoothstep' as const,
+            }));
+        }
+        return [];
+    });
 };
