@@ -19,19 +19,31 @@ export const handleReplaceNode = async (
     handleSerialize: (focalProductId: string) => void
 ) => {
     try {
+        console.log(`Attempting to replace node. Current Node ID: ${currentNodeId}, Config ID: ${configId}`);
+
+        // Log all document IDs in the database
+        const allDocs = await db.allDocs();
+        console.log('All document IDs in PouchDB:', allDocs.rows.map(row => row.id));
+
         // Fetch the selected configuration from PouchDB
         const config = await db.get(configId);
+        console.log('Retrieved config:', config);
+
+        // Fetch the attachment
         const attachment = await db.getAttachment(configId, 'nodes');
         if (!(attachment instanceof Blob)) {
             throw new Error('Attachment is not a Blob');
         }
+
         const savedNodes: PouchDBNodeDocument[] = JSON.parse(await attachment.text());
+        console.log('Parsed saved nodes:', savedNodes);
 
         // Find the current node and its ancestors
         const currentNode = nodes.find(node => node.id === currentNodeId);
         if (!currentNode) {
             throw new Error('Current node not found');
         }
+
         const ancestorIds = getAncestorIds(currentNodeId, nodes);
         const nodesToRemove = [currentNodeId, ...ancestorIds];
 
@@ -68,9 +80,13 @@ export const handleReplaceNode = async (
         setNodes(updatedNodes);
         setEdges(updatedEdges);
 
-        console.log('Replaced node and updated nodes:', updatedNodes);
+        console.log('Successfully replaced node and updated nodes:', updatedNodes);
     } catch (error) {
         console.error('Error replacing node from PouchDB:', error);
+        if (error instanceof Error) {
+            console.error('Error details:', error.message);
+            console.error('Error stack:', error.stack);
+        }
     }
 };
 
@@ -86,12 +102,12 @@ const getAncestorIds = (nodeId: string, nodes: Node<ProductNodeData>[]): string[
 
 const createEdgesBetweenNodes = (nodes: Node<ProductNodeData>[]): Edge[] => {
     return nodes.flatMap(node => {
-        if (node.data && Array.isArray(node.data.ancestorIds)) {
+        if (node.data.ancestorIds) {
             return node.data.ancestorIds.map(ancestorId => ({
                 id: `edge-${ancestorId}-${node.id}`,
                 source: ancestorId,
                 target: node.id,
-                type: 'smoothstep' as const,
+                type: 'smoothstep',
             }));
         }
         return [];
