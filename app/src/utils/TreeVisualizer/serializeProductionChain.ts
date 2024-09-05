@@ -1,64 +1,95 @@
 // utils/TreeVisualizer/serializeProductionChain.ts
 
+import { ProcessNode, ProductNode } from '@/types/reactFlowTypes';
 import { Node } from '@xyflow/react';
-import { ProductNode, ProcessNode } from '@/types/reactFlowTypes';
 import { v4 as uuidv4 } from 'uuid';
 
-interface SerializedNode {
-  id: string;
-  data: any;
-  type?: string;
-  parentId?: string;
+type SerializedNode = {
+    id: string;
+    type: string;
+    data: {
+        productId?: string;
+        processId?: string;
+        isRoot: boolean;
+        ancestorIds: string[];
+    }
+};
+
+export const serializeProductionChain = (focalNodeId: string, nodes: Node[]): { doc: any, attachment: Blob } | null => {
+    const serializedNodes: SerializedNode[] = [];
+    const visitedNodes = new Set<string>();
+
+    const traverseAncestors = (nodeId: string, isRoot: boolean = false) => {
+        const node = nodes.find(n => n.id === nodeId);
+        if (!node || visitedNodes.has(nodeId)) {
+            return;
+        }
+        visitedNodes.add(nodeId);
+
+        let productId: string | undefined;
+        let processId: string | undefined;
+
+        if (isProductNode(node)) {
+            productId = node.data.productDetails.id;
+        } else if (isProcessNode(node)) {
+            processId = node.data.processDetails.id;
+        }
+
+        const serializedNode: SerializedNode = {
+            id: node.id,
+            type: node.type || 'unknown',
+            data: {
+                productId,
+                processId,
+                isRoot,
+                ancestorIds: Array.isArray(node.data.ancestorIds) ? node.data.ancestorIds : [],
+            }
+        };
+
+        serializedNodes.push(serializedNode);
+
+        // Traverse ancestors
+        if (Array.isArray(node.data.ancestorIds)) {
+            node.data.ancestorIds.forEach((ancestorId: string) => {
+                traverseAncestors(ancestorId);
+            });
+        }
+    };
+
+    // Find the focal node
+    const focalNode = nodes.find(node => node.id === focalNodeId);
+
+    if (!focalNode) {
+        console.error('Focal node not found');
+        return null;
+    }
+
+    // Start traversal from the focal node
+    traverseAncestors(focalNode.id, true);
+
+    const serializedChain = {
+        _id: uuidv4(),
+        focalProductId: isProductNode(focalNode) ? focalNode.data.productDetails.id : undefined,
+        createdAt: new Date().toISOString(),
+        nodeCount: serializedNodes.length,
+        rootProductId: serializedNodes.find(node => node.data.isRoot)?.data.productId,
+        nodes: serializedNodes,
+    };
+
+    const fullDataAttachment = new Blob([JSON.stringify(serializedNodes)], { type: 'application/json' });
+
+    return {
+        doc: serializedChain,
+        attachment: fullDataAttachment
+    };
+};
+
+// Type guard for ProductNode
+function isProductNode(node: Node): node is ProductNode {
+    return node.type === 'productNode' && node.data && 'productDetails' in node.data;
 }
 
-export const serializeProductionChain = (focalProductId: string, nodes: Node[]) => {
-    console.log('Serializing production chain for focal product ID:', focalProductId,'\nnodes:\n', nodes);
-  const serializedNodes: SerializedNode[] = [];
-  const visitedNodes = new Set<string>();
-
-  function traverseAncestors(nodeId: string, isRoot: boolean = false) {
-    const node = nodes.find(n => n.id === nodeId);
-    if (!node || visitedNodes.has(nodeId)) {
-      return;
-    }
-    visitedNodes.add(nodeId);
-
-    const serializedNode: SerializedNode = {
-      id: node.id,
-      data: { ...node.data, isRoot },
-      type: node.type,
-      parentId: node.data.parentId as string | undefined,
-    };
-    serializedNodes.push(serializedNode);
-
-    // Traverse all ancestors for both product and process nodes
-    const ancestorIds = Array.isArray(node.data.ancestorIds) ? node.data.ancestorIds : [];
-    ancestorIds.forEach((ancestorId: string) => {
-      traverseAncestors(ancestorId);
-    });
-  }
-
-  // Ensure the focal node exists before starting traversal
-  const focalNode = nodes.find(n => n.id === focalProductId);
-  if (!focalNode) {
-    console.error('Focal node not found');
-    return null;
-  }
-
-  // Start traversal from the focal node
-  traverseAncestors(focalProductId, true);
-
-  const serializedChain = {
-    _id: uuidv4(),
-    focalProductId,
-    createdAt: new Date().toISOString(),
-    nodeCount: serializedNodes.length,
-  };
-
-  const attachment = new Blob([JSON.stringify(serializedNodes)], {type: 'application/json'});
-
-  return {
-    doc: serializedChain,
-    attachment: attachment
-  };
-};
+// Type guard for ProcessNode
+function isProcessNode(node: Node): node is ProcessNode {
+    return node.type === 'processNode' && node.data && 'processDetails' in node.data;
+}

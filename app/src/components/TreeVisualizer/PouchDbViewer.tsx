@@ -1,19 +1,70 @@
 import React, { useState, useEffect } from 'react';
 import { usePouchDB } from '@/contexts/PouchDBContext';
 import Modal from '@/components/ui/modal';
+import useInfluenceProductDetails from '@/hooks/useInfluenceProductDetails';
+import useProcessDetails from '@/hooks/useProcessDetails';
+
+interface ConfigNode {
+  id: string;
+  type: string;
+  data: {
+    productId?: string;
+    processId?: string;
+    productDetails?: { name: string; id: string };
+    processDetails?: { name: string; id: string };
+  };
+}
+
+interface ProductionChainConfig {
+  _id: string;
+  _rev: string; // Add this line
+  focalProductId: string;
+  createdAt: string;
+  nodeCount: number;
+  nodes: ConfigNode[];
+}
 
 const PouchDBViewer: React.FC = () => {
   const { db } = usePouchDB();
-  const [configs, setConfigs] = useState<any[]>([]);
+  const [configs, setConfigs] = useState<ProductionChainConfig[]>([]);
   const [selectedAttachment, setSelectedAttachment] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { getProductDetails } = useInfluenceProductDetails();
+  const { getProcessDetails } = useProcessDetails();
 
   useEffect(() => {
     const fetchConfigs = async () => {
       if (db) {
         try {
           const result = await db.allDocs({ include_docs: true });
-          setConfigs(result.rows.map(row => row.doc));
+          const fetchedConfigs = result.rows
+            .map(row => row.doc)
+            .filter((doc): doc is ProductionChainConfig => 
+              doc !== null && 
+              typeof doc === 'object' && 
+              'nodes' in doc && 
+              Array.isArray(doc.nodes)
+            );
+          
+          const updatedConfigs = await Promise.all(fetchedConfigs.map(async (config) => {
+            const updatedNodes = await Promise.all(config.nodes.map(async (node: ConfigNode) => {
+              if (node.type === 'productNode' && node.data.productId) {
+                const productDetails = await getProductDetails(node.data.productId);
+                return { ...node, data: { ...node.data, productDetails } };
+              } else if (node.type === 'processNode' && node.data.processId) {
+                const processDetails = await getProcessDetails(node.data.processId);
+                return { ...node, data: { ...node.data, processDetails } };
+              }
+              return node;
+            }));
+            return { ...config, nodes: updatedNodes };
+          }));
+
+          const sortedConfigs = updatedConfigs.sort((a, b) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          
+          setConfigs(sortedConfigs);
         } catch (error) {
           console.error('Error fetching configs:', error);
         }
@@ -28,12 +79,12 @@ const PouchDBViewer: React.FC = () => {
       include_docs: true
     });
 
-    changes?.on('change', () => fetchConfigs());
+    changes?.on('change', fetchConfigs);
 
     return () => {
       changes?.cancel();
     };
-  }, [db]);
+  }, [db, getProductDetails, getProcessDetails]);
 
   const viewAttachment = async (docId: string) => {
     if (db) {
@@ -50,6 +101,32 @@ const PouchDBViewer: React.FC = () => {
     }
   };
 
+  const getNodesInfo = (nodes: ConfigNode[]) => {
+    const productNodes = nodes.filter(node => node.type === 'productNode');
+    const processNodes = nodes.filter(node => node.type === 'processNode');
+
+    return (
+      <div>
+        <p className="font-semibold">Products:</p>
+        <ul className="list-disc pl-5">
+          {productNodes.map(node => (
+            <li key={node.id}>
+              {node.data.productDetails?.name || 'Unknown'} (ID: {node.data.productId})
+            </li>
+          ))}
+        </ul>
+        <p className="font-semibold mt-2">Processes:</p>
+        <ul className="list-disc pl-5">
+          {processNodes.map(node => (
+            <li key={node.id}>
+              {node.data.processDetails?.name || 'Unknown'} (ID: {node.data.processId})
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
   return (
     <div className="mt-4">
       <h3 className="text-lg font-semibold mb-2">Saved Production Chains</h3>
@@ -60,6 +137,7 @@ const PouchDBViewer: React.FC = () => {
             <p>Focal Product: {config.focalProductId}</p>
             <p>Created: {new Date(config.createdAt).toLocaleString()}</p>
             <p>Nodes: {config.nodeCount}</p>
+            {config.nodes && getNodesInfo(config.nodes)}
             <button 
               onClick={() => viewAttachment(config._id)}
               className="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"

@@ -136,11 +136,11 @@ const TreeRenderer: React.FC = () => {
     );
 
     const handleSerialize = useCallback(
-        async (focalProductId: string) => {
+        async (focalNodeId: string) => {
             const latestNodes = nodesRef.current;
 
-            if (focalProductId && latestNodes.length > 0 && db) {
-                const result = serializeProductionChain(focalProductId, latestNodes);
+            if (focalNodeId && latestNodes.length > 0 && db) {
+                const result = serializeProductionChain(focalNodeId, latestNodes);
                 if (result === null) {
                     console.error('Failed to serialize production chain');
                     return;
@@ -159,7 +159,7 @@ const TreeRenderer: React.FC = () => {
                     console.error('Error saving to PouchDB:', error);
                 }
             } else {
-                console.log('No focal product selected, nodes are empty, or database is not initialized.');
+                console.log('No focal node selected, nodes are empty, or database is not initialized.');
             }
         },
         [db]
