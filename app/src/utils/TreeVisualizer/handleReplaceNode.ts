@@ -4,26 +4,22 @@ import { Node, Edge } from '@xyflow/react';
 import PouchDB from 'pouchdb';
 import { getDescendantIds } from './getDescendantIds';
 import { createProductNodeWithCallbacks } from './createProductNodeWithCallbacks';
-import { ProductNodeData } from '@/types/reactFlowTypes';
+import { InfluenceNode, ProductNodeData } from '@/types/reactFlowTypes';
 import { PouchDBNodeDocument } from '@/types/pouchSchemes';
+import { useFlow } from '@/contexts/FlowContext';
 
 export const handleReplaceNode = async (
     currentNodeId: string,
     configId: string,
     db: PouchDB.Database,
-    nodes: Node<ProductNodeData>[],
-    edges: Edge[],
-    setNodes: React.Dispatch<React.SetStateAction<Node<ProductNodeData>[]>>,
-    setEdges: React.Dispatch<React.SetStateAction<Edge[]>>,
     handleSelectProcess: (processId: string, nodeId: string) => void,
     handleSerialize: (focalProductId: string) => void
 ) => {
+    const { nodes, edges, setNodes, setEdges, nodesRef } = useFlow();
     try {
         console.log(`Attempting to replace node. Current Node ID: ${currentNodeId}, Config ID: ${configId}`);
-
-        // Log all document IDs in the database
-        const allDocs = await db.allDocs();
-        console.log('All document IDs in PouchDB:', allDocs.rows.map(row => row.id));
+        const currentNodes = nodesRef.current as InfluenceNode[];
+        console.log('Current nodes:', currentNodes.map(n => ({ id: n.id, type: n.type })));
 
         // Fetch the selected configuration from PouchDB
         const config = await db.get(configId);
@@ -39,20 +35,22 @@ export const handleReplaceNode = async (
         console.log('Parsed saved nodes:', savedNodes);
 
         // Find the current node and its ancestors
-        const currentNode = nodes.find(node => node.id === currentNodeId);
+        const currentNode = currentNodes.find(node => node.id === currentNodeId);
         if (!currentNode) {
-            throw new Error('Current node not found');
+            throw new Error(`Current node not found. ID: ${currentNodeId}`);
         }
 
-        const ancestorIds = getAncestorIds(currentNodeId, nodes);
+        const ancestorIds = getAncestorIds(currentNodeId, currentNodes);
         const nodesToRemove = [currentNodeId, ...ancestorIds];
 
+        console.log('Nodes to remove:', nodesToRemove);
+
         // Remove the current node, its ancestors, and their edges
-        let updatedNodes = nodes.filter(node => !nodesToRemove.includes(node.id));
+        let updatedNodes: InfluenceNode[] = currentNodes.filter(node => !nodesToRemove.includes(node.id));
         let updatedEdges = edges.filter(edge => !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target));
 
         // Convert saved nodes to React Flow nodes
-        const newNodes: Node<ProductNodeData>[] = savedNodes.map(savedNode =>
+        const newNodes: InfluenceNode[] = savedNodes.map(savedNode =>
             createProductNodeWithCallbacks(savedNode, handleSelectProcess, handleSerialize)
         );
 
@@ -90,7 +88,7 @@ export const handleReplaceNode = async (
     }
 };
 
-const getAncestorIds = (nodeId: string, nodes: Node<ProductNodeData>[]): string[] => {
+const getAncestorIds = (nodeId: string, nodes: InfluenceNode[]): string[] => {
     const node = nodes.find(n => n.id === nodeId);
     if (!node || !node.data.ancestorIds) {
         return [];
@@ -100,7 +98,7 @@ const getAncestorIds = (nodeId: string, nodes: Node<ProductNodeData>[]): string[
         ...node.data.ancestorIds.flatMap(id => getAncestorIds(id, nodes))];
 };
 
-const createEdgesBetweenNodes = (nodes: Node<ProductNodeData>[]): Edge[] => {
+const createEdgesBetweenNodes = (nodes: InfluenceNode[]): Edge[] => {
     return nodes.flatMap(node => {
         if (node.data.ancestorIds) {
             return node.data.ancestorIds.map(ancestorId => ({

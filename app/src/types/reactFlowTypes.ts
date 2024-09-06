@@ -31,3 +31,5 @@ export interface ProcessNodeData extends Record<string, unknown> {
 export type ProcessNode = ReactFlowNode<ProcessNodeData>;
 
 export type ProductNode = ReactFlowNode<ProductNodeData>;
+
+export type InfluenceNode = ProductNode | ProcessNode;

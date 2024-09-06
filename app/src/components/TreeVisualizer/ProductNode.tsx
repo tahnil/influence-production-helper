@@ -11,6 +11,7 @@ import { hasStoredProductionChain } from '@/utils/TreeVisualizer/hasStoredProduc
 import useMatchingConfigurations from '@/hooks/useMatchingConfigurations'; // New hook
 import { useFlow } from '@/contexts/FlowContext';
 import { usePouchDB } from '@/contexts/PouchDBContext';
+import { InfluenceNode } from '@/types/reactFlowTypes';
 
 export type ProductNode = Node<
   {
@@ -29,7 +30,7 @@ export type ProductNode = Node<
 >;
 
 const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
-  const { nodes, edges, setNodes, setEdges } = useFlow();
+  const { nodes, edges, setNodes, setEdges, nodesRef } = useFlow();
   const {
     productDetails,
     processesByProductId,
@@ -51,6 +52,10 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
 
   console.log(`ProductNode ${id}: ${matchingConfigs.length} matching configurations found`);
+
+  useEffect(() => {
+    console.log('ProductNode received nodes:', nodes.length);
+  }, [nodes]);
 
   useEffect(() => {
     // console.log('ProductNode StoreChecker mounted');
@@ -100,17 +105,17 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     // Replace this ProductNode with a saved ProductNode of the same product id, including all its ancestors in the Production Chain
     // Apply selected chain from Pouch DB
     if (selectedConfigId && db) {
+      console.log(`Inserting production chain. Node ID: ${id}, Config ID: ${selectedConfigId}`);
+      console.log('Current nodes in ProductNode:', nodesRef.current.length);
       handleReplaceNode(
         id,
-        selectedConfigId, // Use the selected config ID instead of productDetails.id
+        selectedConfigId,
         db,
-        nodes,
-        edges,
-        setNodes,
-        setEdges,
         handleSelectProcess,
         handleSerialize
       );
+    } else {
+      console.error('No configuration selected or PouchDB not initialized');
     }
   };
 
