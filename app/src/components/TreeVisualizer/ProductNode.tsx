@@ -111,6 +111,11 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
         id,
         selectedConfigId,
         db,
+        nodes,
+        edges,
+        setNodes,
+        setEdges,
+        nodesRef,
         handleSelectProcess,
         handleSerialize
       );

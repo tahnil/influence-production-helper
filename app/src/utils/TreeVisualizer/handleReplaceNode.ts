@@ -7,15 +7,20 @@ import { createProductNodeWithCallbacks } from './createProductNodeWithCallbacks
 import { InfluenceNode, ProductNodeData } from '@/types/reactFlowTypes';
 import { PouchDBNodeDocument } from '@/types/pouchSchemes';
 import { useFlow } from '@/contexts/FlowContext';
+import React from 'react';
 
 export const handleReplaceNode = async (
     currentNodeId: string,
     configId: string,
     db: PouchDB.Database,
+    nodes: Node[],
+    edges: Edge[],
+    setNodes: React.Dispatch<React.SetStateAction<Node[]>>,
+    setEdges: React.Dispatch<React.SetStateAction<Edge[]>>,
+    nodesRef: React.MutableRefObject<Node[]>,
     handleSelectProcess: (processId: string, nodeId: string) => void,
     handleSerialize: (focalProductId: string) => void
 ) => {
-    const { nodes, edges, setNodes, setEdges, nodesRef } = useFlow();
     try {
         console.log(`Attempting to replace node. Current Node ID: ${currentNodeId}, Config ID: ${configId}`);
         const currentNodes = nodesRef.current as InfluenceNode[];
