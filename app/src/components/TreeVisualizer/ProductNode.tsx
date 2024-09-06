@@ -53,9 +53,9 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
 
   console.log(`ProductNode ${id}: ${matchingConfigs.length} matching configurations found`);
 
-  useEffect(() => {
-    console.log('ProductNode received nodes:', nodes.length);
-  }, [nodes]);
+  // useEffect(() => {
+  //   console.log('ProductNode received nodes:', nodes.length);
+  // }, [nodes]);
 
   useEffect(() => {
     // console.log('ProductNode StoreChecker mounted');

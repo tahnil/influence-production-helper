@@ -32,6 +32,7 @@ import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmoun
 import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
 import { getDescendantIds } from '@/utils/TreeVisualizer/getDescendantIds';
 import PouchDBViewer from '@/components/TreeVisualizer/PouchDbViewer';
+import debounce from '@/utils/TreeVisualizer/debounce';
 
 interface ProcessSelection {
     nodeId: string;
@@ -47,7 +48,6 @@ const TreeRenderer: React.FC = () => {
     const { db } = usePouchDB();
     const { nodes, edges, setNodes, setEdges, nodesRef } = useFlow();
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-    const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
     const [desiredAmount, setDesiredAmount] = useState<number>(1);
     const [nodesReady, setNodesReady] = useState(false);
@@ -56,8 +56,10 @@ const TreeRenderer: React.FC = () => {
     const nodesInitialized = useNodesInitialized();
 
     useEffect(() => {
-        nodesRef.current = nodes;
-        console.log('TreeRenderer nodes updated:', nodes.length);
+        if (nodes.length !== nodesRef.current.length) {
+            nodesRef.current = nodes;
+            console.log('TreeRenderer nodes updated:', nodes.length);
+        }
     }, [nodes, nodesRef]);
 
     const [dagreConfig, setDagreConfig] = useState({
@@ -102,16 +104,6 @@ const TreeRenderer: React.FC = () => {
         }));
     };
 
-
-    const debounce = (fn: Function, delay: number) => {
-        let timeoutId: NodeJS.Timeout | undefined;
-
-        return (...args: any[]) => {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => fn(...args), delay);
-        };
-    };
-
     const handleSelectProcess = useCallback(
         debounce((processId: string, nodeId: string) => {
             // Add a new log entry with the node ID and process ID to the state
@@ -146,7 +138,7 @@ const TreeRenderer: React.FC = () => {
     );
 
     const ingredients = useIngredientsList(nodes);
-    const updatedAmount = useMemo(() => calculateDesiredAmount(nodes, desiredAmount, rootNodeId), [nodes, desiredAmount, rootNodeId]);
+    const updatedAmount = useMemo(() => calculateDesiredAmount(nodes, desiredAmount, rootNodeId), [desiredAmount]);
 
     useEffect(() => {
         if (nodesInitialized && nodes.every(node => node.measured?.width && node.measured?.height)) {
@@ -162,7 +154,7 @@ const TreeRenderer: React.FC = () => {
             setNodes(layoutedNodes);
             setEdges(layoutedEdges);
         }
-    }, [nodesReady, updatedAmount, dagreConfig, nodes, edges, setNodes, setEdges]);
+    }, [nodesReady, updatedAmount, dagreConfig]);
 
     useEffect(() => {
         const fetchAndBuildRootNode = async () => {
@@ -305,6 +297,7 @@ const TreeRenderer: React.FC = () => {
                     <div className="absolute bottom-4 left-4 bg-background p-4 shadow-lg rounded-lg z-10 max-h-[90vh] overflow-y-auto w-[35ch]">
                         <h2 className="text-xl font-semibold mb-4">Controls</h2>
                         <ProductSelector
+                            selectedProductId={selectedProductId}
                             onProductSelect={setSelectedProductId}
                             className="p-2 border rounded border-gray-300 mb-4 w-full"
                         />
