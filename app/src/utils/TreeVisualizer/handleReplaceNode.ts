@@ -68,10 +68,24 @@ export const handleReplaceNode = async (
 
         // Set the parentId for the root saved node
         rootSavedNode.parentId = parentId;
-        
+
         // Set the descendantIds for the root saved node
         if (parentId) {
             rootSavedNode.data.descendantIds = [parentId];
+        }
+
+        // Update the parent node's ancestorIds
+        if (parentId) {
+            const parentNode = updatedNodes.find(node => node.id === parentId);
+            if (parentNode) {
+                parentNode.data.ancestorIds = parentNode.data.ancestorIds || [];
+                const index = parentNode.data.ancestorIds.indexOf(currentNodeId);
+                if (index !== -1) {
+                    parentNode.data.ancestorIds[index] = rootSavedNode.id;
+                } else {
+                    parentNode.data.ancestorIds.push(rootSavedNode.id);
+                }
+            }
         }
 
         // Connect the root saved node to the parent of the replaced node
