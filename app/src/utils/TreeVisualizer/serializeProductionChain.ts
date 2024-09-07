@@ -7,7 +7,8 @@ import { v4 as uuidv4 } from 'uuid';
 type SerializedNode = {
     id: string;
     type: string;
-    data: any;  // We'll keep all data from the original node
+    parentId?: string;
+    data: any;
 };
 
 export const serializeProductionChain = async (
@@ -32,6 +33,7 @@ export const serializeProductionChain = async (
         const serializedNode: SerializedNode = {
             id: node.id,
             type: node.type || 'unknown',
+            parentId: node.parentId, // Include the parentId
             data: {
                 ...node.data,
                 isRoot,
