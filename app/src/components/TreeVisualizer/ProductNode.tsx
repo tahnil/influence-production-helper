@@ -106,7 +106,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     // Apply selected chain from Pouch DB
     if (selectedConfigId && db) {
       console.log(`Inserting production chain. Node ID: ${id}, Config ID: ${selectedConfigId}`);
-      console.log('Current nodes in ProductNode:', nodesRef.current.length);
+      console.log('Current nodes in ProductNode:', nodesRef.current);
       handleReplaceNode(
         id,
         selectedConfigId,

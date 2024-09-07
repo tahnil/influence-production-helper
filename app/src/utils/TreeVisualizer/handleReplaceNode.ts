@@ -26,6 +26,13 @@ export const handleReplaceNode = async (
         const currentNodes = nodesRef.current as InfluenceNode[];
         console.log('Current nodes:', currentNodes.map(n => ({ id: n.id, type: n.type })));
 
+        // Find the current node and store its parentId
+        const currentNode = currentNodes.find(node => node.id === currentNodeId);
+        if (!currentNode) {
+            throw new Error(`Current node not found. ID: ${currentNodeId}`);
+        }
+        const parentId = currentNode.parentId;
+
         // Fetch the selected configuration from PouchDB
         const config = await db.get(configId);
         console.log('Retrieved config:', config);
@@ -38,12 +45,6 @@ export const handleReplaceNode = async (
 
         const savedNodes: PouchDBNodeDocument[] = JSON.parse(await attachment.text());
         console.log('Parsed saved nodes:', savedNodes);
-
-        // Find the current node and its ancestors
-        const currentNode = currentNodes.find(node => node.id === currentNodeId);
-        if (!currentNode) {
-            throw new Error(`Current node not found. ID: ${currentNodeId}`);
-        }
 
         const ancestorIds = getAncestorIds(currentNodeId, currentNodes);
         const nodesToRemove = [currentNodeId, ...ancestorIds];
@@ -64,6 +65,9 @@ export const handleReplaceNode = async (
         if (!rootSavedNode) {
             throw new Error('Root node not found in saved configuration');
         }
+
+        // Set the parentId for the root saved node
+        rootSavedNode.parentId = parentId;
 
         // Connect the root saved node to the parent of the replaced node
         const parentEdge = edges.find(edge => edge.target === currentNodeId);
