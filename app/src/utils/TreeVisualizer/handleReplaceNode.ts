@@ -1,6 +1,6 @@
 
 
-import { Node, Edge } from '@xyflow/react';
+import { Node, Edge, Position } from '@xyflow/react';
 import PouchDB from 'pouchdb';
 import { getDescendantIds } from './getDescendantIds';
 import { createProductNodeWithCallbacks } from './createProductNodeWithCallbacks';
@@ -130,9 +130,11 @@ const createEdgesBetweenNodes = (nodes: InfluenceNode[]): Edge[] => {
     return nodes.flatMap(node => {
         if (node.data.ancestorIds) {
             return node.data.ancestorIds.map(ancestorId => ({
-                id: `edge-${ancestorId}-${node.id}`,
-                source: ancestorId,
-                target: node.id,
+                id: `edge-${node.id}-${ancestorId}`,
+                source: node.id,  // The descendant (current node) is the source
+                target: ancestorId,  // The ancestor is the target
+                sourcePosition: Position.Bottom,
+                targetPosition: Position.Top,
                 type: 'smoothstep',
             }));
         }
