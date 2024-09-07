@@ -68,6 +68,11 @@ export const handleReplaceNode = async (
 
         // Set the parentId for the root saved node
         rootSavedNode.parentId = parentId;
+        
+        // Set the descendantIds for the root saved node
+        if (parentId) {
+            rootSavedNode.data.descendantIds = [parentId];
+        }
 
         // Connect the root saved node to the parent of the replaced node
         const parentEdge = edges.find(edge => edge.target === currentNodeId);
