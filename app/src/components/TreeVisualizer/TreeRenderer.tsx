@@ -19,7 +19,7 @@ import { useFlow } from '@/contexts/FlowContext';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProcessNode from './ProcessNode';
 import ProductNode from './ProductNode';
-import { ProductNode as ProductNodeType, ProcessNode as ProcessNodeType } from '@/types/reactFlowTypes';
+import { ProductNode as ProductNodeType, ProcessNode as ProcessNodeType, InfluenceNode } from '@/types/reactFlowTypes';
 import '@xyflow/react/dist/style.css';
 import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
@@ -46,10 +46,9 @@ const nodeTypes = {
 
 const TreeRenderer: React.FC = () => {
     const { db } = usePouchDB();
-    const { nodes, edges, setNodes, setEdges, nodesRef } = useFlow();
+    const { nodes, edges, setNodes, setEdges, nodesRef, desiredAmount, setDesiredAmount } = useFlow();
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
-    const [desiredAmount, setDesiredAmount] = useState<number>(1);
     const [nodesReady, setNodesReady] = useState(false);
     const [rootNodeId, setRootNodeId] = useState<string>('root');
 
@@ -125,7 +124,7 @@ const TreeRenderer: React.FC = () => {
         async (focalNodeId: string) => {
             if (focalNodeId && nodesRef.current.length > 0 && db) {
                 try {
-                    await serializeProductionChain(focalNodeId, nodesRef.current, db);
+                    await serializeProductionChain(focalNodeId, nodesRef.current as InfluenceNode[], db);
                     console.log('Production chain serialized and saved successfully');
                 } catch (error) {
                     console.error('Error serializing production chain:', error);
@@ -150,11 +149,12 @@ const TreeRenderer: React.FC = () => {
 
     useEffect(() => {
         if (nodesReady) {
-            const { layoutedNodes, layoutedEdges } = applyDagreLayout(nodes, edges, dagreConfig);
+            const updatedNodes = calculateDesiredAmount(nodes, desiredAmount, rootNodeId);
+            const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
             setNodes(layoutedNodes);
             setEdges(layoutedEdges);
         }
-    }, [nodesReady, updatedAmount, dagreConfig]);
+    }, [nodesReady, desiredAmount, dagreConfig]);
 
     useEffect(() => {
         const fetchAndBuildRootNode = async () => {
@@ -168,7 +168,7 @@ const TreeRenderer: React.FC = () => {
                 );
 
                 if (rootNode) {
-                    console.log('Yep, there root node:', rootNode);
+                    console.log('Root node created:', rootNode);
                     const namedRootNode = {
                         ...rootNode,
                         data: {
@@ -178,8 +178,8 @@ const TreeRenderer: React.FC = () => {
                         }
                     };
 
-                    setNodes([namedRootNode]); // Set the new root node
-                    setRootNodeId(namedRootNode.id); // Set the root node ID
+                    setNodes([namedRootNode]);
+                    setRootNodeId(namedRootNode.id);
                 }
             }
         };
@@ -302,8 +302,6 @@ const TreeRenderer: React.FC = () => {
                             className="p-2 border rounded border-gray-300 mb-4 w-full"
                         />
                         <AmountInput
-                            desiredAmount={desiredAmount}
-                            onChange={setDesiredAmount}
                             label="Desired Amount"
                         />
                         {/* <ControlPanel

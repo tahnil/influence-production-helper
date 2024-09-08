@@ -6,8 +6,8 @@ import { getDescendantIds } from './getDescendantIds';
 import { createProductNodeWithCallbacks } from './createProductNodeWithCallbacks';
 import { InfluenceNode, ProductNodeData } from '@/types/reactFlowTypes';
 import { PouchDBNodeDocument } from '@/types/pouchSchemes';
-import { useFlow } from '@/contexts/FlowContext';
 import React from 'react';
+import calculateDesiredAmount from './calculateDesiredAmount';
 
 export const handleReplaceNode = async (
     currentNodeId: string,
@@ -19,7 +19,8 @@ export const handleReplaceNode = async (
     setEdges: React.Dispatch<React.SetStateAction<Edge[]>>,
     nodesRef: React.MutableRefObject<Node[]>,
     handleSelectProcess: (processId: string, nodeId: string) => void,
-    handleSerialize: (focalProductId: string) => void
+    handleSerialize: (focalProductId: string) => void,
+    desiredAmount: number
 ) => {
     try {
         console.log(`Attempting to replace node. Current Node ID: ${currentNodeId}, Config ID: ${configId}`);
@@ -102,11 +103,24 @@ export const handleReplaceNode = async (
         const newEdges = createEdgesBetweenNodes(newNodes);
         updatedEdges = [...updatedEdges, ...newEdges];
 
+        // Find the root node of the entire tree
+        const treeRootNode = updatedNodes.find(node => !node.parentId) as InfluenceNode;
+        if (!treeRootNode) {
+            throw new Error('Tree root node not found');
+        }
+
+        // Recalculate amounts for all nodes using the provided desiredAmount
+        const recalculatedNodes = calculateDesiredAmount(
+            updatedNodes,
+            desiredAmount,
+            treeRootNode.id
+        );
+
         // Update the state
-        setNodes(updatedNodes);
+        setNodes(recalculatedNodes);
         setEdges(updatedEdges);
 
-        console.log('Successfully replaced node and updated nodes:', updatedNodes);
+        console.log('Successfully replaced node and updated nodes:', recalculatedNodes);
     } catch (error) {
         console.error('Error replacing node from PouchDB:', error);
         if (error instanceof Error) {
