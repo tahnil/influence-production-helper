@@ -3,7 +3,7 @@ import { usePouchDB } from '@/contexts/PouchDBContext';
 import Modal from '@/components/ui/modal';
 import useInfluenceProductDetails from '@/hooks/useInfluenceProductDetails';
 import useProcessDetails from '@/hooks/useProcessDetails';
-import { EyeIcon, Trash2Icon } from 'lucide-react';
+import { EyeIcon, Trash2Icon, RefreshCwIcon } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +16,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useFlow } from '@/contexts/FlowContext';
 
 interface ConfigNode {
   id: string;
@@ -51,6 +52,7 @@ const PouchDBViewer: React.FC = () => {
   const { getProductDetails } = useInfluenceProductDetails();
   const { getProcessDetails } = useProcessDetails();
   const { toast } = useToast();
+  const { setNodes, setEdges, setDesiredAmount } = useFlow();
 
   useEffect(() => {
     const fetchConfigs = async () => {
@@ -145,6 +147,55 @@ const PouchDBViewer: React.FC = () => {
     }
   };
 
+  const replaceConfig = async (config: ProductionChainConfig) => {
+    if (memoryDb) {
+      try {
+        const attachment = await memoryDb.getAttachment(config._id, 'nodes');
+        if (!(attachment instanceof Blob)) {
+          throw new Error('Attachment is not a Blob');
+        }
+        const savedNodes = JSON.parse(await attachment.text());
+
+        // Replace the existing nodes with the saved configuration
+        setNodes(savedNodes);
+
+        // Recreate edges based on the new nodes
+        const newEdges = savedNodes.flatMap((node: ConfigNode) => {
+          if (node.data.ancestorIds) {
+            return node.data.ancestorIds.map((ancestorId: string) => ({
+              id: `edge-${ancestorId}-${node.id}`,
+              target: ancestorId,
+              source: node.id,
+              type: 'smoothstep',
+            }));
+          }
+          return [];
+        });
+        setEdges(newEdges);
+
+        // Set the desired amount to the amount of the root node (the node with no descendants)
+        const rootNode = savedNodes.find((node: ConfigNode) => !node.data.descendantIds || node.data.descendantIds.length === 0);
+        if (rootNode && rootNode.data.amount !== undefined) {
+          setDesiredAmount(rootNode.data.amount);
+        }
+
+        toast({
+          title: "Configuration Replaced",
+          description: `The production chain has been replaced with "${config.focalProductId}"`,
+          duration: 3000,
+        });
+      } catch (error) {
+        console.error('Error replacing configuration:', error);
+        toast({
+          title: "Error",
+          description: "Failed to replace the configuration. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
+    }
+  };
+
   if (configs.length === 0) {
     return null;
   }
@@ -168,6 +219,27 @@ const PouchDBViewer: React.FC = () => {
                   onClick={() => viewDetails(config)}
                   className="text-falconWhite hover:text-fuscousGray-400 transition-colors cursor-pointer"
                 />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <RefreshCwIcon
+                      size={20}
+                      className="text-falconWhite hover:text-fuscousGray-400 transition-colors cursor-pointer"
+                    />
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Replace current configuration?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action will replace your current production chain with the saved configuration for {productName}.
+                        This cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => replaceConfig(config)}>Replace</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Trash2Icon
