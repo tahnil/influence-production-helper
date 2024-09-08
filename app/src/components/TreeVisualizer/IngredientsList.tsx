@@ -10,6 +10,10 @@ interface IngredientsListProps {
 }
 
 const IngredientsList: React.FC<IngredientsListProps> = ({ ingredients }) => {
+    if (ingredients.length === 0) {
+        return null;
+    }
+    
     return (
         <div>
             <h3 className="text-lg font-semibold">Ingredients List</h3>
