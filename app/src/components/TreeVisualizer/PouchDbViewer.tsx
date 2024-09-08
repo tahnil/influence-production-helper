@@ -3,6 +3,7 @@ import { usePouchDB } from '@/contexts/PouchDBContext';
 import Modal from '@/components/ui/modal';
 import useInfluenceProductDetails from '@/hooks/useInfluenceProductDetails';
 import useProcessDetails from '@/hooks/useProcessDetails';
+import { EyeIcon } from 'lucide-react';
 
 interface ConfigNode {
   id: string;
@@ -17,13 +18,13 @@ interface ConfigNode {
     totalVolume?: number;
     totalRuns?: number;
     totalDuration?: number;
-    [key: string]: any;  // Allow for other properties
+    [key: string]: any;
   };
 }
 
 interface ProductionChainConfig {
   _id: string;
-  _rev: string; // Add this line
+  _rev: string;
   focalProductId: string;
   createdAt: string;
   nodeCount: number;
@@ -33,7 +34,7 @@ interface ProductionChainConfig {
 const PouchDBViewer: React.FC = () => {
   const { db } = usePouchDB();
   const [configs, setConfigs] = useState<ProductionChainConfig[]>([]);
-  const [selectedAttachment, setSelectedAttachment] = useState<string | null>(null);
+  const [selectedConfig, setSelectedConfig] = useState<ProductionChainConfig | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { getProductDetails } = useInfluenceProductDetails();
   const { getProcessDetails } = useProcessDetails();
@@ -45,13 +46,13 @@ const PouchDBViewer: React.FC = () => {
           const result = await db.allDocs({ include_docs: true });
           const fetchedConfigs = result.rows
             .map(row => row.doc)
-            .filter((doc): doc is ProductionChainConfig => 
-              doc !== null && 
-              typeof doc === 'object' && 
-              'nodes' in doc && 
+            .filter((doc): doc is ProductionChainConfig =>
+              doc !== null &&
+              typeof doc === 'object' &&
+              'nodes' in doc &&
               Array.isArray(doc.nodes)
             );
-          
+
           const updatedConfigs = await Promise.all(fetchedConfigs.map(async (config) => {
             const updatedNodes = await Promise.all(config.nodes.map(async (node: ConfigNode) => {
               if (node.type === 'productNode' && node.data.productId) {
@@ -66,10 +67,10 @@ const PouchDBViewer: React.FC = () => {
             return { ...config, nodes: updatedNodes };
           }));
 
-          const sortedConfigs = updatedConfigs.sort((a, b) => 
+          const sortedConfigs = updatedConfigs.sort((a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
-          
+
           setConfigs(sortedConfigs);
         } catch (error) {
           console.error('Error fetching configs:', error);
@@ -92,80 +93,80 @@ const PouchDBViewer: React.FC = () => {
     };
   }, [db, getProductDetails, getProcessDetails]);
 
-  const viewAttachment = async (docId: string) => {
-    if (db) {
-      try {
-        const attachment = await db.getAttachment(docId, 'nodes');
-        if (attachment instanceof Blob) {
-          const text = await new Response(attachment).text();
-          setSelectedAttachment(JSON.stringify(JSON.parse(text), null, 2));
-          setIsModalOpen(true);
-        }
-      } catch (error) {
-        console.error('Error fetching attachment:', error);
-      }
-    }
+  const viewDetails = (config: ProductionChainConfig) => {
+    setSelectedConfig(config);
+    setIsModalOpen(true);
   };
 
-  const getNodesInfo = (nodes: ConfigNode[]) => {
-    const productNodes = nodes.filter(node => node.type === 'productNode');
-    const processNodes = nodes.filter(node => node.type === 'processNode');
-
-    return (
-      <div>
-        <p className="font-semibold">Products:</p>
-        <ul className="list-disc pl-5">
-          {productNodes.map(node => (
-            <li key={node.id}>
-              {node.data.productDetails?.name || 'Unknown'} (ID: {node.data.productDetails?.id})
-              {node.data.amount !== undefined && ` - Amount: ${node.data.amount}`}
-              {node.data.totalWeight !== undefined && ` - Total Weight: ${node.data.totalWeight}`}
-              {node.data.totalVolume !== undefined && ` - Total Volume: ${node.data.totalVolume}`}
-            </li>
-          ))}
-        </ul>
-        <p className="font-semibold mt-2">Processes:</p>
-        <ul className="list-disc pl-5">
-          {processNodes.map(node => (
-            <li key={node.id}>
-              {node.data.processDetails?.name || 'Unknown'} (ID: {node.data.processDetails?.id})
-              {node.data.totalRuns !== undefined && ` - Total Runs: ${node.data.totalRuns}`}
-              {node.data.totalDuration !== undefined && ` - Total Duration: ${node.data.totalDuration}`}
-            </li>
-          ))}
-        </ul>
-      </div>
+  const getFocalProductInfo = (config: ProductionChainConfig) => {
+    const focalNode = config.nodes.find(node => node.data.productDetails?.id === config.focalProductId);
+    const ancestorProcess = config.nodes.find(node =>
+      node.type === 'processNode' && node.data.descendantIds?.includes(focalNode?.id || '')
     );
+    return {
+      productName: focalNode?.data.productDetails?.name || 'Unknown Product',
+      processName: ancestorProcess?.data.processDetails?.name || 'Unknown Process'
+    };
   };
 
   return (
     <div className="mt-4">
       <h3 className="text-lg font-semibold mb-2">Saved Production Chains</h3>
-      <div className="max-h-60 overflow-y-auto bg-gray-800 p-2 rounded">
-        {configs.map((config, index) => (
-          <div key={index} className="mb-2 p-2 bg-gray-700 rounded">
-            <p>ID: {config._id}</p>
-            <p>Focal Product: {config.focalProductId}</p>
-            <p>Created: {new Date(config.createdAt).toLocaleString()}</p>
-            <p>Nodes: {config.nodeCount}</p>
-            {config.nodes && getNodesInfo(config.nodes)}
-            <button 
-              onClick={() => viewAttachment(config._id)}
-              className="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-            >
-              View Attachment
-            </button>
-          </div>
-        ))}
+      <div className="max-h-60 overflow-y-auto bg-gray-800 p-2 rounded space-y-2">
+        {configs.map((config) => {
+          const { productName, processName } = getFocalProductInfo(config);
+          return (
+            <div key={config._id} className="p-2 bg-gray-700 rounded grid grid-cols-[1fr,auto] gap-4 items-center">
+              <div>
+                <p className="font-semibold">{productName} ({processName})</p>
+                <p className="text-sm">Nodes: {config.nodeCount}</p>
+                <p className="text-sm">{new Date(config.createdAt).toLocaleString()}</p>
+              </div>
+              <div className="flex items-center justify-center w-8 h-8">
+                <EyeIcon
+                  size={20}
+                  onClick={() => viewDetails(config)}
+                  className="text-falconWhite hover:text-fuscousGray-400 transition-colors cursor-pointer"
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Attachment Data"
+        title="Configuration Details"
       >
-        <pre className="whitespace-pre-wrap bg-lunarGreen-900 p-4 rounded">
-          {selectedAttachment}
-        </pre>
+        {selectedConfig && (
+          <div className="whitespace-pre-wrap bg-lunarGreen-900 p-4 rounded">
+            <p><strong>ID:</strong> {selectedConfig._id}</p>
+            <p><strong>Focal Product:</strong> {selectedConfig.focalProductId}</p>
+            <p><strong>Created:</strong> {new Date(selectedConfig.createdAt).toLocaleString()}</p>
+            <p><strong>Nodes:</strong> {selectedConfig.nodeCount}</p>
+            <h4 className="font-semibold mt-4 mb-2">Products:</h4>
+            <ul className="list-disc pl-5">
+              {selectedConfig.nodes.filter(node => node.type === 'productNode').map(node => (
+                <li key={node.id}>
+                  {node.data.productDetails?.name || 'Unknown'} (ID: {node.data.productDetails?.id})
+                  {node.data.amount !== undefined && ` - Amount: ${node.data.amount}`}
+                  {node.data.totalWeight !== undefined && ` - Total Weight: ${node.data.totalWeight}`}
+                  {node.data.totalVolume !== undefined && ` - Total Volume: ${node.data.totalVolume}`}
+                </li>
+              ))}
+            </ul>
+            <h4 className="font-semibold mt-4 mb-2">Processes:</h4>
+            <ul className="list-disc pl-5">
+              {selectedConfig.nodes.filter(node => node.type === 'processNode').map(node => (
+                <li key={node.id}>
+                  {node.data.processDetails?.name || 'Unknown'} (ID: {node.data.processDetails?.id})
+                  {node.data.totalRuns !== undefined && ` - Total Runs: ${node.data.totalRuns}`}
+                  {node.data.totalDuration !== undefined && ` - Total Duration: ${node.data.totalDuration}`}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </Modal>
     </div>
   );
