@@ -1,71 +1,47 @@
 // utils/TreeVisualizer/serializeProductionChain.ts
 
-import { ProductNode } from '@/types/reactFlowTypes';
-import { Node } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
+import { InfluenceNode, ProductNode } from '@/types/reactFlowTypes';
+import { getAllAncestors } from '@/utils/TreeVisualizer/nodeHelpers';
 
-type SerializedNode = {
-    id: string;
-    type: string;
-    parentId?: string;
-    data: any;
+type SerializedNode = Omit<InfluenceNode, 'position' | 'width' | 'height'> & {
+    data: InfluenceNode['data'] & { isRoot?: boolean };
 };
 
 export const serializeProductionChain = async (
     focalNodeId: string, 
-    nodes: Node[], 
+    nodes: InfluenceNode[], 
     db: PouchDB.Database
 ): Promise<void> => {
     if (!db) {
         console.error('PouchDB instance is not available');
         return;
     }
-    const serializedNodes: SerializedNode[] = [];
-    const visitedNodes = new Set<string>();
 
-    const traverseAncestors = (nodeId: string, isRoot: boolean = false) => {
-        const node = nodes.find(n => n.id === nodeId);
-        if (!node || visitedNodes.has(nodeId)) {
-            return;
-        }
-        visitedNodes.add(nodeId);
-
-        const serializedNode: SerializedNode = {
-            id: node.id,
-            type: node.type || 'unknown',
-            parentId: node.parentId, // Include the parentId
-            data: {
-                ...node.data,
-                isRoot,
-            }
-        };
-
-        serializedNodes.push(serializedNode);
-
-        // Traverse ancestors
-        if (Array.isArray(node.data.ancestorIds)) {
-            node.data.ancestorIds.forEach((ancestorId: string) => {
-                traverseAncestors(ancestorId);
-            });
-        }
-    };
-
-    // Find the focal node
     const focalNode = nodes.find(node => node.id === focalNodeId);
-    if (!focalNode) {
-        console.error('Focal node not found');
+    if (!focalNode || focalNode.type !== 'productNode') {
+        console.error('Focal node not found or is not a ProductNode');
         return;
     }
 
-    // Start traversal from the focal node
-    traverseAncestors(focalNode.id, true);
+    const ancestorNodes = getAllAncestors(nodes, focalNodeId);
+    const serializedNodes: SerializedNode[] = [
+        {
+            ...focalNode,
+            data: { ...focalNode.data, isRoot: true },
+        },
+        ...ancestorNodes.map(node => ({
+            ...node,
+            data: { ...node.data },
+        })),
+    ];
 
     const serializedChain = {
         _id: uuidv4(),
-        focalProductId: isProductNode(focalNode) ? focalNode.data.productDetails.id : undefined,
+        focalProductId: (focalNode as ProductNode).data.productDetails.id,
         createdAt: new Date().toISOString(),
         nodeCount: serializedNodes.length,
-        rootProductId: serializedNodes.find(node => node.data.isRoot)?.data.productDetails.id,
+        rootProductId: (focalNode as ProductNode).data.productDetails.id,
         nodes: serializedNodes,
     };
 
@@ -84,20 +60,5 @@ export const serializeProductionChain = async (
         console.log('All document IDs in PouchDB after saving:', allDocs.rows.map(row => row.id));
     } catch (error) {
         console.error('Error saving configuration:', error);
-        // You might want to throw the error here if you want to handle it in the calling function
-        // throw error;
     }
 };
-
-// Type guard for ProductNode
-function isProductNode(node: Node): node is ProductNode {
-    return (
-        node.type === 'productNode' &&
-        node.data !== null &&
-        typeof node.data === 'object' &&
-        'productDetails' in node.data &&
-        typeof node.data.productDetails === 'object' &&
-        node.data.productDetails !== null &&
-        'id' in node.data.productDetails
-    );
-}
