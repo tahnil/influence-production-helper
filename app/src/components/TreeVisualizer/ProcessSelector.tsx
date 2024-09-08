@@ -82,7 +82,7 @@ const ProcessSelector: React.FC<ProcessSelectorProps> = ({
           className={cn("justify-between", className)}
           style={style}
         >
-          {selectedItem ? getDisplayName(selectedItem) : 'Select process or config...'}
+          {selectedItem ? getDisplayName(selectedItem) : '…'}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

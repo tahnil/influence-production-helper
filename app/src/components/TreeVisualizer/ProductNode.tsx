@@ -1,6 +1,6 @@
 // components/TreeVisualizer/ProductNode.tsx
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Node, Handle, Position, NodeProps } from '@xyflow/react';
 import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 import { formatNumber } from '@/utils/formatNumber';
@@ -10,6 +10,10 @@ import { handleReplaceNode } from '@/utils/TreeVisualizer/handleReplaceNode';
 import { useFlow } from '@/contexts/FlowContext';
 import { usePouchDB } from '@/contexts/PouchDBContext';
 import useMatchingConfigurations from '@/hooks/useMatchingConfigurations';
+import { Save } from 'lucide-react';
+import { getDirectChildNodes } from '@/utils/TreeVisualizer/nodeHelpers';
+import { InfluenceNode } from '@/types/reactFlowTypes';
+import { useToast } from "@/hooks/use-toast";
 
 export type ProductNode = Node<{
     amount: number;
@@ -28,6 +32,7 @@ export type ProductNode = Node<{
 const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   const { nodes, edges, setNodes, setEdges, nodesRef, desiredAmount } = useFlow();
   const { db } = usePouchDB();
+  const { toast } = useToast();
   const {
     productDetails,
     processesByProductId,
@@ -89,23 +94,55 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
 
   const handleSaveProductionChain = async () => {
     if (db) {
+      try {
       await handleSerialize(id);
+        toast({
+          title: "Configuration Saved",
+          description: `Production chain for ${name} has been successfully saved.`,
+          duration: 3000,
+        });
+      } catch (error) {
+        console.error('Error saving configuration:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save the configuration. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
     } else {
       console.error('PouchDB is not initialized');
+      toast({
+        title: "Error",
+        description: "Database is not initialized. Unable to save configuration.",
+        variant: "destructive",
+        duration: 3000,
+      });
     }
   };
+
+  const hasAncestors = getDirectChildNodes(nodes as InfluenceNode[], id).length > 0;
 
   return (
     <div className="product-node bg-mako-900 border overflow-hidden rounded-lg shadow-lg w-72">
       <Handle type="target" position={Position.Top} className="bg-blue-500" />
       <div id="productNodeCard" className="flex flex-col items-center">
-        <div id="titleSection" className="p-2 bg-mako-900 w-full flex justify-center items-center gap-2.5 grid grid-cols-3">
+        <div id="titleSection" className="p-2 bg-mako-900 w-full flex justify-between items-center gap-2.5 grid grid-cols-[auto,1fr,auto]">
           <div className="p-2">
             <Image src={image} width={80} height={80} alt={name} className='object-contain w-16 h-16' />
           </div>
-          <div id="productName" className="col-span-2">
+          <div id="productName">
             <h2 className="text-xl font-bold text-white">{name}</h2>
           </div>
+          {hasAncestors && (
+            <div className="flex items-center justify-center">
+              <Save
+                size={20}
+                onClick={handleSaveProductionChain}
+                className="text-falconWhite hover:text-fuscousGray-400 transition-colors cursor-pointer"
+              />
+            </div>
+          )}
         </div>
         <div id="productStatsSection" className="bg-mako-900 w-full py-1 px-2.5 flex flex-wrap items-start content-start gap-1 text-white">
           <div className="p-[2px] rounded bg-mako-950">{category}</div>
@@ -146,12 +183,6 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
             } as React.CSSProperties}
           />
         </div>
-        <button
-          className="bg-blue-500 text-white py-1 px-4 rounded mt-2 w-full"
-          onClick={handleSaveProductionChain}
-        >
-          Serialize Node
-        </button>
       </div>
       <Handle type="source" position={Position.Bottom} className="bg-green-500" />
     </div>
