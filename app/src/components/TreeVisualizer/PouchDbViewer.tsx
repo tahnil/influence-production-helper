@@ -3,7 +3,19 @@ import { usePouchDB } from '@/contexts/PouchDBContext';
 import Modal from '@/components/ui/modal';
 import useInfluenceProductDetails from '@/hooks/useInfluenceProductDetails';
 import useProcessDetails from '@/hooks/useProcessDetails';
-import { EyeIcon } from 'lucide-react';
+import { EyeIcon, Trash2Icon } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface ConfigNode {
   id: string;
@@ -38,6 +50,7 @@ const PouchDBViewer: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { getProductDetails } = useInfluenceProductDetails();
   const { getProcessDetails } = useProcessDetails();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchConfigs = async () => {
@@ -109,6 +122,33 @@ const PouchDBViewer: React.FC = () => {
     };
   };
 
+  const deleteConfig = async (configId: string) => {
+    if (memoryDb) {
+      try {
+        const doc = await memoryDb.get(configId);
+        await memoryDb.remove(doc);
+        setConfigs(configs.filter(config => config._id !== configId));
+        toast({
+          title: "Configuration Deleted",
+          description: "The production chain configuration has been successfully deleted.",
+          duration: 3000,
+        });
+      } catch (error) {
+        console.error('Error deleting config:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete the configuration. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
+    }
+  };
+
+  if (configs.length === 0) {
+    return null;
+  }
+
   return (
     <div className="mt-4">
       <h3 className="text-lg font-semibold mb-2">Saved Production Chains</h3>
@@ -116,18 +156,38 @@ const PouchDBViewer: React.FC = () => {
         {configs.map((config) => {
           const { productName, processName } = getFocalProductInfo(config);
           return (
-            <div key={config._id} className="p-2 bg-gray-700 rounded grid grid-cols-[1fr,auto] gap-4 items-center">
+            <div key={config._id} className="p-2 bg-gray-700 rounded grid grid-cols-[1fr,auto] gap-4 items-start">
               <div>
                 <p className="font-semibold">{productName} ({processName})</p>
                 <p className="text-sm">Nodes: {config.nodeCount}</p>
                 <p className="text-sm">{new Date(config.createdAt).toLocaleString()}</p>
               </div>
-              <div className="flex items-center justify-center w-8 h-8">
+              <div className="flex flex-col items-center justify-center space-y-2">
                 <EyeIcon
                   size={20}
                   onClick={() => viewDetails(config)}
                   className="text-falconWhite hover:text-fuscousGray-400 transition-colors cursor-pointer"
                 />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Trash2Icon
+                      size={20}
+                      className="text-falconWhite hover:text-fuscousGray-400 transition-colors cursor-pointer"
+                    />
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure you want to delete this configuration?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the production chain configuration for {productName}.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => deleteConfig(config._id)}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           );
