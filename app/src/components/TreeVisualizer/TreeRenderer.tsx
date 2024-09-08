@@ -308,7 +308,9 @@ const TreeRenderer: React.FC = () => {
                             dagreConfig={dagreConfig}
                             updateDagreConfig={updateDagreConfig}
                         /> */}
-                        <IngredientsList ingredients={ingredients} /> {/* Display ingredients list */}
+                        <IngredientsList 
+                            ingredients={ingredients} 
+                        /> {/* Display ingredients list */}
                         <PouchDBViewer />
                     </div>
                     <MiniMap

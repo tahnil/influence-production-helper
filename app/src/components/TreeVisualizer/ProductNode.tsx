@@ -30,7 +30,7 @@ export type ProductNode = Node<
 >;
 
 const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
-  const { nodes, edges, setNodes, setEdges, nodesRef } = useFlow();
+  const { nodes, edges, setNodes, setEdges, nodesRef, desiredAmount } = useFlow();
   const {
     productDetails,
     processesByProductId,
@@ -117,7 +117,8 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
         setEdges,
         nodesRef,
         handleSelectProcess,
-        handleSerialize
+        handleSerialize,
+        desiredAmount
       );
     } else {
       console.error('No configuration selected or PouchDB not initialized');
