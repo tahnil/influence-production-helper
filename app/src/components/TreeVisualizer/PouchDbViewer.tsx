@@ -32,7 +32,7 @@ interface ProductionChainConfig {
 }
 
 const PouchDBViewer: React.FC = () => {
-  const { db } = usePouchDB();
+  const { memoryDb } = usePouchDB();
   const [configs, setConfigs] = useState<ProductionChainConfig[]>([]);
   const [selectedConfig, setSelectedConfig] = useState<ProductionChainConfig | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -41,9 +41,9 @@ const PouchDBViewer: React.FC = () => {
 
   useEffect(() => {
     const fetchConfigs = async () => {
-      if (db) {
+      if (memoryDb) {
         try {
-          const result = await db.allDocs({ include_docs: true });
+          const result = await memoryDb.allDocs({ include_docs: true });
           const fetchedConfigs = result.rows
             .map(row => row.doc)
             .filter((doc): doc is ProductionChainConfig =>
@@ -80,7 +80,7 @@ const PouchDBViewer: React.FC = () => {
 
     fetchConfigs();
 
-    const changes = db?.changes({
+    const changes = memoryDb?.changes({
       since: 'now',
       live: true,
       include_docs: true
@@ -91,7 +91,7 @@ const PouchDBViewer: React.FC = () => {
     return () => {
       changes?.cancel();
     };
-  }, [db, getProductDetails, getProcessDetails]);
+  }, [memoryDb, getProductDetails, getProcessDetails]);
 
   const viewDetails = (config: ProductionChainConfig) => {
     setSelectedConfig(config);

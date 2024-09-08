@@ -45,7 +45,7 @@ const nodeTypes = {
 };
 
 const TreeRenderer: React.FC = () => {
-    const { db } = usePouchDB();
+    const { memoryDb } = usePouchDB();
     const { nodes, edges, setNodes, setEdges, nodesRef, desiredAmount, setDesiredAmount } = useFlow();
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
@@ -122,9 +122,9 @@ const TreeRenderer: React.FC = () => {
 
     const handleSerialize = useCallback(
         async (focalNodeId: string) => {
-            if (focalNodeId && nodesRef.current.length > 0 && db) {
+            if (focalNodeId && nodesRef.current.length > 0 && memoryDb) {
                 try {
-                    await serializeProductionChain(focalNodeId, nodesRef.current as InfluenceNode[], db);
+                    await serializeProductionChain(focalNodeId, nodesRef.current as InfluenceNode[], memoryDb);
                     console.log('Production chain serialized and saved successfully');
                 } catch (error) {
                     console.error('Error serializing production chain:', error);
@@ -133,7 +133,7 @@ const TreeRenderer: React.FC = () => {
                 console.log('No focal node selected, nodes are empty, or database is not initialized.');
             }
         },
-        [db, nodesRef]
+        [memoryDb, nodesRef]
     );
 
     const ingredients = useIngredientsList(nodes);

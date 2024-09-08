@@ -31,7 +31,7 @@ export type ProductNode = Node<{
 
 const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   const { nodes, edges, setNodes, setEdges, nodesRef, desiredAmount } = useFlow();
-  const { db } = usePouchDB();
+  const { memoryDb } = usePouchDB();
   const { toast } = useToast();
   const {
     productDetails,
@@ -73,11 +73,11 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
 
   const handleConfigSelection = (configId: string) => {
     setSelectedId(configId);
-    if (db) {
+    if (memoryDb) {
       handleReplaceNode(
         id,
         configId,
-        db,
+        memoryDb,
         nodes,
         edges,
         setNodes,
@@ -93,7 +93,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   };
 
   const handleSaveProductionChain = async () => {
-    if (db) {
+    if (memoryDb) {
       try {
       await handleSerialize(id);
         toast({

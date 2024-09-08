@@ -11,7 +11,8 @@ PouchDB.plugin(PouchDBFind);
 
 // Define the shape of your context
 interface PouchDBContextType {
-    db: PouchDB.Database | null;
+    memoryDb: PouchDB.Database | null;
+    localDb: PouchDB.Database | null;
 }
 
 // Define the props type, including children
@@ -19,30 +20,38 @@ interface PouchDBProviderProps {
     children: ReactNode;
 }
 
-const PouchDBContext = createContext<PouchDBContextType>({ db: null });
+const PouchDBContext = createContext<PouchDBContextType>({ memoryDb: null, localDb: null });
 
-export const usePouchDB = () => {
-    return useContext(PouchDBContext);
-};
+export const usePouchDB = () => useContext(PouchDBContext);
 
 export const PouchDBProvider: React.FC<PouchDBProviderProps> = ({ children }) => {
-    const [db, setDb] = useState<PouchDB.Database | null>(null);
+    const [memoryDb, setMemoryDb] = useState<PouchDB.Database | null>(null);
+    const [localDb, setLocalDb] = useState<PouchDB.Database | null>(null);
 
     useEffect(() => {
-        // Initialize PouchDB instance
-        const pouchDBInstance = new PouchDB('mydb', { adapter: 'memory' });
-        setDb(pouchDBInstance);
+        const memoryDBInstance = new PouchDB('memory-db', { adapter: 'memory' });
+        const localDBInstance = new PouchDB('local-db');
 
-        // Optional: Clean up on unmount
+        setMemoryDb(memoryDBInstance);
+        setLocalDb(localDBInstance);
+
+        // Set up sync
+        const sync = PouchDB.sync(memoryDBInstance, localDBInstance, {
+            live: true,
+            retry: true
+        }).on('error', function (err) {
+            console.error('Sync error:', err);
+        });
+
         return () => {
-            pouchDBInstance.close().catch(err => {
-                console.error('Error closing PouchDB:', err);
-            });
+            sync.cancel(); // Stop sync
+            memoryDBInstance.close().catch(err => console.error('Error closing memory DB:', err));
+            localDBInstance.close().catch(err => console.error('Error closing local DB:', err));
         };
     }, []);
 
     return (
-        <PouchDBContext.Provider value={{ db }}>
+        <PouchDBContext.Provider value={{ memoryDb, localDb }}>
             {children}
         </PouchDBContext.Provider>
     );

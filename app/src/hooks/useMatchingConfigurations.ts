@@ -12,21 +12,21 @@ interface MatchingConfig {
 }
 
 const useMatchingConfigurations = (productId: string) => {
-  const { db } = usePouchDB();
+  const { memoryDb } = usePouchDB();
   const [matchingConfigs, setMatchingConfigs] = useState<MatchingConfig[]>([]);
 
   useEffect(() => {
     const fetchConfigs = async () => {
-      if (db && productId) {
+      if (memoryDb && productId) {
         console.log(`Fetching configurations for productId: ${productId}`);
-        const configs = await getMatchingConfigurations(db, productId);
+        const configs = await getMatchingConfigurations(memoryDb, productId);
         console.log(`Fetched ${configs.length} matching configurations`);
         setMatchingConfigs(configs);
       }
     };
 
     fetchConfigs();
-  }, [db, productId]);
+  }, [memoryDb, productId]);
 
   return matchingConfigs;
 };
