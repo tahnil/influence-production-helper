@@ -7,14 +7,11 @@ import { formatNumber } from '@/utils/formatNumber';
 import ProcessSelector from './ProcessSelector';
 import Image from 'next/image';
 import { handleReplaceNode } from '@/utils/TreeVisualizer/handleReplaceNode';
-import { hasStoredProductionChain } from '@/utils/TreeVisualizer/hasStoredProductionChain';
-import useMatchingConfigurations from '@/hooks/useMatchingConfigurations'; // New hook
 import { useFlow } from '@/contexts/FlowContext';
 import { usePouchDB } from '@/contexts/PouchDBContext';
-import { InfluenceNode } from '@/types/reactFlowTypes';
+import useMatchingConfigurations from '@/hooks/useMatchingConfigurations';
 
-export type ProductNode = Node<
-  {
+export type ProductNode = Node<{
     amount: number;
     totalWeight: number;
     totalVolume: number;
@@ -26,11 +23,11 @@ export type ProductNode = Node<
     handleSerialize: (focalProductId: string) => Promise<void>;
     ancestorIds?: string[];
     descendantIds?: string[];
-  }
->;
+}>;
 
 const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   const { nodes, edges, setNodes, setEdges, nodesRef, desiredAmount } = useFlow();
+  const { db } = usePouchDB();
   const {
     productDetails,
     processesByProductId,
@@ -41,31 +38,11 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     selectedProcessId,
     handleSelectProcess,
     handleSerialize,
-    ancestorIds,
-    descendantIds,
   } = data;
 
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = productDetails;
-  const { db } = usePouchDB();
-  const [hasChain, setHasChain] = useState(false);
   const matchingConfigs = useMatchingConfigurations(productDetails.id);
-  const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
-
-  console.log(`ProductNode ${id}: ${matchingConfigs.length} matching configurations found`);
-
-  // useEffect(() => {
-  //   console.log('ProductNode received nodes:', nodes.length);
-  // }, [nodes]);
-
-  useEffect(() => {
-    // console.log('ProductNode StoreChecker mounted');
-    const checkForChain = async () => {
-      const exists = await hasStoredProductionChain(productDetails.id, db);
-      setHasChain(exists);
-    };
-
-    checkForChain();
-  }, [productDetails.id, db]);
+  const [selectedId, setSelectedId] = useState<string | null>(selectedProcessId);
 
   const formattedAmount = formatNumber(amount, {
     minimumFractionDigits: 0,
@@ -85,31 +62,16 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   });
 
   const handleProcessSelection = (processId: string) => {
+    setSelectedId(processId);
     handleSelectProcess(processId, id);
   };
 
-  const handleSaveProductionChain = async () => {
-    // Implement the logic to save the production chain here
-    // Save this ProductNode including all its ancestors in the Production Chain
-    // Add new chain to the Pouch DB
-
+  const handleConfigSelection = (configId: string) => {
+    setSelectedId(configId);
     if (db) {
-      await handleSerialize(id);
-    } else {
-      console.error('PouchDB is not initialized');
-    }
-  };
-
-  const handleInsertProductionChain = () => {
-    // Implement the logic to insert the production chain here
-    // Replace this ProductNode with a saved ProductNode of the same product id, including all its ancestors in the Production Chain
-    // Apply selected chain from Pouch DB
-    if (selectedConfigId && db) {
-      console.log(`Inserting production chain. Node ID: ${id}, Config ID: ${selectedConfigId}`);
-      console.log('Current nodes in ProductNode:', nodesRef.current);
       handleReplaceNode(
         id,
-        selectedConfigId,
+        configId,
         db,
         nodes,
         edges,
@@ -121,28 +83,17 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
         desiredAmount
       );
     } else {
-      console.error('No configuration selected or PouchDB not initialized');
+      console.error('PouchDB is not initialized');
     }
   };
 
-  const handleConfigSelection = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedConfigId(event.target.value);
+  const handleSaveProductionChain = async () => {
+    if (db) {
+      await handleSerialize(id);
+    } else {
+      console.error('PouchDB is not initialized');
+    }
   };
-
-  const handleSaveDerivedProducts = () => {
-    // Implement the logic to save derived products here
-    // Save this ProductNode including all its descendants in the Production Chain
-    // Add new chain to the Pouch DB
-  };
-
-  const handleInsertDerivedProducts = () => {
-    // Implement the logic to insert derived products here
-    // Replace this ProductNode with a saved ProductNode of the same product id, including all its descendants in the Production Chain
-    // Apply selected chain from Pouch DB
-  };
-
-  // I guess we also need a sub-component that retrieves all available chains 
-  // for the current product id, and allows the user to select one.
 
   return (
     <div className="product-node bg-mako-900 border overflow-hidden rounded-lg shadow-lg w-72">
@@ -175,15 +126,20 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
             <div>{formattedVolume.unit}</div>
           </div>
         </div>
-        <div id="moreInfosSection" className="bg-lunarGreen-500 w-full py-1 px-2.5 flex flex-wrap items-start content-start gap-1">
+        <div id="moreInfosSection" className="bg-lunarGreen-500 w-full py-1 px-2.5 flex flex-col items-start gap-1">
           <label htmlFor={`process-select-${id}`} className="text-xs font-medium text-falconWhite uppercase">
-            Select Process for {name}:
+            Select Process or Configuration:
           </label>
           <ProcessSelector
             processes={processesByProductId}
-            selectedProcessId={selectedProcessId}
+            savedConfigurations={matchingConfigs}
+            selectedId={selectedId}
             onProcessSelect={handleProcessSelection}
-            className="w-full border-lunarGreen-700 bg-lunarGreen-500"
+            onConfigSelect={handleConfigSelection}
+            className="w-full border-lunarGreen-700 bg-lunarGreen-600"
+            inputClassName="text-falconWhite placeholder:text-falconWhite/80"
+            groupHeadingClassName="text-falconWhite font-semibold"
+            itemClassName="text-falconWhite hover:bg-lunarGreen-600"
             style={{
               '--popover': 'hsl(210, 40%, 10%)',
               '--popover-foreground': 'hsl(210, 40%, 90%)',
@@ -191,38 +147,11 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
           />
         </div>
         <button
-          className="bg-blue-500 text-white py-1 px-4 rounded mt-2"
+          className="bg-blue-500 text-white py-1 px-4 rounded mt-2 w-full"
           onClick={handleSaveProductionChain}
         >
           Serialize Node
         </button>
-        {matchingConfigs.length > 0 && (
-          <div className="w-full py-1 px-2.5">
-            <label htmlFor={`config-select-${id}`} className="text-xs font-medium text-falconWhite uppercase">
-              Select Saved Configuration:
-            </label>
-            <select
-              id={`config-select-${id}`}
-              value={selectedConfigId || ''}
-              onChange={handleConfigSelection}
-              className="w-full mt-1 bg-lunarGreen-500 border border-lunarGreen-700 rounded"
-            >
-              <option value="">Select a configuration</option>
-              {matchingConfigs.map((config) => (
-                <option key={config._id} value={config._id}>
-                  {new Date(config.createdAt).toLocaleString()} ({config.nodeCount} nodes)
-                </option>
-              ))}
-            </select>
-            <button
-              className="bg-green-500 text-white py-1 px-4 rounded mt-2 w-full"
-              onClick={handleInsertProductionChain}
-              disabled={!selectedConfigId}
-            >
-              Insert Production Chain
-            </button>
-          </div>
-        )}
       </div>
       <Handle type="source" position={Position.Bottom} className="bg-green-500" />
     </div>
