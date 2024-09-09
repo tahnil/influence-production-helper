@@ -4,8 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { InfluenceNode, ProductNode } from '@/types/reactFlowTypes';
 import { getAllAncestors } from '@/utils/TreeVisualizer/nodeHelpers';
 
-type SerializedNode = Omit<InfluenceNode, 'position' | 'width' | 'height'> & {
-    data: InfluenceNode['data'] & { isRoot?: boolean };
+type SerializableNode = Omit<InfluenceNode, 'position' | 'width' | 'height' | 'data'> & {
+    data: Omit<InfluenceNode['data'], 'handleSelectProcess' | 'handleSerialize'> & { isRoot?: boolean };
 };
 
 export const serializeProductionChain = async (
@@ -25,14 +25,23 @@ export const serializeProductionChain = async (
     }
 
     const ancestorNodes = getAllAncestors(nodes, focalNodeId);
-    const serializedNodes: SerializedNode[] = [
+    const serializedNodes: SerializableNode[] = [
         {
             ...focalNode,
-            data: { ...focalNode.data, isRoot: true },
+            data: { 
+                ...focalNode.data, 
+                isRoot: true,
+                handleSelectProcess: undefined,
+                handleSerialize: undefined,
+            },
         },
         ...ancestorNodes.map(node => ({
             ...node,
-            data: { ...node.data },
+            data: { 
+                ...node.data, 
+                handleSelectProcess: undefined,
+                handleSerialize: undefined,
+            },
         })),
     ];
 

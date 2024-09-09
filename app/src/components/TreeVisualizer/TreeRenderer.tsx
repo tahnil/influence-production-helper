@@ -311,7 +311,10 @@ const TreeRenderer: React.FC = () => {
                         <IngredientsList 
                             ingredients={ingredients} 
                         /> {/* Display ingredients list */}
-                        <PouchDBViewer />
+                        <PouchDBViewer 
+                            handleSelectProcess={handleSelectProcess}
+                            handleSerialize={handleSerialize}
+                        />
                     </div>
                     <MiniMap
                         nodeStrokeWidth={3}

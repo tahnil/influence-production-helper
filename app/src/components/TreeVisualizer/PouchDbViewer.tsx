@@ -44,7 +44,12 @@ interface ProductionChainConfig {
   nodes: ConfigNode[];
 }
 
-const PouchDBViewer: React.FC = () => {
+interface PouchDBViewerProps {
+  handleSelectProcess: (processId: string, nodeId: string) => void;
+  handleSerialize: (focalNodeId: string) => Promise<void>;
+}
+
+const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, handleSerialize }) => {
   const { memoryDb } = usePouchDB();
   const [configs, setConfigs] = useState<ProductionChainConfig[]>([]);
   const [selectedConfig, setSelectedConfig] = useState<ProductionChainConfig | null>(null);
@@ -156,8 +161,17 @@ const PouchDBViewer: React.FC = () => {
         }
         const savedNodes = JSON.parse(await attachment.text());
 
+        const nodesWithCallbacks = savedNodes.map((node: ConfigNode) => ({
+          ...node,
+          data: {
+            ...node.data,
+            handleSelectProcess,
+            handleSerialize,
+          }
+        }))
+
         // Replace the existing nodes with the saved configuration
-        setNodes(savedNodes);
+        setNodes(nodesWithCallbacks);
 
         // Recreate edges based on the new nodes
         const newEdges = savedNodes.flatMap((node: ConfigNode) => {
