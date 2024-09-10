@@ -13,6 +13,7 @@ import { formatNumber } from '@/utils/formatNumber';
 export interface Ingredient {
     name: string;
     amount: string;
+    scale: string;
     rawAmount: number;
     unit: string;
 }
@@ -42,7 +43,7 @@ function useIngredientsList(nodes: Node[]): Ingredient[] {
             .filter(isLeafNode)
             .map(node => {
                 const data = node.data as ProductNodeData;
-                const { formattedValue, unit } = formatNumber(data.amount, {
+                const { formattedValue, scale, unit } = formatNumber(data.amount, {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 2,
                     scaleForUnit: true,
@@ -51,14 +52,15 @@ function useIngredientsList(nodes: Node[]): Ingredient[] {
                 return {
                     name: data.productDetails.name,
                     amount: formattedValue,
+                    scale,
                     rawAmount: data.amount,
-                    unit: unit
+                    unit
                 };
             })
             .reduce((acc: Ingredient[], curr: Ingredient) => {
                 const existingIngredient = acc.find(ing => ing.name === curr.name);
                 if (existingIngredient) {
-                    existingIngredient.amount = formatNumber(
+                    const { formattedValue, scale, unit } = formatNumber(
                         existingIngredient.rawAmount + curr.rawAmount,
                         {
                             minimumFractionDigits: 0,
@@ -66,8 +68,11 @@ function useIngredientsList(nodes: Node[]): Ingredient[] {
                             scaleForUnit: true,
                             scaleType: 'units',
                         }
-                    ).formattedValue;
+                    );
+                    existingIngredient.amount = formattedValue;
+                    existingIngredient.scale = scale;
                     existingIngredient.rawAmount += curr.rawAmount;
+                    existingIngredient.unit = unit;
                 } else {
                     acc.push(curr);
                 }

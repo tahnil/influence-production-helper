@@ -151,17 +151,17 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
         </div>
         <div id="outputSection" className="p-2 w-full bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-3">
           <div id="units" className="flex flex-col items-center">
-            <div>{formattedAmount.formattedValue}</div>
+            <div>{formattedAmount.formattedValue} {formattedAmount.scale}</div>
             <div>{formattedAmount.unit}</div>
-          </div>
+            </div>
           <div id="weight" className="flex flex-col items-center">
-            <div>{formattedWeight.formattedValue}</div>
+            <div>{formattedWeight.formattedValue} {formattedWeight.scale}</div>
             <div>{formattedWeight.unit}</div>
-          </div>
+            </div>
           <div id="volume" className="flex flex-col items-center">
-            <div>{formattedVolume.formattedValue}</div>
+            <div>{formattedVolume.formattedValue} {formattedVolume.scale}</div>
             <div>{formattedVolume.unit}</div>
-          </div>
+            </div>
         </div>
         <div id="moreInfosSection" className="bg-lunarGreen-500 w-full py-1 px-2.5 flex flex-col items-start gap-1">
           <label htmlFor={`process-select-${id}`} className="text-xs font-medium text-falconWhite uppercase">

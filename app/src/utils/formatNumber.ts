@@ -15,13 +15,13 @@ export const formatNumber = (
         scaleForUnit = false,
         scaleType = ''
     }: FormatOptions = {}
-): { formattedValue: string; unit: string } => {
+): { formattedValue: string; scale: string; unit: string } => {
     const ABSURDLY_LARGE_THRESHOLD = 1e15;
     const ROUND_UP_THRESHOLD = 10000;
 
     // Handle absurdly large numbers upfront
     if (Math.abs(value) >= ABSURDLY_LARGE_THRESHOLD) {
-        return { formattedValue: 'Oh really?', unit: '🧐' };
+        return { formattedValue: 'Oh really?', scale: '', unit: '🧐' };
     }
 
     let scaledValue = value;
@@ -102,11 +102,11 @@ export const formatNumber = (
         maximumFractionDigits = 0;
     }
 
-    const formattedValue = `${new Intl.NumberFormat('en-US', {
+    const formattedValue = new Intl.NumberFormat('en-US', {
         minimumFractionDigits,
         maximumFractionDigits: scaledValue < 1 ? maximumFractionDigits : 2,
         useGrouping: true,
-    }).format(scaledValue)} ${scale}`;
+    }).format(scaledValue);
 
     // Handle singular unit names
     if (value === 1) {
@@ -120,5 +120,5 @@ export const formatNumber = (
         }
     }
 
-    return { formattedValue, unit };
+    return { formattedValue, scale, unit };
 };

@@ -48,8 +48,8 @@ const IngredientsList: React.FC<IngredientsListProps> = ({ ingredients }) => {
             <ul className="list-disc pl-4">
                 {ingredients.map((ingredient, index) => (
                     <li key={index} className="mb-1">
-                        {ingredient.name}: {ingredient.amount} {ingredient.unit}
-                    </li>
+                        {ingredient.name}: {ingredient.amount} {ingredient.scale} {ingredient.unit}
+                        </li>
                 ))}
             </ul>
         </div>
