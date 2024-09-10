@@ -28,16 +28,16 @@ export const getMatchingConfigurations = async (db: PouchDB.Database, productId:
       attachments: false
     });
 
-    console.log(`Total documents in PouchDB: ${result.rows.length}`);
+    // console.log(`Total documents in PouchDB: ${result.rows.length}`);
 
     // Log all documents
-    console.log('All documents in PouchDB:', result.rows.map(row => row.doc));
+    // console.log('All documents in PouchDB:', result.rows.map(row => row.doc));
 
     const matchingConfigs = result.rows
       .map(row => row.doc)
       .filter((doc): doc is SavedConfig => {
         if (!doc || typeof doc !== 'object') {
-          console.log('Document is null or not an object:', doc);
+          // console.log('Document is null or not an object:', doc);
           return false;
         }
 
@@ -52,27 +52,27 @@ export const getMatchingConfigurations = async (db: PouchDB.Database, productId:
           doc.focalProductId === productId;
 
         // Log each document and whether it matches
-        console.log(`Document ${doc._id}:`, doc);
-        console.log(`Matches criteria: ${isMatch}`);
+        // console.log(`Document ${doc._id}:`, doc);
+        // console.log(`Matches criteria: ${isMatch}`);
 
         if (!isMatch) {
-          console.log('Reason for not matching:', {
-            hasId: '_id' in doc,
-            hasRev: '_rev' in doc,
-            hasFocalProductId: 'focalProductId' in doc,
-            hasCreatedAt: 'createdAt' in doc,
-            hasNodeCount: 'nodeCount' in doc,
-            hasNodes: 'nodes' in doc,
-            nodesIsArray: Array.isArray((doc as any).nodes),
-            rootProductIdMatches: (doc as any).focalProductId === productId
-          });
+          // console.log('Reason for not matching:', {
+          //   hasId: '_id' in doc,
+          //   hasRev: '_rev' in doc,
+          //   hasFocalProductId: 'focalProductId' in doc,
+          //   hasCreatedAt: 'createdAt' in doc,
+          //   hasNodeCount: 'nodeCount' in doc,
+          //   hasNodes: 'nodes' in doc,
+          //   nodesIsArray: Array.isArray((doc as any).nodes),
+          //   rootProductIdMatches: (doc as any).focalProductId === productId
+          // });
         }
 
         return isMatch;
       });
 
-    console.log(`Matching configurations found: ${matchingConfigs.length}`);
-    console.log('Matching configurations:', matchingConfigs);
+    // console.log(`Matching configurations found: ${matchingConfigs.length}`);
+    // console.log('Matching configurations:', matchingConfigs);
 
     return matchingConfigs;
   } catch (error) {

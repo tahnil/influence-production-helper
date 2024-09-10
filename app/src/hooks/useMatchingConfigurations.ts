@@ -18,9 +18,9 @@ const useMatchingConfigurations = (productId: string) => {
   useEffect(() => {
     const fetchConfigs = async () => {
       if (memoryDb && productId) {
-        console.log(`Fetching configurations for productId: ${productId}`);
+        // console.log(`Fetching configurations for productId: ${productId}`);
         const configs = await getMatchingConfigurations(memoryDb, productId);
-        console.log(`Fetched ${configs.length} matching configurations`);
+        // console.log(`Fetched ${configs.length} matching configurations`);
         setMatchingConfigs(configs);
       }
     };

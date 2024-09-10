@@ -46,18 +46,17 @@ const nodeTypes = {
 
 const TreeRenderer: React.FC = () => {
     const { memoryDb } = usePouchDB();
-    const { nodes, edges, setNodes, setEdges, nodesRef, desiredAmount, setDesiredAmount } = useFlow();
+    const { nodes, edges, setNodes, setEdges, nodesRef, desiredAmount, setDesiredAmount, nodesReady, setNodesReady, rootNodeId, setRootNodeId } = useFlow();
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
-    const [nodesReady, setNodesReady] = useState(false);
-    const [rootNodeId, setRootNodeId] = useState<string>('root');
 
     const nodesInitialized = useNodesInitialized();
 
     useEffect(() => {
+        console.log('useEffect for updating nodesRef triggered by: nodes, or nodesRef');
         if (nodes.length !== nodesRef.current.length) {
             nodesRef.current = nodes;
-            console.log('TreeRenderer nodes updated:', nodes.length);
+            // console.log('TreeRenderer nodes updated:', nodes.length);
         }
     }, [nodes, nodesRef]);
 
@@ -111,10 +110,10 @@ const TreeRenderer: React.FC = () => {
                 { nodeId, processId },
             ]);
 
-            console.log('Selected Process Map:', [
-                ...selectedProcessMap,
-                { nodeId, processId },
-            ]);
+            // console.log('Selected Process Map:', [
+            //     ...selectedProcessMap,
+            //     { nodeId, processId },
+            // ]);
 
         }, 300),
         []
@@ -125,12 +124,12 @@ const TreeRenderer: React.FC = () => {
             if (focalNodeId && nodesRef.current.length > 0 && memoryDb) {
                 try {
                     await serializeProductionChain(focalNodeId, nodesRef.current as InfluenceNode[], memoryDb);
-                    console.log('Production chain serialized and saved successfully');
+                    // console.log('Production chain serialized and saved successfully');
                 } catch (error) {
                     console.error('Error serializing production chain:', error);
                 }
             } else {
-                console.log('No focal node selected, nodes are empty, or database is not initialized.');
+                // console.log('No focal node selected, nodes are empty, or database is not initialized.');
             }
         },
         [memoryDb, nodesRef]
@@ -140,6 +139,7 @@ const TreeRenderer: React.FC = () => {
     const updatedAmount = useMemo(() => calculateDesiredAmount(nodes, desiredAmount, rootNodeId), [desiredAmount]);
 
     useEffect(() => {
+        console.log('useEffect for setting nodes ready triggered by: nodesInitialized, or nodes');
         if (nodesInitialized && nodes.every(node => node.measured?.width && node.measured?.height)) {
             setNodesReady(true);
         } else {
@@ -148,7 +148,9 @@ const TreeRenderer: React.FC = () => {
     }, [nodesInitialized, nodes]);
 
     useEffect(() => {
+        console.log('useEffect for updating amounts and layout triggered by: nodesReady, desiredAmount, or dagreConfig');
         if (nodesReady) {
+            console.log('Nodes are ready: recalculating amounts and layout');
             const updatedNodes = calculateDesiredAmount(nodes, desiredAmount, rootNodeId);
             const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
             setNodes(layoutedNodes);
@@ -157,6 +159,7 @@ const TreeRenderer: React.FC = () => {
     }, [nodesReady, desiredAmount, dagreConfig]);
 
     useEffect(() => {
+        console.log('useEffect for fetching and building root node triggered by: selectedProductId, buildProductNode');
         const fetchAndBuildRootNode = async () => {
             if (selectedProductId) {
                 setNodes([]); // Reset nodes when a new product is selected
@@ -168,7 +171,7 @@ const TreeRenderer: React.FC = () => {
                 );
 
                 if (rootNode) {
-                    console.log('Root node created:', rootNode);
+                    // console.log('Root node created:', rootNode);
                     const namedRootNode = {
                         ...rootNode,
                         data: {
@@ -188,6 +191,7 @@ const TreeRenderer: React.FC = () => {
     }, [selectedProductId, buildProductNode]);
 
     useEffect(() => {
+        console.log('useEffect for fetching and building process node triggered by: selectedProcessMap, buildProcessNode');
         const fetchAndBuildProcessNode = async () => {
             if (selectedProcessMap.length > 0) {
                 const lastEntry = selectedProcessMap[selectedProcessMap.length - 1];

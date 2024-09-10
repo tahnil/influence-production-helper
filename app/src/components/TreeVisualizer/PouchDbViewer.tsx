@@ -61,7 +61,7 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { getProductDetails } = useInfluenceProductDetails();
   const { getProcessDetails } = useProcessDetails();
-  const { setNodes, setEdges, desiredAmount } = useFlow();
+  const { setNodes, setEdges, desiredAmount, nodesReady, setNodesReady, rootNodeId, setRootNodeId } = useFlow();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -179,39 +179,41 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
         // Reattach the function properties to each node
         const nodesWithCallbacks: InfluenceNode[] = savedNodes.map((node: any) => {
           const baseNode: Partial<InfluenceNode> = {
-              ...node,
-              data: {
-                  ...node.data,
-                  handleSelectProcess,
-                  handleSerialize,
-              },
-              parentId: node.id === rootNode.id ? undefined : node.parentId,
+            ...node,
+            data: {
+              ...node.data,
+              handleSelectProcess,
+              handleSerialize,
+            },
+            parentId: node.id === rootNode.id ? undefined : node.parentId,
           };
 
           if (node.type === 'productNode') {
-              return {
-                  ...baseNode,
-                  type: 'productNode',
-                  data: baseNode.data as ProductNodeData,
-              } as ProductNode;
+            return {
+              ...baseNode,
+              type: 'productNode',
+              data: baseNode.data as ProductNodeData,
+            } as ProductNode;
           } else if (node.type === 'processNode') {
-              return {
-                  ...baseNode,
-                  type: 'processNode',
-                  data: {
-                      ...baseNode.data,
-                      totalDuration: node.data.totalDuration || 0,
-                      totalRuns: node.data.totalRuns || 0,
-                      processDetails: node.data.processDetails,
-                      inputProducts: node.data.inputProducts,
-                  } as ProcessNodeData,
-              } as ProcessNode;
+            return {
+              ...baseNode,
+              type: 'processNode',
+              data: {
+                ...baseNode.data,
+                totalDuration: node.data.totalDuration || 0,
+                totalRuns: node.data.totalRuns || 0,
+                processDetails: node.data.processDetails,
+                inputProducts: node.data.inputProducts,
+              } as ProcessNodeData,
+            } as ProcessNode;
           } else {
-              throw new Error(`Unknown node type: ${node.type}`);
+            throw new Error(`Unknown node type: ${node.type}`);
           }
-      });
+        });
 
         // Recalculate amounts for all nodes using the current desired amount
+        console.log('calling calculateDesiredAmount with rootNode.id:', rootNode.id);
+        setRootNodeId(rootNode.id);
         const recalculatedNodes = calculateDesiredAmount(
           nodesWithCallbacks,
           desiredAmount,
@@ -234,6 +236,8 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
           return [];
         });
         setEdges(newEdges);
+
+        setNodesReady(false);
 
         toast({
           title: "Configuration Replaced",

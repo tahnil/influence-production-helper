@@ -9,6 +9,10 @@ interface FlowContextType {
     nodesRef: React.MutableRefObject<Node[]>;
     desiredAmount: number;
     setDesiredAmount: React.Dispatch<React.SetStateAction<number>>;
+    nodesReady: boolean;
+    setNodesReady: React.Dispatch<React.SetStateAction<boolean>>;
+    rootNodeId: string;
+    setRootNodeId: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const FlowContext = createContext<FlowContextType | undefined>(undefined);
@@ -26,6 +30,8 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [edges, setEdges] = useState<Edge[]>([]);
     const nodesRef = useRef<Node[]>([]);
     const [desiredAmount, setDesiredAmount] = useState<number>(1);
+    const [nodesReady, setNodesReady] = useState(false);
+    const [rootNodeId, setRootNodeId] = useState<string>('root');
 
     return (
         <FlowContext.Provider value={{ 
@@ -35,7 +41,11 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setEdges, 
             nodesRef, 
             desiredAmount, 
-            setDesiredAmount 
+            setDesiredAmount, 
+            nodesReady,
+            setNodesReady,
+            rootNodeId,
+            setRootNodeId
         }}>
             {children}
         </FlowContext.Provider>

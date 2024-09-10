@@ -24,9 +24,9 @@ export const handleReplaceNode = async (
     desiredAmount: number
 ) => {
     try {
-        console.log(`Attempting to replace node. Current Node ID: ${currentNodeId}, Config ID: ${configId}`);
+        // console.log(`Attempting to replace node. Current Node ID: ${currentNodeId}, Config ID: ${configId}`);
         const currentNodes = nodesRef.current as InfluenceNode[];
-        console.log('Current nodes:', currentNodes.map(n => ({ id: n.id, type: n.type })));
+        // console.log('Current nodes:', currentNodes.map(n => ({ id: n.id, type: n.type })));
 
         // Find the current node and store its parentId
         const currentNode = currentNodes.find(node => node.id === currentNodeId);
@@ -37,7 +37,7 @@ export const handleReplaceNode = async (
 
         // Fetch the selected configuration from PouchDB
         const config = await db.get(configId);
-        console.log('Retrieved config:', config);
+        // console.log('Retrieved config:', config);
 
         // Fetch the attachment
         const attachment = await db.getAttachment(configId, 'nodes');
@@ -46,12 +46,12 @@ export const handleReplaceNode = async (
         }
 
         const savedNodes: PouchDBNodeDocument[] = JSON.parse(await attachment.text());
-        console.log('Parsed saved nodes:', savedNodes);
+        // console.log('Parsed saved nodes:', savedNodes);
 
         const ancestorIds = getAncestorIds(currentNodeId, currentNodes);
         const nodesToRemove = [currentNodeId, ...ancestorIds];
 
-        console.log('Nodes to remove:', nodesToRemove);
+        // console.log('Nodes to remove:', nodesToRemove);
 
         // Remove the current node, its ancestors, and their edges
         let updatedNodes: InfluenceNode[] = currentNodes.filter(node => !nodesToRemove.includes(node.id));
@@ -124,7 +124,7 @@ export const handleReplaceNode = async (
         setNodes(recalculatedNodes);
         setEdges(updatedEdges);
 
-        console.log('Successfully replaced node and updated nodes:', recalculatedNodes);
+        // console.log('Successfully replaced node and updated nodes:', recalculatedNodes);
     } catch (error) {
         console.error('Error replacing node from PouchDB:', error);
         if (error instanceof Error) {

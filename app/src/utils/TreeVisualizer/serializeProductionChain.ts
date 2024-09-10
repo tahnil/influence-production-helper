@@ -54,19 +54,19 @@ export const serializeProductionChain = async (
         nodes: serializedNodes,
     };
 
-    console.log('Attempting to save serialized chain:', JSON.stringify(serializedChain));
+    // console.log('Attempting to save serialized chain:', JSON.stringify(serializedChain));
 
     try {
         const response = await db.put(serializedChain);
-        console.log('Successfully saved configuration:', response);
+        // console.log('Successfully saved configuration:', response);
 
         const attachment = new Blob([JSON.stringify(serializedNodes)], { type: 'application/json' });
         await db.putAttachment(serializedChain._id, 'nodes', response.rev, attachment, 'application/json');
-        console.log('Successfully saved attachment');
+        // console.log('Successfully saved attachment');
 
         // Log all documents after saving
         const allDocs = await db.allDocs();
-        console.log('All document IDs in PouchDB after saving:', allDocs.rows.map(row => row.id));
+        // console.log('All document IDs in PouchDB after saving:', allDocs.rows.map(row => row.id));
     } catch (error) {
         console.error('Error saving configuration:', error);
     }
