@@ -1,8 +1,12 @@
+// components/TreeVisualizer/PouchDbViewer.tsx
+
 import React, { useState, useEffect } from 'react';
 import { usePouchDB } from '@/contexts/PouchDBContext';
 import Modal from '@/components/ui/modal';
 import useInfluenceProductDetails from '@/hooks/useInfluenceProductDetails';
 import useProcessDetails from '@/hooks/useProcessDetails';
+import { Node, Edge } from '@xyflow/react';
+import { InfluenceNode, ProcessNode, ProcessNodeData, ProductNode, ProductNodeData } from '@/types/reactFlowTypes';
 import { EyeIcon, Trash2Icon, RefreshCwIcon } from 'lucide-react';
 import {
   AlertDialog,
@@ -17,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useFlow } from '@/contexts/FlowContext';
+import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
 
 interface ConfigNode {
   id: string;
@@ -56,8 +61,8 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { getProductDetails } = useInfluenceProductDetails();
   const { getProcessDetails } = useProcessDetails();
+  const { setNodes, setEdges, desiredAmount } = useFlow();
   const { toast } = useToast();
-  const { setNodes, setEdges, setDesiredAmount } = useFlow();
 
   useEffect(() => {
     const fetchConfigs = async () => {
@@ -159,23 +164,66 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
         if (!(attachment instanceof Blob)) {
           throw new Error('Attachment is not a Blob');
         }
-        const savedNodes = JSON.parse(await attachment.text());
+        const savedNodes: InfluenceNode[] = JSON.parse(await attachment.text());
 
-        const nodesWithCallbacks = savedNodes.map((node: ConfigNode) => ({
-          ...node,
-          data: {
-            ...node.data,
-            handleSelectProcess,
-            handleSerialize,
+        // Find the root node (should be the one with isRoot: true)
+        const rootNode = savedNodes.find((node) => node.data.isRoot);
+        if (!rootNode) {
+          throw new Error('Root node not found in saved configuration');
+        }
+
+        // Modify the root node
+        rootNode.parentId = undefined;
+        rootNode.data.descendantIds = [];
+
+        // Reattach the function properties to each node
+        const nodesWithCallbacks: InfluenceNode[] = savedNodes.map((node: any) => {
+          const baseNode: Partial<InfluenceNode> = {
+              ...node,
+              data: {
+                  ...node.data,
+                  handleSelectProcess,
+                  handleSerialize,
+              },
+              parentId: node.id === rootNode.id ? undefined : node.parentId,
+          };
+
+          if (node.type === 'productNode') {
+              return {
+                  ...baseNode,
+                  type: 'productNode',
+                  data: baseNode.data as ProductNodeData,
+              } as ProductNode;
+          } else if (node.type === 'processNode') {
+              return {
+                  ...baseNode,
+                  type: 'processNode',
+                  data: {
+                      ...baseNode.data,
+                      totalDuration: node.data.totalDuration || 0,
+                      totalRuns: node.data.totalRuns || 0,
+                      processDetails: node.data.processDetails,
+                      inputProducts: node.data.inputProducts,
+                  } as ProcessNodeData,
+              } as ProcessNode;
+          } else {
+              throw new Error(`Unknown node type: ${node.type}`);
           }
-        }))
+      });
 
-        // Replace the existing nodes with the saved configuration
-        setNodes(nodesWithCallbacks);
+        // Recalculate amounts for all nodes using the current desired amount
+        const recalculatedNodes = calculateDesiredAmount(
+          nodesWithCallbacks,
+          desiredAmount,
+          rootNode.id
+        );
+
+        // Replace the existing nodes with the recalculated configuration
+        setNodes(recalculatedNodes);
 
         // Recreate edges based on the new nodes
-        const newEdges = savedNodes.flatMap((node: ConfigNode) => {
-          if (node.data.ancestorIds) {
+        const newEdges: Edge[] = recalculatedNodes.flatMap((node: Node) => {
+          if ('ancestorIds' in node.data && Array.isArray(node.data.ancestorIds)) {
             return node.data.ancestorIds.map((ancestorId: string) => ({
               id: `edge-${ancestorId}-${node.id}`,
               target: ancestorId,
@@ -186,12 +234,6 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
           return [];
         });
         setEdges(newEdges);
-
-        // Set the desired amount to the amount of the root node (the node with no descendants)
-        const rootNode = savedNodes.find((node: ConfigNode) => !node.data.descendantIds || node.data.descendantIds.length === 0);
-        if (rootNode && rootNode.data.amount !== undefined) {
-          setDesiredAmount(rootNode.data.amount);
-        }
 
         toast({
           title: "Configuration Replaced",

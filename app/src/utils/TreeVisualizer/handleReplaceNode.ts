@@ -8,6 +8,7 @@ import { InfluenceNode, ProductNodeData } from '@/types/reactFlowTypes';
 import { PouchDBNodeDocument } from '@/types/pouchSchemes';
 import React from 'react';
 import calculateDesiredAmount from './calculateDesiredAmount';
+import { sortNodesByHierarchy } from './nodeHelpers';
 
 export const handleReplaceNode = async (
     currentNodeId: string,
@@ -103,6 +104,9 @@ export const handleReplaceNode = async (
         const newEdges = createEdgesBetweenNodes(newNodes);
         updatedEdges = [...updatedEdges, ...newEdges];
 
+        // Sort the nodes to ensure parent nodes come before children
+        const sortedNodes = sortNodesByHierarchy([...updatedNodes, ...newNodes]);
+
         // Find the root node of the entire tree
         const treeRootNode = updatedNodes.find(node => !node.parentId) as InfluenceNode;
         if (!treeRootNode) {
@@ -111,7 +115,7 @@ export const handleReplaceNode = async (
 
         // Recalculate amounts for all nodes using the provided desiredAmount
         const recalculatedNodes = calculateDesiredAmount(
-            updatedNodes,
+            sortedNodes,
             desiredAmount,
             treeRootNode.id
         );

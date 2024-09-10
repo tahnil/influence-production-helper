@@ -149,3 +149,28 @@ export const getAllAncestors = (nodes: InfluenceNode[], nodeId: string): Influen
 export const getAllDescendants = (nodes: InfluenceNode[], nodeId: string): InfluenceNode[] => {
     return traverseNodes(nodes, nodeId, 'descendants');
 };
+
+// Sort nodes by hierarchy
+export const sortNodesByHierarchy = (nodes: InfluenceNode[]): InfluenceNode[] => {
+    const nodeMap = new Map(nodes.map(node => [node.id, node]));
+    const sorted: InfluenceNode[] = [];
+    const visited = new Set<string>();
+
+    const visit = (nodeId: string) => {
+        if (visited.has(nodeId)) return;
+        visited.add(nodeId);
+
+        const node = nodeMap.get(nodeId);
+        if (!node) return;
+
+        if (node.parentId && !visited.has(node.parentId)) {
+            visit(node.parentId);
+        }
+
+        sorted.push(node);
+    };
+
+    nodes.forEach(node => visit(node.id));
+
+    return sorted;
+};

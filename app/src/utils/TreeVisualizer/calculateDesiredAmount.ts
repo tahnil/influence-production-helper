@@ -28,60 +28,46 @@ export default function calculateDesiredAmount(nodes: Node[], desiredAmount: num
             productNode.data.amount = parentNode.data.totalRuns * unitsPerSR;
             productNode.data.totalWeight =
                 productNode.data.amount * parseFloat(productNode.data.productDetails.massKilogramsPerUnit || '0');
-            
-            // console.log('productNode: ', productNode, 
-            //     '\nparentNode: ', parentNode, 
-            //     '\nproductNode.data.amount: ', productNode.data.amount, 
-            //     '\nunitsPerSR: ', unitsPerSR, 
-            //     '\nproductNode.data.totalWeight: ', productNode.data.totalWeight,
-            //     '\nproductNode.data.productDetails.massKilogramsPerUnit: ', productNode.data.productDetails.massKilogramsPerUnit);
-
             productNode.data.totalVolume =
                 productNode.data.amount * parseFloat(productNode.data.productDetails.volumeLitersPerUnit || '0');
         }
         return productNode;
     };
 
-    const updateNodeRecursively = (node: Node, allNodes: Node[], parentNode?: Node): Node => {
-        // Retain the existing position of the node
-        let updatedNode = { ...node, position: node.position };
+    const nodeMap = new Map(nodes.map(node => [node.id, { ...node }]));
+    const updateNodeRecursively = (nodeId: string, parentNode?: Node): void => {
+        const node = nodeMap.get(nodeId);
+        if (!node) return;
 
         if (node.type === 'productNode') {
-            const productNode = updatedNode as ProductNode;
-
+            const productNode = node as ProductNode;
             if (!parentNode) {
                 // Root node scenario
-                updatedNode.data.amount = desiredAmount;
-                updatedNode.data.totalWeight =
+                productNode.data.amount = desiredAmount;
+                productNode.data.totalWeight =
                     desiredAmount * parseFloat(productNode.data.productDetails.massKilogramsPerUnit || '0');
-                updatedNode.data.totalVolume =
+                productNode.data.totalVolume =
                     desiredAmount * parseFloat(productNode.data.productDetails.volumeLitersPerUnit || '0');
             } else if (parentNode.type === 'processNode') {
-                updatedNode = updateProductNode(updatedNode as ProductNode, parentNode as ProcessNode);
+                updateProductNode(productNode, parentNode as ProcessNode);
             }
         } else if (node.type === 'processNode') {
             if (parentNode && parentNode.type === 'productNode') {
-                updatedNode = updateProcessNode(updatedNode as ProcessNode, parentNode as ProductNode);
+                updateProcessNode(node as ProcessNode, parentNode as ProductNode);
             }
         }
 
-        const childNodes = allNodes.filter(n => n.parentId === node.id);
-        childNodes.forEach(childNode => {
-            updateNodeRecursively(childNode, allNodes, updatedNode);
+        // Process child nodes
+        nodes.forEach(childNode => {
+            if (childNode.parentId === nodeId) {
+                updateNodeRecursively(childNode.id, node);
+            }
         });
-
-        return updatedNode;
     };
 
-    const rootNode = nodes.find(n => n.id === rootNodeId);
-    if (!rootNode) return nodes;
+    // Start the recursive update from the root node
+    updateNodeRecursively(rootNodeId);
 
-    const updatedNodes = nodes.map(node => {
-        if (node.id === rootNode.id) {
-            return updateNodeRecursively(rootNode, nodes);
-        }
-        return updateNodeRecursively(node, nodes, rootNode);
-    });
-
-    return updatedNodes;
+    // Convert the updated node map back to an array, preserving the original order
+    return nodes.map(node => nodeMap.get(node.id) || node);
 }

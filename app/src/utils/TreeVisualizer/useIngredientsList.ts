@@ -8,10 +8,16 @@
 import { useEffect, useState } from 'react';
 import { Node } from '@xyflow/react';
 import { ProductNodeData, ProcessNodeData } from '@/types/reactFlowTypes';
+import { formatNumber } from '@/utils/formatNumber';
 
+export interface Ingredient {
+    name: string;
+    amount: number;
+    unit: string;
+}
 
-function useIngredientsList(nodes: Node[]): string[] {
-    const [ingredients, setIngredients] = useState<string[]>([]);
+function useIngredientsList(nodes: Node[]): Ingredient[] {
+    const [ingredients, setIngredients] = useState<Ingredient[]>([]);
 
     useEffect(() => {
         const isLeafNode = (node: Node): boolean => {
@@ -33,8 +39,29 @@ function useIngredientsList(nodes: Node[]): string[] {
 
         const newIngredients = nodes
             .filter(isLeafNode)
-            .map(node => (node.data as ProductNodeData).productDetails.name)
-            .filter((value, index, self) => self.indexOf(value) === index);
+            .map(node => {
+                const data = node.data as ProductNodeData;
+                const { formattedValue, unit } = formatNumber(data.amount, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2,
+                    scaleForUnit: true,
+                    scaleType: 'units',
+                });
+                return {
+                    name: data.productDetails.name,
+                    amount: parseFloat(formattedValue),
+                    unit: unit
+                };
+            })
+            .reduce((acc, curr) => {
+                const existingIngredient = acc.find(ing => ing.name === curr.name);
+                if (existingIngredient) {
+                    existingIngredient.amount += curr.amount;
+                } else {
+                    acc.push(curr);
+                }
+                return acc;
+            }, [] as Ingredient[]);
 
         setIngredients(newIngredients);
     }, [nodes]);
