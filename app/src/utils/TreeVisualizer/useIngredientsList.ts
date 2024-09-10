@@ -12,7 +12,8 @@ import { formatNumber } from '@/utils/formatNumber';
 
 export interface Ingredient {
     name: string;
-    amount: number;
+    amount: string;
+    rawAmount: number;
     unit: string;
 }
 
@@ -49,19 +50,29 @@ function useIngredientsList(nodes: Node[]): Ingredient[] {
                 });
                 return {
                     name: data.productDetails.name,
-                    amount: parseFloat(formattedValue),
+                    amount: formattedValue,
+                    rawAmount: data.amount,
                     unit: unit
                 };
             })
-            .reduce((acc, curr) => {
+            .reduce((acc: Ingredient[], curr: Ingredient) => {
                 const existingIngredient = acc.find(ing => ing.name === curr.name);
                 if (existingIngredient) {
-                    existingIngredient.amount += curr.amount;
+                    existingIngredient.amount = formatNumber(
+                        existingIngredient.rawAmount + curr.rawAmount,
+                        {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 2,
+                            scaleForUnit: true,
+                            scaleType: 'units',
+                        }
+                    ).formattedValue;
+                    existingIngredient.rawAmount += curr.rawAmount;
                 } else {
                     acc.push(curr);
                 }
                 return acc;
-            }, [] as Ingredient[]);
+            }, []);
 
         setIngredients(newIngredients);
     }, [nodes]);

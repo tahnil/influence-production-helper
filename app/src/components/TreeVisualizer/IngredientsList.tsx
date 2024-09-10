@@ -17,11 +17,11 @@ const IngredientsList: React.FC<IngredientsListProps> = ({ ingredients }) => {
     }
 
     const copyToClipboard = () => {
-        const text = ingredients.map(ing => `${ing.name}: ${ing.amount} ${ing.unit}`).join('\n');
+        const text = ingredients.map(ing => `${ing.name}\t${ing.rawAmount}`).join('\n');
         navigator.clipboard.writeText(text).then(() => {
             toast({
                 title: "Copied to clipboard",
-                description: "The ingredients list has been copied to your clipboard.",
+                description: "The raw ingredients list has been copied to your clipboard.",
                 duration: 3000,
             });
         }).catch(err => {
