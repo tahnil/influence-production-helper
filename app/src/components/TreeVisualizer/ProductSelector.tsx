@@ -23,20 +23,19 @@ import {
 import useInfluenceProducts from '@/hooks/useInfluenceProducts';
 
 interface ProductSelectorProps {
+  selectedProductId: string | null,
   onProductSelect: (productId: string) => void;  // Update the type to pass the productId
   className?: string;
 }
 
 const ProductSelector: React.FC<ProductSelectorProps> = ({
+  selectedProductId,
   onProductSelect,
   className,
 }) => {
   const { influenceProducts, loading, error } = useInfluenceProducts();
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState("");
-  const [selectedProductId, setSelectedProductId] = React.useState<string | null>(
-    null
-  );
 
   if (loading) return <div>Loading products...</div>;
   if (error) return <div>Error loading products: {error}</div>;
@@ -78,15 +77,12 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                   <CommandItem
                     key={product.id}
                     onSelect={() => {
-                      const newSelectedProductId =
-                        product.id === selectedProductId
-                          ? null
-                          : product.id;
-                      setSelectedProductId(newSelectedProductId);
+                      if (product.id !== selectedProductId) {
+                        onProductSelect(product.id);
+                      }
+                      setOpen(false);
                       // console.log(`selectedProductId: `,selectedProductId);
                       // console.log(`product.id: `,product.id);
-                      onProductSelect(product.id);  // Pass the product ID to the parent component
-                      setOpen(false);
                     }}
                   >
                     <Check

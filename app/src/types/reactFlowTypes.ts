@@ -1,7 +1,7 @@
 // types/reactFlowTypes.ts:
 // Updated types to fit React Flow's Node structure
 import { Node as ReactFlowNode } from '@xyflow/react';
-import { InfluenceProduct, InfluenceProcess, ProcessInput } from '@/types/influenceTypes';
+import { InfluenceProduct, InfluenceProcess, ProcessInput, ProcessOutput } from '@/types/influenceTypes';
 
 export interface ProductNodeData extends Record<string, unknown> {
     amount: number;
@@ -11,7 +11,11 @@ export interface ProductNodeData extends Record<string, unknown> {
     productDetails: InfluenceProduct;
     processesByProductId: InfluenceProcess[];
     selectedProcessId: string | null;
-    onSelectProcess: (processId: string, nodeId: string) => void;
+    handleSelectProcess: (processId: string, nodeId: string) => void;
+    handleSerialize: (focalProductId: string) => void;
+    ancestorIds?: string[];
+    descendantIds?: string[];
+    isRoot?: boolean;
 }
 
 export interface ProcessNodeData extends Record<string, unknown> {
@@ -20,8 +24,12 @@ export interface ProcessNodeData extends Record<string, unknown> {
     image: string;
     processDetails: InfluenceProcess;
     inputProducts: ProcessInput[];
+    ancestorIds?: string[];
+    descendantIds?: string[];
 }
 
 export type ProcessNode = ReactFlowNode<ProcessNodeData>;
 
 export type ProductNode = ReactFlowNode<ProductNodeData>;
+
+export type InfluenceNode = ProductNode | ProcessNode;

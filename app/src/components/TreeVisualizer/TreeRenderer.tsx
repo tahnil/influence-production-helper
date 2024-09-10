@@ -1,25 +1,25 @@
 // components/TreeVisualizer/TreeRenderer.tsx
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
     ReactFlow,
     MiniMap,
-    addEdge,
-    applyEdgeChanges,
-    applyNodeChanges,
-    Edge,
     Node,
-    NodeChange,
-    EdgeChange,
-    Connection,
-    ReactFlowProvider,
+    Edge,
+    OnNodesChange,
+    OnEdgesChange,
+    OnConnect,
     useNodesInitialized,
-    getSmoothStepPath,
+    applyNodeChanges,
+    applyEdgeChanges,
+    addEdge,
 } from '@xyflow/react';
+import { usePouchDB } from '@/contexts/PouchDBContext';
+import { useFlow } from '@/contexts/FlowContext';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
-import ProductNode from './ProductNode';
-import { ProductNode as ProductNodeType } from '@/types/reactFlowTypes'
 import ProcessNode from './ProcessNode';
+import ProductNode from './ProductNode';
+import { ProductNode as ProductNodeType, ProcessNode as ProcessNodeType, InfluenceNode } from '@/types/reactFlowTypes';
 import '@xyflow/react/dist/style.css';
 import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
@@ -29,6 +29,10 @@ import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
 import IngredientsList from './IngredientsList';
 import AmountInput from './AmountInput';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
+import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
+import { getDescendantIds } from '@/utils/TreeVisualizer/getDescendantIds';
+import PouchDBViewer from '@/components/TreeVisualizer/PouchDbViewer';
+import debounce from '@/utils/TreeVisualizer/debounce';
 
 interface ProcessSelection {
     nodeId: string;
@@ -41,15 +45,20 @@ const nodeTypes = {
 };
 
 const TreeRenderer: React.FC = () => {
+    const { memoryDb } = usePouchDB();
+    const { nodes, edges, setNodes, setEdges, nodesRef, desiredAmount, setDesiredAmount, nodesReady, setNodesReady, rootNodeId, setRootNodeId } = useFlow();
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-    const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
-    const [nodes, setNodes] = useState<Node[]>([]);
-    const [edges, setEdges] = useState<Edge[]>([]);
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
-    const [desiredAmount, setDesiredAmount] = useState<number>(1);
-    const [nodesReady, setNodesReady] = useState(false);
 
     const nodesInitialized = useNodesInitialized();
+
+    useEffect(() => {
+        console.log('useEffect for updating nodesRef triggered by: nodes, or nodesRef');
+        if (nodes.length !== nodesRef.current.length) {
+            nodesRef.current = nodes;
+            // console.log('TreeRenderer nodes updated:', nodes.length);
+        }
+    }, [nodes, nodesRef]);
 
     const [dagreConfig, setDagreConfig] = useState({
         align: 'DR',
@@ -71,38 +80,26 @@ const TreeRenderer: React.FC = () => {
     const { buildProductNode } = useProductNodeBuilder();
     const { buildProcessNode } = useProcessNodeBuilder();
 
+    const onNodesChange: OnNodesChange = useCallback(
+        (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+        [setNodes]
+    );
+
+    const onEdgesChange: OnEdgesChange = useCallback(
+        (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+        [setEdges]
+    );
+
+    const onConnect: OnConnect = useCallback(
+        (connection) => setEdges((eds) => addEdge(connection, eds)),
+        [setEdges]
+    );
+
     const updateDagreConfig = (newConfig: Partial<typeof dagreConfig>) => {
         setDagreConfig((prevConfig) => ({
             ...prevConfig,
             ...newConfig,
         }));
-    };
-
-    const onNodesChange = useCallback(
-        (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
-        []
-    );
-
-    const onEdgesChange = useCallback(
-        (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-        []
-    );
-
-    const onConnect = useCallback(
-        (connection: Connection) =>
-            setEdges((eds) =>
-                addEdge({ ...connection, type: 'smoothstep' }, eds)
-            ),
-        []
-    );
-
-    const debounce = (fn: Function, delay: number) => {
-        let timeoutId: NodeJS.Timeout | undefined;
-
-        return (...args: any[]) => {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => fn(...args), delay);
-        };
     };
 
     const handleSelectProcess = useCallback(
@@ -113,18 +110,36 @@ const TreeRenderer: React.FC = () => {
                 { nodeId, processId },
             ]);
 
-            console.log('Selected Process Map:', [
-                ...selectedProcessMap,
-                { nodeId, processId },
-            ]);
+            // console.log('Selected Process Map:', [
+            //     ...selectedProcessMap,
+            //     { nodeId, processId },
+            // ]);
+
         }, 300),
         []
     );
 
+    const handleSerialize = useCallback(
+        async (focalNodeId: string) => {
+            if (focalNodeId && nodesRef.current.length > 0 && memoryDb) {
+                try {
+                    await serializeProductionChain(focalNodeId, nodesRef.current as InfluenceNode[], memoryDb);
+                    // console.log('Production chain serialized and saved successfully');
+                } catch (error) {
+                    console.error('Error serializing production chain:', error);
+                }
+            } else {
+                // console.log('No focal node selected, nodes are empty, or database is not initialized.');
+            }
+        },
+        [memoryDb, nodesRef]
+    );
+
     const ingredients = useIngredientsList(nodes);
-    const updatedAmount = useMemo(() => calculateDesiredAmount(nodes, desiredAmount), [desiredAmount]);
+    const updatedAmount = useMemo(() => calculateDesiredAmount(nodes, desiredAmount, rootNodeId), [desiredAmount]);
 
     useEffect(() => {
+        console.log('useEffect for setting nodes ready triggered by: nodesInitialized, or nodes');
         if (nodesInitialized && nodes.every(node => node.measured?.width && node.measured?.height)) {
             setNodesReady(true);
         } else {
@@ -132,16 +147,19 @@ const TreeRenderer: React.FC = () => {
         }
     }, [nodesInitialized, nodes]);
 
-
     useEffect(() => {
+        console.log('useEffect for updating amounts and layout triggered by: nodesReady, desiredAmount, or dagreConfig');
         if (nodesReady) {
-            const { layoutedNodes, layoutedEdges } = applyDagreLayout(nodes, edges, dagreConfig);
+            console.log('Nodes are ready: recalculating amounts and layout');
+            const updatedNodes = calculateDesiredAmount(nodes, desiredAmount, rootNodeId);
+            const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
             setNodes(layoutedNodes);
             setEdges(layoutedEdges);
         }
-    }, [nodesReady, updatedAmount, dagreConfig]);
+    }, [nodesReady, desiredAmount, dagreConfig]);
 
     useEffect(() => {
+        console.log('useEffect for fetching and building root node triggered by: selectedProductId, buildProductNode');
         const fetchAndBuildRootNode = async () => {
             if (selectedProductId) {
                 setNodes([]); // Reset nodes when a new product is selected
@@ -149,18 +167,22 @@ const TreeRenderer: React.FC = () => {
 
                 const rootNode = await buildProductNode(
                     selectedProductId,
-                    selectedProcessId,
                     desiredAmount,
-                    handleSelectProcess,
                 );
 
                 if (rootNode) {
+                    // console.log('Root node created:', rootNode);
                     const namedRootNode = {
                         ...rootNode,
-                        id: 'root',
+                        data: {
+                            ...rootNode.data,
+                            handleSelectProcess,
+                            handleSerialize,
+                        }
                     };
 
-                    setNodes([namedRootNode]); // Set the new root node
+                    setNodes([namedRootNode]);
+                    setRootNodeId(namedRootNode.id);
                 }
             }
         };
@@ -169,6 +191,7 @@ const TreeRenderer: React.FC = () => {
     }, [selectedProductId, buildProductNode]);
 
     useEffect(() => {
+        console.log('useEffect for fetching and building process node triggered by: selectedProcessMap, buildProcessNode');
         const fetchAndBuildProcessNode = async () => {
             if (selectedProcessMap.length > 0) {
                 const lastEntry = selectedProcessMap[selectedProcessMap.length - 1];
@@ -182,7 +205,14 @@ const TreeRenderer: React.FC = () => {
                     // console.log(`Amount for parentNode`, parentNode ,`: ${parentNodeAmount}`);
 
                     // Build the process node
-                    const result = await buildProcessNode(processId, parentNodeId, parentNodeAmount, parentNodeProductId, handleSelectProcess);
+                    const result = await buildProcessNode(
+                        processId,
+                        parentNodeId,
+                        parentNodeAmount,
+                        parentNodeProductId,
+                        handleSelectProcess,
+                        handleSerialize,
+                    );
                     if (result) {
                         const { processNode, productNodes } = result;
 
@@ -231,6 +261,15 @@ const TreeRenderer: React.FC = () => {
                                 type: 'smoothstep',
                             });
 
+                            // Step 7: Set the ancestorId in the data properties of the parent ProductNode to the id of current ProcessNode
+                            const parentProductNode = updatedNodes.find(
+                                (node) => node.id === parentNodeId && node.type === 'productNode'
+                            );
+
+                            if (parentProductNode) {
+                                parentProductNode.data.ancestorIds = [processNode.id];
+                            }
+
                             setEdges(updatedEdges);
                             return updatedNodes;
                         });
@@ -241,21 +280,6 @@ const TreeRenderer: React.FC = () => {
 
         fetchAndBuildProcessNode();
     }, [selectedProcessMap, buildProcessNode]);
-
-    // Utility function to get all descendant ids of a given node id
-    const getDescendantIds = (nodeId: string, nodes: Node[]): string[] => {
-        // Find all direct children (ProductNodes)
-        const directChildren = nodes.filter((node) => node.parentId === nodeId);
-
-        // Recursively find all descendants for each direct child
-        const allDescendants = directChildren.reduce<string[]>((acc, child) => {
-            const childDescendants = getDescendantIds(child.id, nodes);
-            return [...acc, child.id, ...childDescendants];
-        }, []);
-
-        // Return the list of all descendant IDs
-        return allDescendants;
-    };
 
     return (
         <div className="w-full h-full relative">
@@ -277,19 +301,24 @@ const TreeRenderer: React.FC = () => {
                     <div className="absolute bottom-4 left-4 bg-background p-4 shadow-lg rounded-lg z-10 max-h-[90vh] overflow-y-auto w-[35ch]">
                         <h2 className="text-xl font-semibold mb-4">Controls</h2>
                         <ProductSelector
+                            selectedProductId={selectedProductId}
                             onProductSelect={setSelectedProductId}
                             className="p-2 border rounded border-gray-300 mb-4 w-full"
                         />
                         <AmountInput
-                            desiredAmount={desiredAmount}
-                            onChange={setDesiredAmount}
                             label="Desired Amount"
                         />
                         {/* <ControlPanel
                             dagreConfig={dagreConfig}
                             updateDagreConfig={updateDagreConfig}
                         /> */}
-                        <IngredientsList ingredients={ingredients} /> {/* Display ingredients list */}
+                        <IngredientsList 
+                            ingredients={ingredients} 
+                        /> {/* Display ingredients list */}
+                        <PouchDBViewer 
+                            handleSelectProcess={handleSelectProcess}
+                            handleSerialize={handleSerialize}
+                        />
                     </div>
                     <MiniMap
                         nodeStrokeWidth={3}
@@ -305,15 +334,4 @@ const TreeRenderer: React.FC = () => {
 
 TreeRenderer.displayName = 'TreeRenderer';
 
-const TreeRendererWithProvider: React.FC = () => {
-    return (
-        <ReactFlowProvider>
-            <TreeRenderer />
-        </ReactFlowProvider>
-    );
-}
-
-TreeRendererWithProvider.displayName = 'TreeRendererWithProvider';
-
-export default TreeRendererWithProvider;
-export { TreeRenderer };
+export default TreeRenderer;
