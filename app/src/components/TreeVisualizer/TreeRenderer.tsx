@@ -1,18 +1,10 @@
 // components/TreeVisualizer/TreeRenderer.tsx
 
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
     ReactFlow,
     MiniMap,
-    Node,
-    Edge,
-    OnNodesChange,
-    OnEdgesChange,
-    OnConnect,
     useNodesInitialized,
-    applyNodeChanges,
-    applyEdgeChanges,
-    addEdge,
 } from '@xyflow/react';
 import { usePouchDB } from '@/contexts/PouchDBContext';
 import { useFlow } from '@/contexts/FlowContext';
@@ -33,6 +25,8 @@ import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProduc
 import { getDescendantIds } from '@/utils/TreeVisualizer/getDescendantIds';
 import PouchDBViewer from '@/components/TreeVisualizer/PouchDbViewer';
 import debounce from '@/utils/TreeVisualizer/debounce';
+import { useReactFlowSetup } from '@/hooks/useReactFlowSetup';
+import { useDagreConfig } from '@/hooks/useDagreConfig';
 
 interface ProcessSelection {
     nodeId: string;
@@ -46,61 +40,23 @@ const nodeTypes = {
 
 const TreeRenderer: React.FC = () => {
     const { memoryDb } = usePouchDB();
-    const { nodes, edges, setNodes, setEdges, nodesRef, desiredAmount, setDesiredAmount, nodesReady, setNodesReady, rootNodeId, setRootNodeId } = useFlow();
+    const { nodes, edges, onNodesChange, onEdgesChange, onConnect } = useReactFlowSetup();
+    const { dagreConfig, updateDagreConfig } = useDagreConfig();
+    const { setNodes, setEdges, nodesRef, desiredAmount, setDesiredAmount, nodesReady, setNodesReady, rootNodeId, setRootNodeId } = useFlow();
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
 
     const nodesInitialized = useNodesInitialized();
 
     useEffect(() => {
-        console.log('useEffect for updating nodesRef triggered by: nodes, or nodesRef');
         if (nodes.length !== nodesRef.current.length) {
             nodesRef.current = nodes;
             // console.log('TreeRenderer nodes updated:', nodes.length);
         }
     }, [nodes, nodesRef]);
 
-    const [dagreConfig, setDagreConfig] = useState({
-        align: 'DR',
-        rankdir: 'TB',
-        nodesep: 20,
-        ranksep: 70,
-        edgesep: 10,
-        marginx: 0,
-        marginy: 0,
-        acyclicer: 'greedy',
-        ranker: 'network-simplex',
-        minlen: 2,
-        weight: 1,
-        labelpos: 'r',
-        labeloffset: 10,
-        direction: 'LR',
-    });
-
     const { buildProductNode } = useProductNodeBuilder();
     const { buildProcessNode } = useProcessNodeBuilder();
-
-    const onNodesChange: OnNodesChange = useCallback(
-        (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-        [setNodes]
-    );
-
-    const onEdgesChange: OnEdgesChange = useCallback(
-        (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-        [setEdges]
-    );
-
-    const onConnect: OnConnect = useCallback(
-        (connection) => setEdges((eds) => addEdge(connection, eds)),
-        [setEdges]
-    );
-
-    const updateDagreConfig = (newConfig: Partial<typeof dagreConfig>) => {
-        setDagreConfig((prevConfig) => ({
-            ...prevConfig,
-            ...newConfig,
-        }));
-    };
 
     const handleSelectProcess = useCallback(
         debounce((processId: string, nodeId: string) => {
@@ -139,7 +95,6 @@ const TreeRenderer: React.FC = () => {
     const updatedAmount = useMemo(() => calculateDesiredAmount(nodes, desiredAmount, rootNodeId), [desiredAmount]);
 
     useEffect(() => {
-        console.log('useEffect for setting nodes ready triggered by: nodesInitialized, or nodes');
         if (nodesInitialized && nodes.every(node => node.measured?.width && node.measured?.height)) {
             setNodesReady(true);
         } else {
@@ -148,9 +103,7 @@ const TreeRenderer: React.FC = () => {
     }, [nodesInitialized, nodes]);
 
     useEffect(() => {
-        console.log('useEffect for updating amounts and layout triggered by: nodesReady, desiredAmount, or dagreConfig');
         if (nodesReady) {
-            console.log('Nodes are ready: recalculating amounts and layout');
             const updatedNodes = calculateDesiredAmount(nodes, desiredAmount, rootNodeId);
             const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
             setNodes(layoutedNodes);
@@ -159,7 +112,6 @@ const TreeRenderer: React.FC = () => {
     }, [nodesReady, desiredAmount, dagreConfig]);
 
     useEffect(() => {
-        console.log('useEffect for fetching and building root node triggered by: selectedProductId, buildProductNode');
         const fetchAndBuildRootNode = async () => {
             if (selectedProductId) {
                 setNodes([]); // Reset nodes when a new product is selected
@@ -191,7 +143,6 @@ const TreeRenderer: React.FC = () => {
     }, [selectedProductId, buildProductNode]);
 
     useEffect(() => {
-        console.log('useEffect for fetching and building process node triggered by: selectedProcessMap, buildProcessNode');
         const fetchAndBuildProcessNode = async () => {
             if (selectedProcessMap.length > 0) {
                 const lastEntry = selectedProcessMap[selectedProcessMap.length - 1];

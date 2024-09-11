@@ -1,5 +1,10 @@
 import React from 'react';
-import { ControlPanelProps } from '@/types/dagreTypes';
+import { DagreConfig } from '@/hooks/useDagreConfig';
+
+interface ControlPanelProps {
+    dagreConfig: DagreConfig;
+    updateDagreConfig: (newConfig: Partial<DagreConfig>) => void;
+}
 
 const ControlPanel: React.FC<ControlPanelProps> = ({ dagreConfig, updateDagreConfig }) => {
     return (
