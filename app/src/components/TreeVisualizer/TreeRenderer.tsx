@@ -15,7 +15,7 @@ import { ProductNode as ProductNodeType, ProcessNode as ProcessNodeType, Influen
 import '@xyflow/react/dist/style.css';
 import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
-import ControlPanel from './ControlPanel';
+import LayoutConfigPanel from './LayoutConfigPanel';
 import applyDagreLayout from '@/utils/TreeVisualizer/applyDagreLayout';
 import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
 import IngredientsList from './IngredientsList';
@@ -259,10 +259,6 @@ const TreeRenderer: React.FC = () => {
                         <AmountInput
                             label="Desired Amount"
                         />
-                        {/* <ControlPanel
-                            dagreConfig={dagreConfig}
-                            updateDagreConfig={updateDagreConfig}
-                        /> */}
                         <IngredientsList 
                             ingredients={ingredients} 
                         /> {/* Display ingredients list */}
@@ -271,6 +267,10 @@ const TreeRenderer: React.FC = () => {
                             handleSerialize={handleSerialize}
                         />
                     </div>
+                    <LayoutConfigPanel
+                            dagreConfig={dagreConfig}
+                            updateDagreConfig={updateDagreConfig}
+                    />
                     <MiniMap
                         nodeStrokeWidth={3}
                         pannable={true}
