@@ -1,17 +1,20 @@
+// utils/TreeVisualizer/handleReplaceNode.ts
 
-
-import { Node, Edge, Position } from '@xyflow/react';
-import PouchDB from 'pouchdb';
-import { getDescendantIds } from './getDescendantIds';
-import { createProductNodeWithCallbacks } from './createProductNodeWithCallbacks';
+import React from 'react';
+import { 
+    findNodeById, 
+    getAllAncestors, 
+    sortNodesByHierarchy,  
+    updateInfluenceNode
+} from '@/utils/TreeVisualizer/nodeHelpers';
+import { generateUniqueId } from '@/utils/generateUniqueId';
+import { createProductNodeWithCallbacks } from '@/utils/TreeVisualizer/createProductNodeWithCallbacks';
+import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
 import { InfluenceNode, ProductNodeData } from '@/types/reactFlowTypes';
 import { PouchDBNodeDocument } from '@/types/pouchSchemes';
-import React from 'react';
-import calculateDesiredAmount from './calculateDesiredAmount';
-import { sortNodesByHierarchy, findNodeById, updateNode } from './nodeHelpers';
-import { generateUniqueId } from '@/utils/generateUniqueId';
+import { Node, Edge, Position } from '@xyflow/react';
 
-const regenerateNodeIds = (nodes: InfluenceNode[]): InfluenceNode[] => {
+const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] => {
     const idMap = new Map<string, string>();
     
     // First pass: generate new IDs
@@ -29,11 +32,11 @@ const regenerateNodeIds = (nodes: InfluenceNode[]): InfluenceNode[] => {
       }
   
       if (newNode.data.ancestorIds) {
-        newNode.data.ancestorIds = newNode.data.ancestorIds.map(id => idMap.get(id) || id);
+        newNode.data.ancestorIds = newNode.data.ancestorIds.map((id: string) => idMap.get(id) || id);
       }
   
       if (newNode.data.descendantIds) {
-        newNode.data.descendantIds = newNode.data.descendantIds.map(id => idMap.get(id) || id);
+        newNode.data.descendantIds = newNode.data.descendantIds.map((id: string) => idMap.get(id) || id);
       }
   
       return newNode;
@@ -59,7 +62,7 @@ export const handleReplaceNode = async (
         console.log('Current nodes:', currentNodes.map(n => ({ id: n.id, type: n.type, productId: (n.data as ProductNodeData).productDetails?.id })));
 
         // Find the current node and store its parentId
-        const currentNode = currentNodes.find(node => node.id === currentNodeId);
+        const currentNode = findNodeById(currentNodes, currentNodeId) as InfluenceNode;
         if (!currentNode) {
             throw new Error(`Current node not found. ID: ${currentNodeId}`);
         }
@@ -79,18 +82,17 @@ export const handleReplaceNode = async (
         const savedNodes: PouchDBNodeDocument[] = JSON.parse(await attachment.text());
         console.log('Parsed saved nodes:', savedNodes);
 
-        // Regenerate IDs for saved nodes
-        const regeneratedNodes = regenerateNodeIds(savedNodes as unknown as InfluenceNode[]);
-        console.log('Regenerated nodes:', regeneratedNodes);
-
-        const ancestorIds = getAncestorIds(currentNodeId, currentNodes);
-        const nodesToRemove = [currentNodeId, ...ancestorIds];
+        const ancestorNodes = getAllAncestors(currentNodes, currentNodeId);
+        const nodesToRemove = [currentNodeId, ...ancestorNodes.map(n => n.id)];
 
         console.log('Nodes to remove:', nodesToRemove);
 
         // Remove the current node, its ancestors, and their edges
         let updatedNodes: InfluenceNode[] = currentNodes.filter(node => !nodesToRemove.includes(node.id));
         let updatedEdges = edges.filter(edge => !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target));
+
+        const regeneratedNodes = regenerateNodeIds(savedNodes);
+        console.log('Regenerated nodes:', regeneratedNodes);
 
         // Convert saved nodes to React Flow nodes
         const newNodes: InfluenceNode[] = regeneratedNodes.map(savedNode => {
@@ -118,7 +120,7 @@ export const handleReplaceNode = async (
 
         // Update the parent node's ancestorIds
         if (parentId) {
-            const parentNode = updatedNodes.find(node => node.id === parentId);
+            const parentNode = findNodeById(updatedNodes, parentId) as InfluenceNode;
             if (parentNode) {
                 console.log(`Before update - Parent node ${parentId} ancestorIds:`, parentNode.data.ancestorIds);
                 parentNode.data.ancestorIds = parentNode.data.ancestorIds || [];
@@ -129,6 +131,7 @@ export const handleReplaceNode = async (
                     parentNode.data.ancestorIds.push(rootSavedNode.id);
                 }
                 console.log(`After update - Parent node ${parentId} ancestorIds:`, parentNode.data.ancestorIds);
+                updatedNodes = updateInfluenceNode(updatedNodes, parentNode);
             }
         }
 

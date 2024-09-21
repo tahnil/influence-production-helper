@@ -13,6 +13,10 @@ export const updateNode = (
     return nodes.map(node => node.id === updatedNode.id ? { ...node, ...updatedNode } : node);
 };
 
+export const updateInfluenceNode = (nodes: InfluenceNode[], updatedNode: InfluenceNode): InfluenceNode[] => {
+    return nodes.map(node => node.id === updatedNode.id ? updatedNode : node);
+};
+
 export const removeNode = (
     nodes: Node[],
     nodeId: string
