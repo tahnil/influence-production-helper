@@ -1,4 +1,4 @@
-import { DagreConfig } from '@/types/dagreTypes';
+import { DagreConfig } from '@/hooks/useDagreConfig';
 import Dagre from '@dagrejs/dagre';
 import { Node, Edge, Position } from '@xyflow/react';
 
