@@ -94,7 +94,6 @@ const useProcessNodeBuilder = () => {
                         return {
                             ...sideProductNode,
                             type: 'sideProductNode',
-                            parentId: processNodeId,
                             data: {
                                 ...sideProductNode.data,
                                 ancestorIds: [processNodeId],

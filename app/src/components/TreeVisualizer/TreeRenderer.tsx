@@ -206,13 +206,13 @@ const TreeRenderer: React.FC = () => {
 
                             // Create edges for side product nodes
                             const sideProductEdges = sideProductNodes.map((sideProductNode) => ({
-                                id: `edge-${processNode.id}-${sideProductNode.id}`,
-                                source: processNode.id,
-                                target: sideProductNode.id,
+                                id: `edge-${sideProductNode.id}-${processNode.id}`,
+                                source: sideProductNode.id,
+                                target: processNode.id,
+                                sourceHandle: null, // This will default to the bottom handle of the SideProductNode
+                                targetHandle: `side-product-${processNode.id}`,
                                 type: 'smoothstep',
                             }));
-
-                            updatedEdges = [...updatedEdges, ...newEdges, ...sideProductEdges];
 
                             // Step 6: Add the edge between the parent ProductNode and the ProcessNode
                             updatedEdges.push({
@@ -221,6 +221,8 @@ const TreeRenderer: React.FC = () => {
                                 target: processNode.id,
                                 type: 'smoothstep',
                             });
+
+                            updatedEdges = [...updatedEdges, ...newEdges, ...sideProductEdges];
 
                             // Step 7: Set the ancestorId in the data properties of the parent ProductNode to the id of current ProcessNode
                             const parentProductNode = updatedNodes.find(

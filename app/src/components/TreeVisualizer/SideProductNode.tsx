@@ -42,7 +42,7 @@ const SideProductNode: React.FC<NodeProps<SideProductNode>> = ({ data }) => {
 
   return (
     <div className="side-product-node bg-lunarGreen-800 border overflow-hidden rounded-lg shadow-lg w-64">
-      <Handle type="target" position={Position.Top} className="bg-yellow-500" />
+      <Handle type="source" position={Position.Bottom} className="bg-yellow-500" />
       <div className="flex flex-col items-center">
         <div className="p-2 bg-lunarGreen-700 w-full flex items-center gap-2.5">
           <Image src={image} width={40} height={40} alt={name} className='object-contain' />

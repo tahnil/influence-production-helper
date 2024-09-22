@@ -64,6 +64,7 @@ const ProcessNode: React.FC<NodeProps<ProcessNode>> = ({ id, data }) => {
         )}
       </div>
       <Handle type="source" position={Position.Bottom} className="bg-green-500" id={`source-${id}`} />
+      <Handle type="target" position={Position.Right} className="bg-yellow-500" id={`side-product-${id}`} />
     </div>
   );
 };
