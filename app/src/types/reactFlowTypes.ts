@@ -24,12 +24,22 @@ export interface ProcessNodeData extends Record<string, unknown> {
     image: string;
     processDetails: InfluenceProcess;
     inputProducts: ProcessInput[];
+    outputProducts: ProcessOutput[];
     ancestorIds?: string[];
     descendantIds?: string[];
 }
 
-export type ProcessNode = ReactFlowNode<ProcessNodeData>;
+export interface SideProductNodeData extends Record<string, unknown> {
+    amount: number;
+    totalWeight: number;
+    totalVolume: number;
+    image: string;
+    productDetails: InfluenceProduct;
+    ancestorIds?: string[];
+}
 
+export type ProcessNode = ReactFlowNode<ProcessNodeData>;
 export type ProductNode = ReactFlowNode<ProductNodeData>;
+export type SideProductNode = ReactFlowNode<SideProductNodeData>;
 
 export type InfluenceNode = ProductNode | ProcessNode;

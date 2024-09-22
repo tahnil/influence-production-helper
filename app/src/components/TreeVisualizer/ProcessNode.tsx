@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Node, Handle, Position, NodeProps } from '@xyflow/react';
-import { InfluenceProcess, ProcessInput } from '@/types/influenceTypes';
+import { InfluenceProcess, ProcessInput, ProcessOutput } from '@/types/influenceTypes';
 import { formatDuration } from '@/utils/formatDuration';
 import { formatNumber } from '@/utils/formatNumber';
 import Image from 'next/image';
@@ -14,13 +14,14 @@ export type ProcessNode = Node<
     image: string;
     processDetails: InfluenceProcess;
     inputProducts: ProcessInput[];
+    outputProducts: ProcessOutput[];
     ancestorIds?: string[];
     descendantIds?: string[];
   }
 >;
 
 const ProcessNode: React.FC<NodeProps<ProcessNode>> = ({ id, data }) => {
-  const { processDetails, inputProducts, totalDuration, totalRuns, image } = data;
+  const { processDetails, inputProducts, outputProducts, totalDuration, totalRuns, image } = data;
   const { name, buildingId, bAdalianHoursPerAction, mAdalianHoursPerSR } = processDetails;
 
   const formattedDuration = formatDuration(totalRuns, mAdalianHoursPerSR);

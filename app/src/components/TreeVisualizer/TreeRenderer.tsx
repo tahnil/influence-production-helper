@@ -11,6 +11,7 @@ import { useFlow } from '@/contexts/FlowContext';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProcessNode from './ProcessNode';
 import ProductNode from './ProductNode';
+import SideProductNode from './SideProductNode';
 import { ProductNode as ProductNodeType, ProcessNode as ProcessNodeType, InfluenceNode } from '@/types/reactFlowTypes';
 import '@xyflow/react/dist/style.css';
 import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
@@ -36,6 +37,7 @@ interface ProcessSelection {
 const nodeTypes = {
     productNode: ProductNode,
     processNode: ProcessNode,
+    SideProductNode: SideProductNode,
 };
 
 const TreeRenderer: React.FC = () => {
@@ -165,7 +167,7 @@ const TreeRenderer: React.FC = () => {
                         handleSerialize,
                     );
                     if (result) {
-                        const { processNode, productNodes } = result;
+                        const { processNode, productNodes, sideProductNodes } = result;
 
                         setNodes((currentNodes) => {
                             let updatedNodes = [...currentNodes];
@@ -192,7 +194,7 @@ const TreeRenderer: React.FC = () => {
                             }
 
                             // Step 4: Add the new ProcessNode and its child ProductNodes
-                            updatedNodes = [...updatedNodes, processNode, ...productNodes];
+                            updatedNodes = [...updatedNodes, processNode, ...productNodes, ...sideProductNodes];
 
                             // Step 5: Create edges between the ProcessNode and each ProductNode
                             const newEdges = productNodes.map((productNode) => ({
@@ -202,7 +204,15 @@ const TreeRenderer: React.FC = () => {
                                 type: 'smoothstep',
                             }));
 
-                            updatedEdges = [...updatedEdges, ...newEdges];
+                            // Create edges for side product nodes
+                            const sideProductEdges = sideProductNodes.map((sideProductNode) => ({
+                                id: `edge-${processNode.id}-${sideProductNode.id}`,
+                                source: processNode.id,
+                                target: sideProductNode.id,
+                                type: 'smoothstep',
+                            }));
+
+                            updatedEdges = [...updatedEdges, ...newEdges, ...sideProductEdges];
 
                             // Step 6: Add the edge between the parent ProductNode and the ProcessNode
                             updatedEdges.push({
@@ -259,17 +269,17 @@ const TreeRenderer: React.FC = () => {
                         <AmountInput
                             label="Desired Amount"
                         />
-                        <IngredientsList 
-                            ingredients={ingredients} 
+                        <IngredientsList
+                            ingredients={ingredients}
                         /> {/* Display ingredients list */}
-                        <PouchDBViewer 
+                        <PouchDBViewer
                             handleSelectProcess={handleSelectProcess}
                             handleSerialize={handleSerialize}
                         />
                     </div>
                     <LayoutConfigPanel
-                            dagreConfig={dagreConfig}
-                            updateDagreConfig={updateDagreConfig}
+                        dagreConfig={dagreConfig}
+                        updateDagreConfig={updateDagreConfig}
                     />
                     <MiniMap
                         nodeStrokeWidth={3}

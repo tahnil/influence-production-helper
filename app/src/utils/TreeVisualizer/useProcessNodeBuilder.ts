@@ -21,7 +21,7 @@ const useProcessNodeBuilder = () => {
         parentNodeProductId: string,
         handleSelectProcess: (processId: string, nodeId: string) => void,
         handleSerialize: (focalProductId: string) => void,
-    ): Promise<{ processNode: Node, productNodes: Node[] } | null> => {
+    ): Promise<{ processNode: Node, productNodes: Node[], sideProductNodes: Node[] } | null> => {
         try {
             const [processDetails, inputProducts] = await Promise.all([
                 getProcessDetails(selectedProcessId),
@@ -80,8 +80,39 @@ const useProcessNodeBuilder = () => {
                 return null;
             });
 
-            // After all product nodes are created
-            const productNodes = (await Promise.all(productNodesPromises)).filter(Boolean) as Node[];
+            // Build SideProductNodes
+            const sideProductNodesPromises = processDetails.outputs
+                .filter(output => output.productId !== parentNodeProductId)
+                .map(async (output) => {
+                    const amount = parseFloat(output.unitsPerSR) * totalRuns;
+                    const sideProductNode = await buildProductNode(
+                        output.productId,
+                        amount
+                    );
+
+                    if (sideProductNode) {
+                        return {
+                            ...sideProductNode,
+                            type: 'sideProductNode',
+                            parentId: processNodeId,
+                            data: {
+                                ...sideProductNode.data,
+                                ancestorIds: [processNodeId],
+                                handleSelectProcess,
+                                handleSerialize,
+                            }
+                        };
+                    }
+                    return null;
+                });
+
+            const [productNodesResult, sideProductNodesResult] = await Promise.all([
+                Promise.all(productNodesPromises),
+                Promise.all(sideProductNodesPromises),
+            ]);
+
+            const productNodes = productNodesResult.filter(Boolean) as Node[];
+            const sideProductNodes = sideProductNodesResult.filter(Boolean) as Node[];
 
             // Update the process node
             const newProcessNode: Node = {
@@ -95,11 +126,11 @@ const useProcessNodeBuilder = () => {
                     image: buildingIcon,
                     totalRuns,
                     ancestorIds: productNodes.map(node => node.id), // Input products are ancestors of the process
-                    descendantIds: [parentId], // The parent product node is the descendant
+                    descendantIds: [parentId, ...sideProductNodes.map(node => node.id)], // The parent product node is the descendant
                 },
             };
 
-            return { processNode: newProcessNode, productNodes };
+            return { processNode: newProcessNode, productNodes, sideProductNodes };
         } catch (err) {
             console.error('[useProcessNodeBuilder] Error:', err);
             return null;
