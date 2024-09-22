@@ -23,7 +23,7 @@ export const useDagreConfig = () => {
     const [dagreConfig, setDagreConfig] = useState<DagreConfig>({
         align: 'DR',
         rankdir: 'TB',
-        nodesep: 20,
+        nodesep: 40,
         ranksep: 70,
         edgesep: 10,
         marginx: 0,
