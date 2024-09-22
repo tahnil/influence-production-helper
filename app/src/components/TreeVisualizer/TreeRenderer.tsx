@@ -37,7 +37,7 @@ interface ProcessSelection {
 const nodeTypes = {
     productNode: ProductNode,
     processNode: ProcessNode,
-    SideProductNode: SideProductNode,
+    sideProductNode: SideProductNode,
 };
 
 const TreeRenderer: React.FC = () => {
