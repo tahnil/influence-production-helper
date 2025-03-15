@@ -42,7 +42,7 @@ export const findNodeById = (
 // ### Part 2 ###
 // Influence Node Inspection, Traversal, and Manipulation Functions
 
-// Get direct parent nodes (descendants)
+// Get direct parent nodes (outflows)
 export const getDirectParentNodes = (
     nodes: InfluenceNode[], 
     nodeId: string
@@ -50,10 +50,10 @@ export const getDirectParentNodes = (
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return [];
 
-    return nodes.filter(n => node.data.descendantIds?.includes(n.id));
+    return nodes.filter(n => node.data.outflowIds?.includes(n.id));
 };
 
-// Get direct child nodes (ancestors)
+// Get direct child nodes (inflows)
 export const getDirectChildNodes = (
     nodes: InfluenceNode[], 
     nodeId: string
@@ -61,64 +61,64 @@ export const getDirectChildNodes = (
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return [];
 
-    return nodes.filter(n => node.data.ancestorIds?.includes(n.id));
+    return nodes.filter(n => node.data.inflowIds?.includes(n.id));
 };
 
-// Add a node id to descendants
-export const addDescendant = (
+// Add a node id to outflows
+export const addOutflow = (
     node: InfluenceNode, 
-    descendantId: string
+    outflowId: string
 ): InfluenceNode => {
-    if (!node.data.descendantIds) {
-        node.data.descendantIds = [];
+    if (!node.data.outflowIds) {
+        node.data.outflowIds = [];
     }
-    if (!node.data.descendantIds.includes(descendantId)) {
-        node.data.descendantIds.push(descendantId);
+    if (!node.data.outflowIds.includes(outflowId)) {
+        node.data.outflowIds.push(outflowId);
     }
     return { ...node };
 };
 
-// Remove a node id from descendants
-export const removeDescendant = (
+// Remove a node id from outflows
+export const removeOutflow = (
     node: InfluenceNode, 
-    descendantId: string
+    outflowId: string
 ): InfluenceNode => {
-    if (node.data.descendantIds) {
-        node.data.descendantIds = node.data.descendantIds.filter(id => id !== descendantId);
+    if (node.data.outflowIds) {
+        node.data.outflowIds = node.data.outflowIds.filter(id => id !== outflowId);
     }
     return { ...node };
 };
 
-// Add a node id to ancestors
-export const addAncestor = (
+// Add a node id to inflows
+export const addInflow = (
     node: InfluenceNode, 
-    ancestorId: string
+    inflowId: string
 ): InfluenceNode => {
-    if (!node.data.ancestorIds) {
-        node.data.ancestorIds = [];
+    if (!node.data.inflowIds) {
+        node.data.inflowIds = [];
     }
-    if (!node.data.ancestorIds.includes(ancestorId)) {
-        node.data.ancestorIds.push(ancestorId);
+    if (!node.data.inflowIds.includes(inflowId)) {
+        node.data.inflowIds.push(inflowId);
     }
     return { ...node };
 };
 
-// Remove a node id from ancestors
-export const removeAncestor = (
+// Remove a node id from inflows
+export const removeInflow = (
     node: InfluenceNode, 
-    ancestorId: string
+    inflowId: string
 ): InfluenceNode => {
-    if (node.data.ancestorIds) {
-        node.data.ancestorIds = node.data.ancestorIds.filter(id => id !== ancestorId);
+    if (node.data.inflowIds) {
+        node.data.inflowIds = node.data.inflowIds.filter(id => id !== inflowId);
     }
     return { ...node };
 };
 
-// Traverse all ancestors or descendants of a given node
+// Traverse all inflows or outflows of a given node
 export const traverseNodes = (
     nodes: InfluenceNode[],
     startNodeId: string,
-    direction: 'ancestors' | 'descendants'
+    direction: 'inflows' | 'outflows'
 ): InfluenceNode[] => {
     const result: InfluenceNode[] = [];
     const visited = new Set<string>();
@@ -132,7 +132,7 @@ export const traverseNodes = (
 
         result.push(node);
 
-        const idsToTraverse = direction === 'ancestors' ? node.data.ancestorIds : node.data.descendantIds;
+        const idsToTraverse = direction === 'inflows' ? node.data.inflowIds : node.data.outflowIds;
         if (idsToTraverse) {
             idsToTraverse.forEach(id => traverse(id));
         }
@@ -144,14 +144,14 @@ export const traverseNodes = (
     return result.filter(node => node.id !== startNodeId);
 };
 
-// Helper function to get all ancestors of a node
-export const getAllAncestors = (nodes: InfluenceNode[], nodeId: string): InfluenceNode[] => {
-    return traverseNodes(nodes, nodeId, 'ancestors');
+// Helper function to get all inflows of a node
+export const getAllInflows = (nodes: InfluenceNode[], nodeId: string): InfluenceNode[] => {
+    return traverseNodes(nodes, nodeId, 'inflows');
 };
 
-// Helper function to get all descendants of a node
-export const getAllDescendants = (nodes: InfluenceNode[], nodeId: string): InfluenceNode[] => {
-    return traverseNodes(nodes, nodeId, 'descendants');
+// Helper function to get all outflows of a node
+export const getAllOutflows = (nodes: InfluenceNode[], nodeId: string): InfluenceNode[] => {
+    return traverseNodes(nodes, nodeId, 'outflows');
 };
 
 // Sort nodes by hierarchy

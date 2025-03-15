@@ -22,7 +22,7 @@ import IngredientsList from './IngredientsList';
 import AmountInput from './AmountInput';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
 import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
-import { getDescendantIds } from '@/utils/TreeVisualizer/getDescendantIds';
+import { getOutflowIds } from '@/utils/TreeVisualizer/getOutflowIds';
 import PouchDBViewer from '@/components/TreeVisualizer/PouchDbViewer';
 import debounce from '@/utils/TreeVisualizer/debounce';
 import { useReactFlowSetup } from '@/hooks/useReactFlowSetup';
@@ -177,17 +177,17 @@ const TreeRenderer: React.FC = () => {
                             );
 
                             if (existingProcessNode) {
-                                // Step 2: Recursively find and remove all descendants
-                                const descendantIds = getDescendantIds(existingProcessNode.id, updatedNodes);
+                                // Step 2: Recursively find and remove all outflows
+                                const outflowIds = getOutflowIds(existingProcessNode.id, updatedNodes);
 
-                                // Remove the existing ProcessNode and its descendants
+                                // Remove the existing ProcessNode and its outflows
                                 updatedNodes = updatedNodes.filter(
-                                    (node) => ![existingProcessNode.id, ...descendantIds].includes(node.id)
+                                    (node) => ![existingProcessNode.id, ...outflowIds].includes(node.id)
                                 );
 
                                 // Also remove all edges connected to these nodes
                                 updatedEdges = updatedEdges.filter(
-                                    (edge) => ![existingProcessNode.id, ...descendantIds].includes(edge.source)
+                                    (edge) => ![existingProcessNode.id, ...outflowIds].includes(edge.source)
                                 );
                             }
 
@@ -212,13 +212,13 @@ const TreeRenderer: React.FC = () => {
                                 type: 'smoothstep',
                             });
 
-                            // Step 7: Set the ancestorId in the data properties of the parent ProductNode to the id of current ProcessNode
+                            // Step 7: Set the inflowId in the data properties of the parent ProductNode to the id of current ProcessNode
                             const parentProductNode = updatedNodes.find(
                                 (node) => node.id === parentNodeId && node.type === 'productNode'
                             );
 
                             if (parentProductNode) {
-                                parentProductNode.data.ancestorIds = [processNode.id];
+                                parentProductNode.data.inflowIds = [processNode.id];
                             }
 
                             setEdges(updatedEdges);

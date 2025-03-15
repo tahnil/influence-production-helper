@@ -3,7 +3,7 @@
 import React from 'react';
 import { 
     findNodeById, 
-    getAllAncestors, 
+    getAllInflows, 
     sortNodesByHierarchy,  
     updateInfluenceNode
 } from '@/utils/TreeVisualizer/nodeHelpers';
@@ -31,12 +31,12 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
         newNode.parentId = idMap.get(newNode.parentId);
       }
   
-      if (newNode.data.ancestorIds) {
-        newNode.data.ancestorIds = newNode.data.ancestorIds.map((id: string) => idMap.get(id) || id);
+      if (newNode.data.inflowIds) {
+        newNode.data.inflowIds = newNode.data.inflowIds.map((id: string) => idMap.get(id) || id);
       }
   
-      if (newNode.data.descendantIds) {
-        newNode.data.descendantIds = newNode.data.descendantIds.map((id: string) => idMap.get(id) || id);
+      if (newNode.data.outflowIds) {
+        newNode.data.outflowIds = newNode.data.outflowIds.map((id: string) => idMap.get(id) || id);
       }
   
       return newNode;
@@ -82,12 +82,12 @@ export const handleReplaceNode = async (
         const savedNodes: PouchDBNodeDocument[] = JSON.parse(await attachment.text());
         console.log('Parsed saved nodes:', savedNodes);
 
-        const ancestorNodes = getAllAncestors(currentNodes, currentNodeId);
-        const nodesToRemove = [currentNodeId, ...ancestorNodes.map(n => n.id)];
+        const inflowNodes = getAllInflows(currentNodes, currentNodeId);
+        const nodesToRemove = [currentNodeId, ...inflowNodes.map(n => n.id)];
 
         console.log('Nodes to remove:', nodesToRemove);
 
-        // Remove the current node, its ancestors, and their edges
+        // Remove the current node, its inflows, and their edges
         let updatedNodes: InfluenceNode[] = currentNodes.filter(node => !nodesToRemove.includes(node.id));
         let updatedEdges = edges.filter(edge => !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target));
 
@@ -112,25 +112,25 @@ export const handleReplaceNode = async (
         rootSavedNode.parentId = parentId;
         console.log(`Set parentId of root saved node to: ${parentId}`);
 
-        // Set the descendantIds for the root saved node
+        // Set the outflowIds for the root saved node
         if (parentId) {
-            rootSavedNode.data.descendantIds = [parentId];
-            console.log(`Set descendantIds of root saved node to: [${parentId}]`);
+            rootSavedNode.data.outflowIds = [parentId];
+            console.log(`Set outflowIds of root saved node to: [${parentId}]`);
         }
 
-        // Update the parent node's ancestorIds
+        // Update the parent node's inflowIds
         if (parentId) {
             const parentNode = findNodeById(updatedNodes, parentId) as InfluenceNode;
             if (parentNode) {
-                console.log(`Before update - Parent node ${parentId} ancestorIds:`, parentNode.data.ancestorIds);
-                parentNode.data.ancestorIds = parentNode.data.ancestorIds || [];
-                const index = parentNode.data.ancestorIds.indexOf(currentNodeId);
+                console.log(`Before update - Parent node ${parentId} inflowIds:`, parentNode.data.inflowIds);
+                parentNode.data.inflowIds = parentNode.data.inflowIds || [];
+                const index = parentNode.data.inflowIds.indexOf(currentNodeId);
                 if (index !== -1) {
-                    parentNode.data.ancestorIds[index] = rootSavedNode.id;
+                    parentNode.data.inflowIds[index] = rootSavedNode.id;
                 } else {
-                    parentNode.data.ancestorIds.push(rootSavedNode.id);
+                    parentNode.data.inflowIds.push(rootSavedNode.id);
                 }
-                console.log(`After update - Parent node ${parentId} ancestorIds:`, parentNode.data.ancestorIds);
+                console.log(`After update - Parent node ${parentId} inflowIds:`, parentNode.data.inflowIds);
                 updatedNodes = updateInfluenceNode(updatedNodes, parentNode);
             }
         }
@@ -181,8 +181,8 @@ export const handleReplaceNode = async (
             type: n.type, 
             productId: (n.data as ProductNodeData).productDetails?.id,
             parentId: n.parentId,
-            ancestorIds: n.data.ancestorIds,
-            descendantIds: n.data.descendantIds
+            inflowIds: n.data.inflowIds,
+            outflowIds: n.data.outflowIds
         })));
         console.log('Final updated edges:', updatedEdges);
 
@@ -195,23 +195,23 @@ export const handleReplaceNode = async (
     }
 };
 
-const getAncestorIds = (nodeId: string, nodes: InfluenceNode[]): string[] => {
+const getInflowIds = (nodeId: string, nodes: InfluenceNode[]): string[] => {
     const node = nodes.find(n => n.id === nodeId);
-    if (!node || !node.data.ancestorIds) {
+    if (!node || !node.data.inflowIds) {
         return [];
     }
     return [
-        ...node.data.ancestorIds,
-        ...node.data.ancestorIds.flatMap(id => getAncestorIds(id, nodes))];
+        ...node.data.inflowIds,
+        ...node.data.inflowIds.flatMap(id => getInflowIds(id, nodes))];
 };
 
 const createEdgesBetweenNodes = (nodes: InfluenceNode[]): Edge[] => {
     return nodes.flatMap(node => {
-        if (node.data.ancestorIds) {
-            return node.data.ancestorIds.map(ancestorId => ({
-                id: `edge-${node.id}-${ancestorId}`,
-                source: node.id,  // The descendant (current node) is the source
-                target: ancestorId,  // The ancestor is the target
+        if (node.data.inflowIds) {
+            return node.data.inflowIds.map(inflowId => ({
+                id: `edge-${node.id}-${inflowId}`,
+                source: node.id,  // The outflow (current node) is the source
+                target: inflowId,  // The inflow is the target
                 sourcePosition: Position.Bottom,
                 targetPosition: Position.Top,
                 type: 'smoothstep',

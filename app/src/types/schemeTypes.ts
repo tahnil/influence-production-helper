@@ -6,7 +6,7 @@ import { ProcessNodeData, ProductNodeData } from "./reactFlowTypes";
 export interface ProductSchemeProduct {
     // this type is able to describe any product node in a React Flow graph
     // our app logic will be able to convert this to a React Flow node 
-    // and populate the graph with ancestors via producedBy and descendants via utilizedBy
+    // and populate the graph with inflows via producedBy and outflows via utilizedBy
     id: string; // unique id, not influence product id
     nodeData: ProductNodeData; // the content of the React Flow custom node's data attribute
     producedBy?: ProductSchemeProcess; // Optional: Only present if this product is an output of a process
@@ -16,7 +16,7 @@ export interface ProductSchemeProduct {
 export interface ProductSchemeProcess {
     // this type is able to describe any process node in a React Flow graph
     // our app logic will be able to convert this to a React Flow node
-    // and populate the graph with ancestors via inputs, the chain relevant output via 
+    // and populate the graph with inflows via inputs, the chain relevant output via 
     // primaryOutputId and the corresponding output product via outputs, as well as 
     // side products via outputs, where the product id does not match with primaryOutputId
     id: string; // unique id, not influence process id

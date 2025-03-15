@@ -34,8 +34,8 @@ const useProcessNodeBuilder = () => {
 
             const processNodeId = generateUniqueId();
 
-            const ancestorIds: string[] = [];
-            const descendantIds: string[] = [];
+            const inflowIds: string[] = [];
+            const outflowIds: string[] = [];
 
             const output = processDetails.outputs.find(output => output.productId === parentNodeProductId);
             // console.log(`### ProcessNode builder Step 1 ###
@@ -69,8 +69,8 @@ const useProcessNodeBuilder = () => {
                             ...productNode.data,
                             handleSelectProcess,
                             handleSerialize,
-                            ancestorIds: [], // Input products have no ancestors initially
-                            descendantIds: [processNodeId], // The process node is a descendant
+                            inflowIds: [], // Input products have no inflows initially
+                            outflowIds: [processNodeId], // The process node is a outflow
                         }
                     };
 
@@ -94,8 +94,8 @@ const useProcessNodeBuilder = () => {
                     inputProducts,
                     image: buildingIcon,
                     totalRuns,
-                    ancestorIds: productNodes.map(node => node.id), // Input products are ancestors of the process
-                    descendantIds: [parentId], // The parent product node is the descendant
+                    inflowIds: productNodes.map(node => node.id), // Input products are inflows of the process
+                    outflowIds: [parentId], // The parent product node is the outflow
                 },
             };
 

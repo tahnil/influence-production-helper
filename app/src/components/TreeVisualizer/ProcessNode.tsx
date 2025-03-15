@@ -14,8 +14,8 @@ export type ProcessNode = Node<
     image: string;
     processDetails: InfluenceProcess;
     inputProducts: ProcessInput[];
-    ancestorIds?: string[];
-    descendantIds?: string[];
+    inflowIds?: string[];
+    outflowIds?: string[];
   }
 >;
 

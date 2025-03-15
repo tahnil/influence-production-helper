@@ -2,7 +2,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { InfluenceNode, ProductNode } from '@/types/reactFlowTypes';
-import { getAllAncestors } from '@/utils/TreeVisualizer/nodeHelpers';
+import { getAllInflows } from '@/utils/TreeVisualizer/nodeHelpers';
 
 type SerializableNode = Omit<InfluenceNode, 'position' | 'width' | 'height' | 'data'> & {
     data: Omit<InfluenceNode['data'], 'handleSelectProcess' | 'handleSerialize'> & { isRoot?: boolean };
@@ -24,7 +24,7 @@ export const serializeProductionChain = async (
         return;
     }
 
-    const ancestorNodes = getAllAncestors(nodes, focalNodeId);
+    const inflowNodes = getAllInflows(nodes, focalNodeId);
     const serializedNodes: SerializableNode[] = [
         {
             ...focalNode,
@@ -35,7 +35,7 @@ export const serializeProductionChain = async (
                 handleSerialize: undefined,
             },
         },
-        ...ancestorNodes.map(node => ({
+        ...inflowNodes.map(node => ({
             ...node,
             data: { 
                 ...node.data, 

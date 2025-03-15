@@ -25,8 +25,8 @@ export type ProductNode = Node<{
     selectedProcessId: string | null;
     handleSelectProcess: (processId: string, nodeId: string) => void;
     handleSerialize: (focalProductId: string) => Promise<void>;
-    ancestorIds?: string[];
-    descendantIds?: string[];
+    inflowIds?: string[];
+    outflowIds?: string[];
 }>;
 
 const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
@@ -121,7 +121,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     }
   };
 
-  const hasAncestors = getDirectChildNodes(nodes as InfluenceNode[], id).length > 0;
+  const hasInflows = getDirectChildNodes(nodes as InfluenceNode[], id).length > 0;
 
   return (
     <div className="product-node bg-mako-900 border overflow-hidden rounded-lg shadow-lg w-72">
@@ -134,7 +134,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
           <div id="productName">
             <h2 className="text-xl font-bold text-white">{name}</h2>
           </div>
-          {hasAncestors && (
+          {hasInflows && (
             <div className="flex items-center justify-center">
               <Save
                 size={20}

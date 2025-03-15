@@ -125,12 +125,12 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
 
   const getFocalProductInfo = (config: ProductionChainConfig) => {
     const focalNode = config.nodes.find(node => node.data.productDetails?.id === config.focalProductId);
-    const ancestorProcess = config.nodes.find(node =>
-      node.type === 'processNode' && node.data.descendantIds?.includes(focalNode?.id || '')
+    const inflowProcess = config.nodes.find(node =>
+      node.type === 'processNode' && node.data.outflowIds?.includes(focalNode?.id || '')
     );
     return {
       productName: focalNode?.data.productDetails?.name || 'Unknown Product',
-      processName: ancestorProcess?.data.processDetails?.name || 'Unknown Process'
+      processName: inflowProcess?.data.processDetails?.name || 'Unknown Process'
     };
   };
 
@@ -174,7 +174,7 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
 
         // Modify the root node
         rootNode.parentId = undefined;
-        rootNode.data.descendantIds = [];
+        rootNode.data.outflowIds = [];
 
         // Reattach the function properties to each node
         const nodesWithCallbacks: InfluenceNode[] = savedNodes.map((node: any) => {
@@ -225,10 +225,10 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
 
         // Recreate edges based on the new nodes
         const newEdges: Edge[] = recalculatedNodes.flatMap((node: Node) => {
-          if ('ancestorIds' in node.data && Array.isArray(node.data.ancestorIds)) {
-            return node.data.ancestorIds.map((ancestorId: string) => ({
-              id: `edge-${ancestorId}-${node.id}`,
-              target: ancestorId,
+          if ('inflowIds' in node.data && Array.isArray(node.data.inflowIds)) {
+            return node.data.inflowIds.map((inflowId: string) => ({
+              id: `edge-${inflowId}-${node.id}`,
+              target: inflowId,
               source: node.id,
               type: 'smoothstep',
             }));
