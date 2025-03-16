@@ -1,6 +1,6 @@
 // components/TreeVisualizer/TreeRenderer.tsx
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
     ReactFlow,
     MiniMap,
@@ -42,9 +42,20 @@ const TreeRenderer: React.FC = () => {
     const { memoryDb } = usePouchDB();
     const { nodes, edges, onNodesChange, onEdgesChange, onConnect } = useReactFlowSetup();
     const { dagreConfig, updateDagreConfig } = useDagreConfig();
-    const { setNodes, setEdges, nodesRef, desiredAmount, setDesiredAmount, nodesReady, setNodesReady, rootNodeId, setRootNodeId } = useFlow();
+    const { 
+        setNodes,
+        setEdges,
+        nodesRef,
+        desiredAmount,
+        nodesReady,
+        setNodesReady,
+        rootNodeId,
+        setRootNodeId,
+        dispatch
+    } = useFlow();
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
+    const layoutTriggerRef = useRef<boolean>(false);
 
     const nodesInitialized = useNodesInitialized();
 
@@ -104,12 +115,27 @@ const TreeRenderer: React.FC = () => {
 
     useEffect(() => {
         if (nodesReady) {
-            const updatedNodes = calculateDesiredAmount(nodes, desiredAmount, rootNodeId);
-            const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
-            setNodes(layoutedNodes);
-            setEdges(layoutedEdges);
+            layoutTriggerRef.current = true;
         }
     }, [nodesReady, desiredAmount, dagreConfig]);
+
+    useEffect(() => {
+        if (layoutTriggerRef.current && nodesReady) {
+            const updatedNodes = calculateDesiredAmount(nodes, desiredAmount, rootNodeId);
+            const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
+
+            dispatch({
+                type: 'BATCH_UPDATE',
+                payload: {
+                    nodes: layoutedNodes,
+                    edges: layoutedEdges
+                }
+            });
+
+            // Reset the trigger after applying the layout
+            layoutTriggerRef.current = false;
+        }
+    }, [layoutTriggerRef.current]);
 
     useEffect(() => {
         const fetchAndBuildRootNode = async () => {
@@ -259,17 +285,17 @@ const TreeRenderer: React.FC = () => {
                         <AmountInput
                             label="Desired Amount"
                         />
-                        <IngredientsList 
-                            ingredients={ingredients} 
+                        <IngredientsList
+                            ingredients={ingredients}
                         /> {/* Display ingredients list */}
-                        <PouchDBViewer 
+                        <PouchDBViewer
                             handleSelectProcess={handleSelectProcess}
                             handleSerialize={handleSerialize}
                         />
                     </div>
                     <LayoutConfigPanel
-                            dagreConfig={dagreConfig}
-                            updateDagreConfig={updateDagreConfig}
+                        dagreConfig={dagreConfig}
+                        updateDagreConfig={updateDagreConfig}
                     />
                     <MiniMap
                         nodeStrokeWidth={3}
