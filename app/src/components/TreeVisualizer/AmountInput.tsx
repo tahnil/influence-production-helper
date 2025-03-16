@@ -15,11 +15,11 @@ const AmountInput: React.FC<AmountInputProps> = ({
     label, 
     className 
 }) => {
-    const { desiredAmount, setDesiredAmount } = useFlow();
+    const { desiredAmount, dispatch } = useFlow();
 
     const handleInputChange = (event: { floatValue: number | undefined }) => {
         const value = event.floatValue !== undefined ? event.floatValue : 1;
-        setDesiredAmount(value);
+        dispatch({ type: 'SET_DESIRED_AMOUNT', payload: value });
     };
 
     return (
