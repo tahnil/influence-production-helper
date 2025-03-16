@@ -61,7 +61,10 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { getProductDetails } = useInfluenceProductDetails();
   const { getProcessDetails } = useProcessDetails();
-  const { setNodes, setEdges, desiredAmount, nodesReady, setNodesReady, rootNodeId, setRootNodeId } = useFlow();
+  const { 
+    desiredAmount, 
+    dispatch 
+  } = useFlow();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -213,15 +216,11 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
 
         // Recalculate amounts for all nodes using the current desired amount
         console.log('calling calculateDesiredAmount with rootNode.id:', rootNode.id);
-        setRootNodeId(rootNode.id);
         const recalculatedNodes = calculateDesiredAmount(
           nodesWithCallbacks,
           desiredAmount,
           rootNode.id
         );
-
-        // Replace the existing nodes with the recalculated configuration
-        setNodes(recalculatedNodes);
 
         // Recreate edges based on the new nodes
         const newEdges: Edge[] = recalculatedNodes.flatMap((node: Node) => {
@@ -235,9 +234,17 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
           }
           return [];
         });
-        setEdges(newEdges);
 
-        setNodesReady(false);
+        // Use BATCH_UPDATE to update multiple state values at once
+        dispatch({
+          type: 'BATCH_UPDATE',
+          payload: {
+            nodes: recalculatedNodes,
+            edges: newEdges,
+            nodesReady: false,
+            rootNodeId: rootNode.id
+          }
+        });
 
         toast({
           title: "Configuration Replaced",
