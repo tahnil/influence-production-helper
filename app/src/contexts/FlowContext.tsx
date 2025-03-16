@@ -11,7 +11,7 @@ interface FlowState {
 }
 
 // Define the action types
-type FlowAction =
+export type FlowAction =
   | { type: 'SET_NODES'; payload: Node[] }
   | { type: 'SET_EDGES'; payload: Edge[] }
   | { type: 'SET_DESIRED_AMOUNT'; payload: number }

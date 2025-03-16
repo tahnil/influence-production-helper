@@ -13,6 +13,7 @@ import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmoun
 import { InfluenceNode, ProductNodeData } from '@/types/reactFlowTypes';
 import { PouchDBNodeDocument } from '@/types/pouchSchemes';
 import { Node, Edge, Position } from '@xyflow/react';
+import { FlowAction } from '@/contexts/FlowContext';
 
 const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] => {
     const idMap = new Map<string, string>();
@@ -43,14 +44,13 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
     });
   };
 
-export const handleReplaceNode = async (
+  export const handleReplaceNode = async (
     currentNodeId: string,
     configId: string,
     db: PouchDB.Database,
     nodes: Node[],
     edges: Edge[],
-    setNodes: React.Dispatch<React.SetStateAction<Node[]>>,
-    setEdges: React.Dispatch<React.SetStateAction<Edge[]>>,
+    dispatch: React.Dispatch<FlowAction>,
     nodesRef: React.MutableRefObject<Node[]>,
     handleSelectProcess: (processId: string, nodeId: string) => void,
     handleSerialize: (focalProductId: string) => void,
@@ -173,8 +173,14 @@ export const handleReplaceNode = async (
         console.log('Recalculated nodes:', recalculatedNodes.map(n => ({ id: n.id, amount: n.data.amount })));
 
         // Update the state
-        setNodes(recalculatedNodes);
-        setEdges(updatedEdges);
+        dispatch({
+            type: 'BATCH_UPDATE',
+            payload: {
+                nodes: recalculatedNodes,
+                edges: updatedEdges,
+                rootNodeId: treeRootNode.id
+            }
+        });
 
         console.log('Final updated nodes:', recalculatedNodes.map(n => ({ 
             id: n.id, 

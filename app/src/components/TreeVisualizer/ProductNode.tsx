@@ -30,7 +30,13 @@ export type ProductNode = Node<{
 }>;
 
 const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
-  const { nodes, edges, setNodes, setEdges, nodesRef, desiredAmount } = useFlow();
+  const { 
+    nodes, 
+    edges, 
+    nodesRef, 
+    desiredAmount,
+    dispatch 
+  } = useFlow();
   const { memoryDb } = usePouchDB();
   const { toast } = useToast();
   const {
@@ -80,8 +86,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
         memoryDb,
         nodes,
         edges,
-        setNodes,
-        setEdges,
+        dispatch,
         nodesRef,
         handleSelectProcess,
         handleSerialize,
