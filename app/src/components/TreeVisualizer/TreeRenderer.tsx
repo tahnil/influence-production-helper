@@ -42,7 +42,7 @@ const TreeRenderer: React.FC = () => {
     const { memoryDb } = usePouchDB();
     const { nodes, edges, onNodesChange, onEdgesChange, onConnect } = useReactFlowSetup();
     const { dagreConfig, updateDagreConfig } = useDagreConfig();
-    const { 
+    const {
         setNodes,
         setEdges,
         nodesRef,
@@ -56,6 +56,7 @@ const TreeRenderer: React.FC = () => {
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
     const layoutTriggerRef = useRef<boolean>(false);
+    const prevNodesRef = useRef<number>(0);
 
     const nodesInitialized = useNodesInitialized();
 
@@ -120,7 +121,7 @@ const TreeRenderer: React.FC = () => {
     }, [nodesReady, desiredAmount, dagreConfig]);
 
     useEffect(() => {
-        if (layoutTriggerRef.current && nodesReady) {
+        if ((layoutTriggerRef.current || prevNodesRef.current !== nodes.length) && nodesReady) {
             const updatedNodes = calculateDesiredAmount(nodes, desiredAmount, rootNodeId);
             const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
 
@@ -134,18 +135,19 @@ const TreeRenderer: React.FC = () => {
 
             // Reset the trigger after applying the layout
             layoutTriggerRef.current = false;
+            prevNodesRef.current = nodes.length;
         }
-    }, [layoutTriggerRef.current]);
+    }, [nodes, edges, nodesReady, desiredAmount, rootNodeId, dagreConfig, dispatch]);
 
     useEffect(() => {
         const fetchAndBuildRootNode = async () => {
             if (selectedProductId) {
-                dispatch({ 
-                    type: 'BATCH_UPDATE', 
-                    payload: { 
-                        nodes: [], 
-                        edges: [] 
-                    } 
+                dispatch({
+                    type: 'BATCH_UPDATE',
+                    payload: {
+                        nodes: [],
+                        edges: []
+                    }
                 });
 
                 const rootNode = await buildProductNode(
@@ -203,63 +205,18 @@ const TreeRenderer: React.FC = () => {
                     if (result) {
                         const { processNode, productNodes } = result;
 
-                        setNodes((currentNodes) => {
-                            let updatedNodes = [...currentNodes];
-                            let updatedEdges = [...edges];
-
-                            // Step 1: Find the existing ProcessNode with the same parentId
-                            const existingProcessNode = updatedNodes.find(
-                                (node) => node.parentId === parentNodeId && node.type === 'processNode'
-                            );
-
-                            if (existingProcessNode) {
-                                // Step 2: Recursively find and remove all outflows
-                                const outflowIds = getOutflowIds(existingProcessNode.id, updatedNodes);
-
-                                // Remove the existing ProcessNode and its outflows
-                                updatedNodes = updatedNodes.filter(
-                                    (node) => ![existingProcessNode.id, ...outflowIds].includes(node.id)
-                                );
-
-                                // Also remove all edges connected to these nodes
-                                updatedEdges = updatedEdges.filter(
-                                    (edge) => ![existingProcessNode.id, ...outflowIds].includes(edge.source)
-                                );
+                        dispatch({
+                            type: 'PROCESS_SELECTED',
+                            payload: {
+                                processNode,
+                                productNodes,
+                                parentNodeId,
+                                edges
                             }
-
-                            // Step 4: Add the new ProcessNode and its child ProductNodes
-                            updatedNodes = [...updatedNodes, processNode, ...productNodes];
-
-                            // Step 5: Create edges between the ProcessNode and each ProductNode
-                            const newEdges = productNodes.map((productNode) => ({
-                                id: `edge-${processNode.id}-${productNode.id}`,
-                                source: processNode.id,
-                                target: productNode.id,
-                                type: 'smoothstep',
-                            }));
-
-                            updatedEdges = [...updatedEdges, ...newEdges];
-
-                            // Step 6: Add the edge between the parent ProductNode and the ProcessNode
-                            updatedEdges.push({
-                                id: `edge-${parentNodeId}-${processNode.id}`,
-                                source: parentNodeId,
-                                target: processNode.id,
-                                type: 'smoothstep',
-                            });
-
-                            // Step 7: Set the inflowId in the data properties of the parent ProductNode to the id of current ProcessNode
-                            const parentProductNode = updatedNodes.find(
-                                (node) => node.id === parentNodeId && node.type === 'productNode'
-                            );
-
-                            if (parentProductNode) {
-                                parentProductNode.data.inflowIds = [processNode.id];
-                            }
-
-                            setEdges(updatedEdges);
-                            return updatedNodes;
                         });
+
+                        // Set layout trigger to recalculate positions
+                        layoutTriggerRef.current = true;
                     }
                 }
             }
