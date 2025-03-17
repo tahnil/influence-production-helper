@@ -67,7 +67,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig): { 
 
     const layoutedEdges = edges.map((edge) => ({
         ...edge,
-        type: 'smoothstep',
+        type: 'custom',
     }));
 
     return { layoutedNodes, layoutedEdges };

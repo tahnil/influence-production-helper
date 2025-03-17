@@ -79,7 +79,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         id: `edge-${processNode.id}-${productNode.id}`,
         source: processNode.id,
         target: productNode.id,
-        type: 'smoothstep',
+        type: 'custom',
       }));
 
       updatedEdges = [...updatedEdges, ...newEdges];
@@ -89,7 +89,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         id: `edge-${parentNodeId}-${processNode.id}`,
         source: parentNodeId,
         target: processNode.id,
-        type: 'smoothstep',
+        type: 'custom',
       });
 
       // Update inflowIds in parent ProductNode

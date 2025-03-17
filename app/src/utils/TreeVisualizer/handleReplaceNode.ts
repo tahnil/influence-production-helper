@@ -220,7 +220,7 @@ const createEdgesBetweenNodes = (nodes: InfluenceNode[]): Edge[] => {
                 target: inflowId,  // The inflow is the target
                 sourcePosition: Position.Bottom,
                 targetPosition: Position.Top,
-                type: 'smoothstep',
+                type: 'custom',
             }));
         }
         return [];

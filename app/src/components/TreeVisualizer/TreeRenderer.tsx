@@ -27,6 +27,7 @@ import PouchDBViewer from '@/components/TreeVisualizer/PouchDbViewer';
 import debounce from '@/utils/TreeVisualizer/debounce';
 import { useReactFlowSetup } from '@/hooks/useReactFlowSetup';
 import { useDagreConfig } from '@/hooks/useDagreConfig';
+import CustomEdge from '@/components/TreeVisualizer/CustomEdges';
 
 interface ProcessSelection {
     nodeId: string;
@@ -36,6 +37,11 @@ interface ProcessSelection {
 const nodeTypes = {
     productNode: ProductNode,
     processNode: ProcessNode,
+};
+
+// Define edge types
+const edgeTypes = {
+    custom: CustomEdge,
 };
 
 const TreeRenderer: React.FC = () => {
@@ -235,6 +241,7 @@ const TreeRenderer: React.FC = () => {
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
                     nodeTypes={nodeTypes}
+                    edgeTypes={edgeTypes}
                     fitView
                     style={{ backgroundColor: '#282C34' }}
                     minZoom={0.1}
