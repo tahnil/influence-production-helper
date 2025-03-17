@@ -140,8 +140,13 @@ const TreeRenderer: React.FC = () => {
     useEffect(() => {
         const fetchAndBuildRootNode = async () => {
             if (selectedProductId) {
-                setNodes([]); // Reset nodes when a new product is selected
-                setEdges([]); // Reset edges
+                dispatch({ 
+                    type: 'BATCH_UPDATE', 
+                    payload: { 
+                        nodes: [], 
+                        edges: [] 
+                    } 
+                });
 
                 const rootNode = await buildProductNode(
                     selectedProductId,
@@ -159,8 +164,13 @@ const TreeRenderer: React.FC = () => {
                         }
                     };
 
-                    setNodes([namedRootNode]);
-                    setRootNodeId(namedRootNode.id);
+                    dispatch({
+                        type: 'BATCH_UPDATE',
+                        payload: {
+                            nodes: [namedRootNode],
+                            rootNodeId: namedRootNode.id
+                        }
+                    });
                 }
             }
         };
