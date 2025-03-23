@@ -232,6 +232,38 @@ const TreeRenderer: React.FC = () => {
         fetchAndBuildProcessNode();
     }, [selectedProcessMap, buildProcessNode]);
 
+    // Add this effect to TreeRenderer.tsx, after the existing effects
+
+    useEffect(() => {
+        // This effect specifically handles node removal
+        // By checking if the number of nodes decreased
+        if (prevNodesRef.current > nodes.length) {
+            console.log("Node removal detected, triggering layout recalculation");
+
+            // Force layout recalculation
+            layoutTriggerRef.current = true;
+
+            // Apply the layout calculation on the next render
+            const timer = setTimeout(() => {
+                const updatedNodes = calculateDesiredAmount(nodes, desiredAmount, rootNodeId);
+                const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
+
+                dispatch({
+                    type: 'BATCH_UPDATE',
+                    payload: {
+                        nodes: layoutedNodes,
+                        edges: layoutedEdges
+                    }
+                });
+            }, 100);
+
+            return () => clearTimeout(timer);
+        }
+
+        // Update the reference for the next comparison
+        prevNodesRef.current = nodes.length;
+    }, [nodes.length]);
+
     return (
         <div className="w-full h-full relative">
             <div className="tree-renderer" style={{ width: '100%', height: '100%' }}>

@@ -1,3 +1,5 @@
+// contexts/FlowContext.tsx
+
 import React, { createContext, useContext, useReducer, useRef } from 'react';
 import { Node, Edge } from '@xyflow/react';
 import { getOutflowIds } from '@/utils/TreeVisualizer/getOutflowIds';
@@ -19,7 +21,8 @@ export type FlowAction =
   | { type: 'SET_NODES_READY'; payload: boolean }
   | { type: 'SET_ROOT_NODE_ID'; payload: string }
   | { type: 'BATCH_UPDATE'; payload: Partial<FlowState> }
-  | { type: 'PROCESS_SELECTED'; payload: { processNode: Node, productNodes: Node[], parentNodeId: string, edges: Edge[] } };
+  | { type: 'PROCESS_SELECTED'; payload: { processNode: Node, productNodes: Node[], parentNodeId: string, edges: Edge[] } }
+  | { type: 'REMOVE_PROCESS'; payload: { processNodeId: string } };
 
 // Initial state
 const initialState: FlowState = {
@@ -105,6 +108,72 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         ...state,
         nodes: updatedNodes,
         edges: updatedEdges
+      };
+    }
+    case 'REMOVE_PROCESS': {
+      const { processNodeId } = action.payload;
+      
+      // Find the process node
+      const processNode = state.nodes.find(node => node.id === processNodeId);
+      if (!processNode) return state;
+      
+      // Find the parent product node
+      const parentNodeId = processNode.parentId;
+      const parentNode = state.nodes.find(node => node.id === parentNodeId);
+      
+      // Get all descendant nodes (the entire subtree)
+      const nodesToRemove = new Set<string>();
+      nodesToRemove.add(processNodeId);
+      
+      // Function to recursively collect all descendants
+      const collectDescendants = (nodeId: string) => {
+        state.nodes.forEach(node => {
+          if (node.parentId === nodeId) {
+            nodesToRemove.add(node.id);
+            collectDescendants(node.id);
+          }
+        });
+      };
+      
+      // Collect all descendants of the process node
+      collectDescendants(processNodeId);
+      
+      // Remove the nodes
+      const updatedNodes: Node[] = state.nodes.filter(node => !nodesToRemove.has(node.id));
+      
+      // Remove edges connected to removed nodes
+      const updatedEdges: Edge[] = state.edges.filter(
+        edge => !nodesToRemove.has(edge.source) && !nodesToRemove.has(edge.target)
+      );
+      
+      // Update parent node's inflowIds if it exists
+      const updatedNodesWithFixedParent: Node[] = [...updatedNodes];
+      
+      if (parentNode && parentNode.data && 'inflowIds' in parentNode.data) {
+        const parentIndex = updatedNodesWithFixedParent.findIndex(node => node.id === parentNodeId);
+        if (parentIndex !== -1) {
+          const parentInflowIds = Array.isArray(parentNode.data.inflowIds) 
+            ? parentNode.data.inflowIds 
+            : [];
+            
+          const updatedInflowIds = parentInflowIds.filter(id => id !== processNodeId);
+          
+          updatedNodesWithFixedParent[parentIndex] = {
+            ...updatedNodesWithFixedParent[parentIndex],
+            data: {
+              ...updatedNodesWithFixedParent[parentIndex].data,
+              inflowIds: updatedInflowIds
+            }
+          };
+        }
+      }
+      
+      // Force a visual update by making a significant change to state
+      return {
+        ...state,
+        nodes: updatedNodesWithFixedParent,
+        edges: updatedEdges,
+        nodesReady: false // Force re-layout by temporarily marking nodes as not ready
       };
     }
     default:
