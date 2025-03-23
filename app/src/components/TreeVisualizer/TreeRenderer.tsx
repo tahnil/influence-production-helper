@@ -17,7 +17,7 @@ import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder'
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
 import LayoutConfigPanel from './LayoutConfigPanel';
 import applyDagreLayout from '@/utils/TreeVisualizer/applyDagreLayout';
-import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
+import useIngredientsList, { IngredientsListMode } from '@/utils/TreeVisualizer/useIngredientsList';
 import IngredientsList from './IngredientsList';
 import AmountInput from './AmountInput';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
@@ -109,7 +109,8 @@ const TreeRenderer: React.FC = () => {
         [memoryDb, nodesRef]
     );
 
-    const ingredients = useIngredientsList(nodes);
+    const rawMaterialIngredients = useIngredientsList(nodes, 'rawMaterials');
+    const allProductIngredients = useIngredientsList(nodes, 'allProducts');
     const updatedAmount = useMemo(() => calculateDesiredAmount(nodes, desiredAmount, rootNodeId), [desiredAmount]);
 
     useEffect(() => {
@@ -260,8 +261,9 @@ const TreeRenderer: React.FC = () => {
                             label="Desired Amount"
                         />
                         <IngredientsList
-                            ingredients={ingredients}
-                        /> {/* Display ingredients list */}
+                            rawMaterialIngredients={rawMaterialIngredients}
+                            allProductIngredients={allProductIngredients}
+                        />
                         <PouchDBViewer
                             handleSelectProcess={handleSelectProcess}
                             handleSerialize={handleSerialize}

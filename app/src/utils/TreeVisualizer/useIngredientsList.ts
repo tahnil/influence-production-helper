@@ -1,10 +1,5 @@
 // utils/TreeVisualizer/useIngredientsList.ts
 
-// get called from useEffect in TreeRenderer.tsx
-// get triggered by change in nodes state
-// retrieve the ingredients list from nodes
-// write the ingredients list to state
-
 import { useEffect, useState } from 'react';
 import { Node } from '@xyflow/react';
 import { ProductNodeData, ProcessNodeData } from '@/types/reactFlowTypes';
@@ -18,10 +13,13 @@ export interface Ingredient {
     unit: string;
 }
 
-function useIngredientsList(nodes: Node[]): Ingredient[] {
+export type IngredientsListMode = 'rawMaterials' | 'allProducts';
+
+function useIngredientsList(nodes: Node[], mode: IngredientsListMode = 'rawMaterials'): Ingredient[] {
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
 
     useEffect(() => {
+        // Function to check if a node is a leaf node (product with no inflows)
         const isLeafNode = (node: Node): boolean => {
             if (node.type === 'productNode') {
                 const childNodes = nodes.filter(n => n.parentId === node.id);
@@ -39,8 +37,17 @@ function useIngredientsList(nodes: Node[]): Ingredient[] {
             return false;
         };
 
-        const newIngredients = nodes
-            .filter(isLeafNode)
+        // Function to get all product nodes
+        const getProductNodes = (nodes: Node[]): Node[] => {
+            return nodes.filter(node => node.type === 'productNode');
+        };
+
+        // Choose nodes based on the selected mode
+        const nodesToInclude = mode === 'rawMaterials' 
+            ? nodes.filter(isLeafNode)
+            : getProductNodes(nodes);
+
+        const newIngredients = nodesToInclude
             .map(node => {
                 const data = node.data as ProductNodeData;
                 const { formattedValue, scale, unit } = formatNumber(data.amount, {
@@ -80,7 +87,7 @@ function useIngredientsList(nodes: Node[]): Ingredient[] {
             }, []);
 
         setIngredients(newIngredients);
-    }, [nodes]);
+    }, [nodes, mode]);
 
     return ingredients;
 }
