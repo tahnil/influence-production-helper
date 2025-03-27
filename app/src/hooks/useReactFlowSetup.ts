@@ -2,35 +2,40 @@
 
 import { useCallback } from 'react';
 import { 
-    Node, 
-    Edge, 
     OnNodesChange, 
     OnEdgesChange, 
     OnConnect,
-    useNodesState,
-    useEdgesState,
-    addEdge,
     applyNodeChanges,
-    applyEdgeChanges
+    applyEdgeChanges,
+    addEdge
 } from '@xyflow/react';
 import { useFlow } from '@/contexts/FlowContext';
 
 export const useReactFlowSetup = () => {
-    const { nodes, setNodes, edges, setEdges } = useFlow();
+    const { nodes, edges, dispatch } = useFlow();
 
     const onNodesChange: OnNodesChange = useCallback(
-        (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-        [setNodes]
+        (changes) => dispatch({ 
+            type: 'SET_NODES', 
+            payload: applyNodeChanges(changes, nodes) 
+        }),
+        [dispatch, nodes]
     );
 
     const onEdgesChange: OnEdgesChange = useCallback(
-        (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-        [setEdges]
+        (changes) => dispatch({ 
+            type: 'SET_EDGES', 
+            payload: applyEdgeChanges(changes, edges) 
+        }),
+        [dispatch, edges]
     );
 
     const onConnect: OnConnect = useCallback(
-        (connection) => setEdges((eds) => addEdge(connection, eds)),
-        [setEdges]
+        (connection) => dispatch({ 
+            type: 'SET_EDGES', 
+            payload: addEdge(connection, edges) 
+        }),
+        [dispatch, edges]
     );
 
     return {
