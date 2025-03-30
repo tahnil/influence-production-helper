@@ -50,7 +50,7 @@ export type FlowAction =
   | { type: 'APPLY_EDGE_CHANGES'; payload: EdgeChange[] }
   | { type: 'CONNECT_NODES'; payload: Connection }
   // Layout operation action
-  | { type: 'APPLY_LAYOUT'; payload: { nodes: Node[], edges: Edge[], needsReset?: boolean, dagreConfig: DagreConfig } }
+  | { type: 'APPLY_LAYOUT'; payload: { nodes: Node[], edges: Edge[], needsReset?: boolean, dagreConfig: DagreConfig, preserveEdgeReferences?: boolean } }
   ;
 
 // Initial state
@@ -91,14 +91,33 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         edges: addEdge(action.payload, state.edges)
       };
     case 'APPLY_LAYOUT': {
-      const { nodes, edges, needsReset = true, dagreConfig } = action.payload;
+      const { nodes, edges, needsReset = true, dagreConfig, preserveEdgeReferences = false } = action.payload;
+
+      // First, deduplicate the edges to ensure we're not processing duplicates
+      const uniqueEdges = deduplicateEdges(edges);
+
+      // Calculate desired amounts based on the rootNodeId
       const updatedNodes = calculateDesiredAmount(nodes, state.desiredAmount, state.rootNodeId);
-      const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
+
+      // Apply the dagre layout
+      const { layoutedNodes, layoutedEdges } = applyDagreLayout(
+        updatedNodes,
+        uniqueEdges,
+        dagreConfig,
+        preserveEdgeReferences
+      );
+
+      // Apply deduplication one more time to ensure the final state has no duplicates
+      const finalEdges = deduplicateEdges(layoutedEdges);
+
+      // Only update edges if the count actually changed
+      const shouldUpdateEdges = finalEdges.length !== state.edges.length;
 
       return {
         ...state,
         nodes: layoutedNodes,
-        edges: layoutedEdges,
+        // Only update edges reference if they actually changed in count
+        edges: shouldUpdateEdges ? finalEdges : state.edges,
         needsLayout: false
       };
     }
@@ -110,19 +129,19 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       return { ...state, rootNodeId: action.payload };
     case 'BATCH_UPDATE':
       return { ...state, ...action.payload };
-    
+
     // New cases for the thunk pattern
     case 'SELECT_PRODUCT':
-      return { 
-        ...state, 
-        nodes: [], 
-        edges: [], 
+      return {
+        ...state,
+        nodes: [],
+        edges: [],
         rootNodeId: '',
         isLoading: true,
         selectedProductId: action.payload.productId,
         error: null
       };
-    
+
     case 'PRODUCT_NODE_BUILT':
       return {
         ...state,
@@ -132,14 +151,14 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         needsLayout: true,
         error: null
       };
-    
+
     case 'PRODUCT_NODE_BUILD_ERROR':
       return {
         ...state,
         isLoading: false,
         error: action.payload.error
       };
-    
+
     case 'SELECT_PROCESS':
       return {
         ...state,
@@ -148,41 +167,57 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         isLoading: true,
         error: null
       };
-    
+
     case 'PROCESS_NODE_BUILT':
       // This is very similar to PROCESS_SELECTED but keeps naming consistent with our thunk pattern
       return processBuildResult(state, action.payload);
-    
+
     case 'PROCESS_NODE_BUILD_ERROR':
       return {
         ...state,
         isLoading: false,
         error: action.payload.error
       };
-    
+
     case 'PROCESS_SELECTED':
       return processBuildResult(state, action.payload);
-    
+
     default:
       return state;
   }
 };
 
+// Add this function to FlowContext.tsx
+const deduplicateEdges = (edges: Edge[]): Edge[] => {
+  // Create a map using edge id as key to ensure uniqueness
+  const uniqueEdges = new Map<string, Edge>();
+
+  // Only keep the last occurrence of each edge id
+  edges.forEach(edge => {
+    uniqueEdges.set(edge.id, edge);
+  });
+
+  return Array.from(uniqueEdges.values());
+};
+
 // Helper function to process the result of building a process node
 // This is used by both PROCESS_SELECTED and PROCESS_NODE_BUILT actions
 const processBuildResult = (
-  state: FlowState, 
+  state: FlowState,
   payload: { processNode: Node, productNodes: Node[], parentNodeId: string, edges: Edge[] }
 ) => {
   const { processNode, productNodes, parentNodeId, edges } = payload;
-  
+
+  // First deduplicate the incoming edges
+  const baseEdges = deduplicateEdges(edges);
+
   // Find the existing ProcessNode with the same parentId
   const existingProcessNode = state.nodes.find(
     (node) => node.parentId === parentNodeId && node.type === 'processNode'
   );
 
   let updatedNodes = [...state.nodes];
-  let updatedEdges = [...edges];
+  let updatedEdges = [...baseEdges];
 
   if (existingProcessNode) {
     // Get all outflow IDs
@@ -195,30 +230,55 @@ const processBuildResult = (
 
     // Remove connected edges
     updatedEdges = updatedEdges.filter(
-      (edge) => ![existingProcessNode.id, ...outflowIds].includes(edge.source)
+      (edge) => ![existingProcessNode.id, ...outflowIds].includes(edge.source) &&
+        ![existingProcessNode.id, ...outflowIds].includes(edge.target)
     );
   }
 
   // Add the new ProcessNode and its child ProductNodes
   updatedNodes = [...updatedNodes, processNode, ...productNodes];
 
+  // Create a map of existing edges for reference preservation
+  const existingEdgeMap = new Map(
+    updatedEdges.map(edge => [edge.id, edge])
+  );
+
   // Create edges between the ProcessNode and each ProductNode
-  const newEdges = productNodes.map((productNode) => ({
-    id: `edge-${processNode.id}-${productNode.id}`,
-    source: processNode.id,
-    target: productNode.id,
-    type: 'custom',
-  }));
-
-  updatedEdges = [...updatedEdges, ...newEdges];
-
-  // Add edge between parent ProductNode and ProcessNode
-  updatedEdges.push({
-    id: `edge-${parentNodeId}-${processNode.id}`,
-    source: parentNodeId,
-    target: processNode.id,
-    type: 'custom',
+  const newProductEdges = productNodes.map((productNode) => {
+    const edgeId = `edge-${processNode.id}-${productNode.id}`;
+    // Reuse existing edge if possible
+    if (existingEdgeMap.has(edgeId)) {
+      return existingEdgeMap.get(edgeId)!;
+    }
+    return {
+      id: edgeId,
+      source: processNode.id,
+      target: productNode.id,
+      type: 'custom',
+    };
   });
+
+  // Create edge between parent ProductNode and ProcessNode
+  const parentEdgeId = `edge-${parentNodeId}-${processNode.id}`;
+  let parentEdge;
+  if (existingEdgeMap.has(parentEdgeId)) {
+    parentEdge = existingEdgeMap.get(parentEdgeId)!;
+  } else {
+    parentEdge = {
+      id: parentEdgeId,
+      source: parentNodeId,
+      target: processNode.id,
+      type: 'custom',
+    };
+  }
+
+  // Combine all edges and deduplicate
+  updatedEdges = deduplicateEdges([
+    ...updatedEdges,
+    ...newProductEdges,
+    parentEdge
+  ]);
+
 
   // Update inflowIds in parent ProductNode
   const parentProductNode = updatedNodes.find(

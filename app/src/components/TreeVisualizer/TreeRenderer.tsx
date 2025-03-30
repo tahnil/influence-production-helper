@@ -75,6 +75,9 @@ const TreeRenderer: React.FC = () => {
     const rawMaterialIngredients = useIngredientsList(nodes, 'rawMaterials');
     const allProductIngredients = useIngredientsList(nodes, 'allProducts');
 
+    const layoutCountRef = useRef<number>(0);
+    const lastLayoutTimeRef = useRef<number>(Date.now());
+
     // Create debounced version of handleSelectProcess
     const handleSelectProcess = useCallback(
         debounce((processId: string, nodeId: string) => {
@@ -125,32 +128,59 @@ const TreeRenderer: React.FC = () => {
         }
     }, [nodes, nodesRef]);
 
-    // we're trying to replace this pattern with the new thunks pattern
-    // const { buildProductNode } = useProductNodeBuilder();
-    // const { buildProcessNode } = useProcessNodeBuilder();
-
     // Layout effect for applying layout when nodes change or layout is needed
     useEffect(() => {
-        console.log("Layout effect triggered with state:", {
-            nodesLength: nodes.length,
-            edgesLength: edges.length,  // Add this
-            prevNodesRef: prevNodesRef.current,
-            prevEdgesRef: prevEdgesRef.current,  // Add this ref for tracking edge changes
-            needsLayoutState: needsLayout,
-            nodesReadyState: nodesReady,
-            layoutTriggerRef: layoutTriggerRef.current,
-            rootNodeId
-        });
+        // Safety check to prevent infinite loops
+        const now = Date.now();
+        const timeSinceLastLayout = now - lastLayoutTimeRef.current;
+
+        // If we've triggered layout more than 10 times in 1 second, force break the loop
+        if (timeSinceLastLayout < 1000) {
+            layoutCountRef.current++;
+            if (layoutCountRef.current > 10) {
+                console.warn("Detected potential infinite loop in layout effect, breaking cycle");
+                layoutCountRef.current = 0;
+                return; // Force exit to break the loop
+            }
+        } else {
+            // Reset counter if more than 1 second has passed
+            layoutCountRef.current = 0;
+        }
+
+        lastLayoutTimeRef.current = now;
+        
+        // Calculate current edge count from a stable source
+        const currentEdgeCount = new Set(edges.map(e => e.id)).size;
+        const previousEdgeCount = prevEdgesRef.current;
+
+        // Only log when something actually changes to reduce noise
+        if (needsLayout || prevNodesRef.current !== nodes.length || previousEdgeCount !== currentEdgeCount) {
+            console.log("Layout effect triggered with state:", {
+                nodesLength: nodes.length,
+                edgesLength: currentEdgeCount,
+                prevNodesRef: prevNodesRef.current,
+                prevEdgesRef: previousEdgeCount,
+                needsLayoutState: needsLayout,
+                nodesReadyState: nodesReady,
+                layoutTriggerRef: layoutTriggerRef.current,
+                rootNodeId
+            });
+        }
 
         const hasStructuralChanges =
             prevNodesRef.current !== nodes.length ||
-            prevEdgesRef.current !== edges.length ||
+            prevEdgesRef.current !== currentEdgeCount ||
             needsLayout;
 
         // If nodes have been added or needsLayout is true, apply a preliminary layout
         // even if measurements aren't ready
         if (hasStructuralChanges) {
-            console.log("Applying preliminary layout");
+            console.log("Applying layout due to structural changes");
+
+            // Deduplicate edges before passing to layout
+            const uniqueEdges = Array.from(
+                new Map(edges.map(edge => [edge.id, edge])).values()
+            );
 
             // Use fallback dimensions for nodes without measurements
             const nodesWithFallbackDimensions = nodes.map(node => {
@@ -172,19 +202,20 @@ const TreeRenderer: React.FC = () => {
                 type: 'APPLY_LAYOUT',
                 payload: {
                     nodes: nodesWithFallbackDimensions,
-                    edges,
+                    edges: uniqueEdges,
                     dagreConfig,
+                    preserveEdgeReferences: true,
                     needsReset: true
                 }
             });
 
             prevNodesRef.current = nodes.length;
-            prevEdgesRef.current = edges.length;
+            prevEdgesRef.current = currentEdgeCount;
             return;
         }
-        // Apply more precise layout once all measurements are ready
-        if (layoutTriggerRef.current && nodesReady) {
-            console.log("Applying final layout with measurements");
+        // Fine-tuning layout with measurements - only if needed and not in reaction to structural changes
+        if (layoutTriggerRef.current && nodesReady && !hasStructuralChanges) {
+            console.log("Applying fine-tuning layout with measurements");
 
             // Dispatch the specialized layout action
             dispatch({
@@ -193,13 +224,14 @@ const TreeRenderer: React.FC = () => {
                     nodes,
                     edges,
                     dagreConfig,
+                    preserveEdgeReferences: true,
                     needsReset: false
                 }
             });
 
             layoutTriggerRef.current = false;
         }
-    }, [nodes, edges, nodesReady, rootNodeId, dagreConfig, needsLayout, dispatch]); // we removed desiredAmount from the dependency array
+    }, [nodes.length, edges, nodesReady, rootNodeId, dagreConfig, needsLayout, dispatch]);
 
     // Effect for product selection using the thunk pattern
     useEffect(() => {

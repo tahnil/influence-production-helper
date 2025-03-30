@@ -2,7 +2,7 @@ import { DagreConfig } from '@/hooks/useDagreConfig';
 import Dagre from '@dagrejs/dagre';
 import { Node, Edge, Position } from '@xyflow/react';
 
-function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
+function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig, preserveEdgeReferences: boolean = false) {
     const nodeFallbackWidth = 200;
     const nodeFallbackHeight = 100;
 
@@ -66,10 +66,26 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         };
     });
 
-    const layoutedEdges = edges.map((edge) => ({
-        ...edge,
-        type: 'custom',
-    }));
+    let layoutedEdges: Edge[];
+
+    if (preserveEdgeReferences) {
+        // Preserve references by only updating the edge type if needed
+        layoutedEdges = edges.map((edge) => {
+            if (edge.type === 'custom') {
+                return edge; // Keep the exact same reference
+            }
+            return {
+                ...edge,
+                type: 'custom',
+            };
+        });
+    } else {
+        // Create new edges (original behavior)
+        layoutedEdges = edges.map((edge) => ({
+            ...edge,
+            type: 'custom',
+        }));
+    }
 
     return { layoutedNodes, layoutedEdges };
 }
