@@ -10,6 +10,9 @@ import {
   addEdge
 } from '@xyflow/react';
 import { getOutflowIds } from '@/utils/TreeVisualizer/getOutflowIds';
+import { DagreConfig } from '@/hooks/useDagreConfig';
+import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
+import applyDagreLayout from '@/utils/TreeVisualizer/applyDagreLayout';
 
 // Define the state interface
 interface FlowState {
@@ -29,11 +32,27 @@ export type FlowAction =
   | { type: 'SET_NODES_READY'; payload: boolean }
   | { type: 'SET_ROOT_NODE_ID'; payload: string }
   | { type: 'BATCH_UPDATE'; payload: Partial<FlowState> }
-  | { type: 'PROCESS_SELECTED'; payload: { processNode: Node, productNodes: Node[], parentNodeId: string, edges: Edge[] } }
+  | {
+    type: 'PROCESS_SELECTED'; payload: {
+      processNode: Node,
+      productNodes: Node[],
+      parentNodeId: string,
+      edges: Edge[]
+    }
+  }
   // dedicated action types for React Flow operations
   | { type: 'APPLY_NODE_CHANGES'; payload: NodeChange[] }
   | { type: 'APPLY_EDGE_CHANGES'; payload: EdgeChange[] }
   | { type: 'CONNECT_NODES'; payload: Connection }
+  // dedicated action specifically for layout operations
+  | {
+    type: 'APPLY_LAYOUT'; payload: {
+      nodes: Node[],
+      edges: Edge[],
+      needsReset?: boolean,
+      dagreConfig: DagreConfig
+    }
+  }
   ;
 
 // Initial state
@@ -70,6 +89,18 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         ...state,
         edges: addEdge(action.payload, state.edges)
       };
+    case 'APPLY_LAYOUT': {
+      const { nodes, edges, needsReset = true, dagreConfig } = action.payload;
+      const updatedNodes = calculateDesiredAmount(nodes, state.desiredAmount, state.rootNodeId);
+      const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
+
+      return {
+        ...state,
+        nodes: layoutedNodes,
+        edges: layoutedEdges,
+        needsLayout: needsReset ? false : state.needsLayout
+      };
+    }
     case 'SET_DESIRED_AMOUNT':
       return { ...state, desiredAmount: action.payload };
     case 'SET_NODES_READY':

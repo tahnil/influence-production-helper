@@ -159,29 +159,14 @@ const TreeRenderer: React.FC = () => {
                 return node;
             });
 
-            // Calculate layout with fallback dimensions
-            // In the "Applying final layout with measurements" section:
-            console.log("Applying final layout with measurements");
-            const updatedNodes = calculateDesiredAmount(nodes, desiredAmount, rootNodeId);
-
-            // Log a sample of node positions before layout
-            console.log("Sample node positions before layout:",
-                nodes.slice(0, 3).map(n => ({ id: n.id, x: n.position.x, y: n.position.y }))
-            );
-
-            const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
-
-            // Log the same nodes after layout to see if positions changed
-            console.log("Sample node positions after layout:",
-                layoutedNodes.slice(0, 3).map(n => ({ id: n.id, x: n.position.x, y: n.position.y }))
-            );
-
+            // Dispatch the specialized layout action
             dispatch({
-                type: 'BATCH_UPDATE',
+                type: 'APPLY_LAYOUT',
                 payload: {
-                    nodes: layoutedNodes,
-                    edges: layoutedEdges,
-                    needsLayout: false
+                    nodes: nodesWithFallbackDimensions,
+                    edges,
+                    dagreConfig,
+                    needsReset: true
                 }
             });
 
@@ -190,14 +175,15 @@ const TreeRenderer: React.FC = () => {
         // Apply more precise layout once all measurements are ready
         else if (layoutTriggerRef.current && nodesReady) {
             console.log("Applying final layout with measurements");
-            const updatedNodes = calculateDesiredAmount(nodes, desiredAmount, rootNodeId);
-            const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
 
+            // Dispatch the specialized layout action
             dispatch({
-                type: 'BATCH_UPDATE',
+                type: 'APPLY_LAYOUT',
                 payload: {
-                    nodes: layoutedNodes,
-                    edges: layoutedEdges
+                    nodes,
+                    edges,
+                    dagreConfig,
+                    needsReset: false
                 }
             });
 
