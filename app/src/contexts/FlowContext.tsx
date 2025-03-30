@@ -99,7 +99,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         ...state,
         nodes: layoutedNodes,
         edges: layoutedEdges,
-        needsLayout: needsReset ? false : state.needsLayout
+        needsLayout: false
       };
     }
     case 'SET_DESIRED_AMOUNT':

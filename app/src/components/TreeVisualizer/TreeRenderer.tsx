@@ -68,6 +68,7 @@ const TreeRenderer: React.FC = () => {
     const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
     const layoutTriggerRef = useRef<boolean>(false);
     const prevNodesRef = useRef<number>(0);
+    const prevEdgesRef = useRef<number>(0);
 
     const nodesInitialized = useNodesInitialized();
 
@@ -130,17 +131,25 @@ const TreeRenderer: React.FC = () => {
 
     // Layout effect for applying layout when nodes change or layout is needed
     useEffect(() => {
-        console.log("Layout effect checking:", {
-            layoutTriggerRef: layoutTriggerRef.current,
-            prevNodesRef: prevNodesRef.current,
+        console.log("Layout effect triggered with state:", {
             nodesLength: nodes.length,
-            needsLayout,
-            nodesReady
+            edgesLength: edges.length,  // Add this
+            prevNodesRef: prevNodesRef.current,
+            prevEdgesRef: prevEdgesRef.current,  // Add this ref for tracking edge changes
+            needsLayoutState: needsLayout,
+            nodesReadyState: nodesReady,
+            layoutTriggerRef: layoutTriggerRef.current,
+            rootNodeId
         });
+
+        const hasStructuralChanges =
+            prevNodesRef.current !== nodes.length ||
+            prevEdgesRef.current !== edges.length ||
+            needsLayout;
 
         // If nodes have been added or needsLayout is true, apply a preliminary layout
         // even if measurements aren't ready
-        if (prevNodesRef.current !== nodes.length || needsLayout) {
+        if (hasStructuralChanges) {
             console.log("Applying preliminary layout");
 
             // Use fallback dimensions for nodes without measurements
@@ -170,9 +179,11 @@ const TreeRenderer: React.FC = () => {
             });
 
             prevNodesRef.current = nodes.length;
+            prevEdgesRef.current = edges.length;
+            return;
         }
         // Apply more precise layout once all measurements are ready
-        else if (layoutTriggerRef.current && nodesReady) {
+        if (layoutTriggerRef.current && nodesReady) {
             console.log("Applying final layout with measurements");
 
             // Dispatch the specialized layout action
@@ -188,7 +199,7 @@ const TreeRenderer: React.FC = () => {
 
             layoutTriggerRef.current = false;
         }
-    }, [nodes, edges, nodesReady, desiredAmount, rootNodeId, dagreConfig, needsLayout, dispatch]);
+    }, [nodes, edges, nodesReady, rootNodeId, dagreConfig, needsLayout, dispatch]); // we removed desiredAmount from the dependency array
 
     // Effect for product selection using the thunk pattern
     useEffect(() => {
