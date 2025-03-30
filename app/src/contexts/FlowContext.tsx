@@ -1,10 +1,13 @@
 import React, { createContext, useContext, useReducer, useRef } from 'react';
-import { 
-  Node, 
-  Edge, 
+import {
+  Node,
+  Edge,
   NodeChange,
   EdgeChange,
-  Connection
+  Connection,
+  applyNodeChanges,
+  applyEdgeChanges,
+  addEdge
 } from '@xyflow/react';
 import { getOutflowIds } from '@/utils/TreeVisualizer/getOutflowIds';
 
@@ -50,6 +53,23 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       return { ...state, nodes: action.payload };
     case 'SET_EDGES':
       return { ...state, edges: action.payload };
+    case 'APPLY_NODE_CHANGES':
+      return {
+        ...state,
+        nodes: applyNodeChanges(action.payload, state.nodes)
+      };
+
+    case 'APPLY_EDGE_CHANGES':
+      return {
+        ...state,
+        edges: applyEdgeChanges(action.payload, state.edges)
+      };
+
+    case 'CONNECT_NODES':
+      return {
+        ...state,
+        edges: addEdge(action.payload, state.edges)
+      };
     case 'SET_DESIRED_AMOUNT':
       return { ...state, desiredAmount: action.payload };
     case 'SET_NODES_READY':
@@ -132,7 +152,7 @@ interface FlowContextType {
   desiredAmount: number;
   nodesReady: boolean;
   rootNodeId: string;
-  needsLayout: boolean; 
+  needsLayout: boolean;
   nodesRef: React.MutableRefObject<Node[]>;
   dispatch: React.Dispatch<FlowAction>;
   setNodes: (nodes: React.SetStateAction<Node[]>) => void;
