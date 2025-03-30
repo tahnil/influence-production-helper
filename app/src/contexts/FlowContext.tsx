@@ -22,6 +22,11 @@ interface FlowState {
   nodesReady: boolean;
   rootNodeId: string;
   needsLayout: boolean;
+  isLoading: boolean;
+  selectedProductId: string | null;
+  selectedProcessId: string | null;
+  processingNodeId: string | null;
+  error: Error | null;
 }
 
 // Define the action types
@@ -32,27 +37,20 @@ export type FlowAction =
   | { type: 'SET_NODES_READY'; payload: boolean }
   | { type: 'SET_ROOT_NODE_ID'; payload: string }
   | { type: 'BATCH_UPDATE'; payload: Partial<FlowState> }
-  | {
-    type: 'PROCESS_SELECTED'; payload: {
-      processNode: Node,
-      productNodes: Node[],
-      parentNodeId: string,
-      edges: Edge[]
-    }
-  }
-  // dedicated action types for React Flow operations
+  | { type: 'PROCESS_SELECTED'; payload: { processNode: Node, productNodes: Node[], parentNodeId: string, edges: Edge[] } }
+  // New action types for the thunk pattern
+  | { type: 'SELECT_PRODUCT'; payload: { productId: string, amount: number } }
+  | { type: 'PRODUCT_NODE_BUILT'; payload: { node: Node } }
+  | { type: 'PRODUCT_NODE_BUILD_ERROR'; payload: { error: Error } }
+  | { type: 'SELECT_PROCESS'; payload: { processId: string, parentNodeId: string, parentNodeAmount: number, parentNodeProductId: string } }
+  | { type: 'PROCESS_NODE_BUILT'; payload: { processNode: Node, productNodes: Node[], parentNodeId: string, edges: Edge[] } }
+  | { type: 'PROCESS_NODE_BUILD_ERROR'; payload: { error: Error } }
+  // React Flow operation actions
   | { type: 'APPLY_NODE_CHANGES'; payload: NodeChange[] }
   | { type: 'APPLY_EDGE_CHANGES'; payload: EdgeChange[] }
   | { type: 'CONNECT_NODES'; payload: Connection }
-  // dedicated action specifically for layout operations
-  | {
-    type: 'APPLY_LAYOUT'; payload: {
-      nodes: Node[],
-      edges: Edge[],
-      needsReset?: boolean,
-      dagreConfig: DagreConfig
-    }
-  }
+  // Layout operation action
+  | { type: 'APPLY_LAYOUT'; payload: { nodes: Node[], edges: Edge[], needsReset?: boolean, dagreConfig: DagreConfig } }
   ;
 
 // Initial state
@@ -63,6 +61,11 @@ const initialState: FlowState = {
   nodesReady: false,
   rootNodeId: 'root',
   needsLayout: false,
+  isLoading: false,
+  selectedProductId: null,
+  selectedProcessId: null,
+  processingNodeId: null,
+  error: null,
 };
 
 // Create the reducer function
@@ -77,13 +80,11 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         ...state,
         nodes: applyNodeChanges(action.payload, state.nodes)
       };
-
     case 'APPLY_EDGE_CHANGES':
       return {
         ...state,
         edges: applyEdgeChanges(action.payload, state.edges)
       };
-
     case 'CONNECT_NODES':
       return {
         ...state,
@@ -109,72 +110,133 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       return { ...state, rootNodeId: action.payload };
     case 'BATCH_UPDATE':
       return { ...state, ...action.payload };
-    case 'PROCESS_SELECTED': {
-      const { processNode, productNodes, parentNodeId, edges } = action.payload;
-
-      // Find the existing ProcessNode with the same parentId
-      const existingProcessNode = state.nodes.find(
-        (node) => node.parentId === parentNodeId && node.type === 'processNode'
-      );
-
-      let updatedNodes = [...state.nodes];
-      let updatedEdges = [...edges];
-
-      if (existingProcessNode) {
-        // Get all outflow IDs
-        const outflowIds = getOutflowIds(existingProcessNode.id, updatedNodes);
-
-        // Remove existing ProcessNode and its outflows
-        updatedNodes = updatedNodes.filter(
-          (node) => ![existingProcessNode.id, ...outflowIds].includes(node.id)
-        );
-
-        // Remove connected edges
-        updatedEdges = updatedEdges.filter(
-          (edge) => ![existingProcessNode.id, ...outflowIds].includes(edge.source)
-        );
-      }
-
-      // Add the new ProcessNode and its child ProductNodes
-      updatedNodes = [...updatedNodes, processNode, ...productNodes];
-
-      // Create edges between the ProcessNode and each ProductNode
-      const newEdges = productNodes.map((productNode) => ({
-        id: `edge-${processNode.id}-${productNode.id}`,
-        source: processNode.id,
-        target: productNode.id,
-        type: 'custom',
-      }));
-
-      updatedEdges = [...updatedEdges, ...newEdges];
-
-      // Add edge between parent ProductNode and ProcessNode
-      updatedEdges.push({
-        id: `edge-${parentNodeId}-${processNode.id}`,
-        source: parentNodeId,
-        target: processNode.id,
-        type: 'custom',
-      });
-
-      // Update inflowIds in parent ProductNode
-      const parentProductNode = updatedNodes.find(
-        (node) => node.id === parentNodeId && node.type === 'productNode'
-      );
-
-      if (parentProductNode) {
-        parentProductNode.data.inflowIds = [processNode.id];
-      }
-
+    
+    // New cases for the thunk pattern
+    case 'SELECT_PRODUCT':
+      return { 
+        ...state, 
+        nodes: [], 
+        edges: [], 
+        rootNodeId: '',
+        isLoading: true,
+        selectedProductId: action.payload.productId,
+        error: null
+      };
+    
+    case 'PRODUCT_NODE_BUILT':
       return {
         ...state,
-        nodes: updatedNodes,
-        edges: updatedEdges,
+        nodes: [action.payload.node],
+        rootNodeId: action.payload.node.id,
+        isLoading: false,
         needsLayout: true,
+        error: null
       };
-    }
+    
+    case 'PRODUCT_NODE_BUILD_ERROR':
+      return {
+        ...state,
+        isLoading: false,
+        error: action.payload.error
+      };
+    
+    case 'SELECT_PROCESS':
+      return {
+        ...state,
+        selectedProcessId: action.payload.processId,
+        processingNodeId: action.payload.parentNodeId,
+        isLoading: true,
+        error: null
+      };
+    
+    case 'PROCESS_NODE_BUILT':
+      // This is very similar to PROCESS_SELECTED but keeps naming consistent with our thunk pattern
+      return processBuildResult(state, action.payload);
+    
+    case 'PROCESS_NODE_BUILD_ERROR':
+      return {
+        ...state,
+        isLoading: false,
+        error: action.payload.error
+      };
+    
+    case 'PROCESS_SELECTED':
+      return processBuildResult(state, action.payload);
+    
     default:
       return state;
   }
+};
+
+// Helper function to process the result of building a process node
+// This is used by both PROCESS_SELECTED and PROCESS_NODE_BUILT actions
+const processBuildResult = (
+  state: FlowState, 
+  payload: { processNode: Node, productNodes: Node[], parentNodeId: string, edges: Edge[] }
+) => {
+  const { processNode, productNodes, parentNodeId, edges } = payload;
+  
+  // Find the existing ProcessNode with the same parentId
+  const existingProcessNode = state.nodes.find(
+    (node) => node.parentId === parentNodeId && node.type === 'processNode'
+  );
+
+  let updatedNodes = [...state.nodes];
+  let updatedEdges = [...edges];
+
+  if (existingProcessNode) {
+    // Get all outflow IDs
+    const outflowIds = getOutflowIds(existingProcessNode.id, updatedNodes);
+
+    // Remove existing ProcessNode and its outflows
+    updatedNodes = updatedNodes.filter(
+      (node) => ![existingProcessNode.id, ...outflowIds].includes(node.id)
+    );
+
+    // Remove connected edges
+    updatedEdges = updatedEdges.filter(
+      (edge) => ![existingProcessNode.id, ...outflowIds].includes(edge.source)
+    );
+  }
+
+  // Add the new ProcessNode and its child ProductNodes
+  updatedNodes = [...updatedNodes, processNode, ...productNodes];
+
+  // Create edges between the ProcessNode and each ProductNode
+  const newEdges = productNodes.map((productNode) => ({
+    id: `edge-${processNode.id}-${productNode.id}`,
+    source: processNode.id,
+    target: productNode.id,
+    type: 'custom',
+  }));
+
+  updatedEdges = [...updatedEdges, ...newEdges];
+
+  // Add edge between parent ProductNode and ProcessNode
+  updatedEdges.push({
+    id: `edge-${parentNodeId}-${processNode.id}`,
+    source: parentNodeId,
+    target: processNode.id,
+    type: 'custom',
+  });
+
+  // Update inflowIds in parent ProductNode
+  const parentProductNode = updatedNodes.find(
+    (node) => node.id === parentNodeId && node.type === 'productNode'
+  );
+
+  if (parentProductNode) {
+    parentProductNode.data.inflowIds = [processNode.id];
+  }
+
+  return {
+    ...state,
+    nodes: updatedNodes,
+    edges: updatedEdges,
+    needsLayout: true,
+    isLoading: false,
+    error: null
+  };
 };
 
 interface FlowContextType {
@@ -184,6 +246,8 @@ interface FlowContextType {
   nodesReady: boolean;
   rootNodeId: string;
   needsLayout: boolean;
+  isLoading: boolean;
+  error: Error | null;
   nodesRef: React.MutableRefObject<Node[]>;
   dispatch: React.Dispatch<FlowAction>;
   setNodes: (nodes: React.SetStateAction<Node[]>) => void;
@@ -260,12 +324,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <FlowContext.Provider
       value={{
-        nodes: state.nodes,
-        edges: state.edges,
-        desiredAmount: state.desiredAmount,
-        nodesReady: state.nodesReady,
-        rootNodeId: state.rootNodeId,
-        needsLayout: state.needsLayout,
+        ...state,
         nodesRef,
         setNodes,
         setEdges,

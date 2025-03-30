@@ -11,7 +11,7 @@ import { useFlow } from '@/contexts/FlowContext';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProcessNode from './ProcessNode';
 import ProductNode from './ProductNode';
-import { ProductNode as ProductNodeType, ProcessNode as ProcessNodeType, InfluenceNode } from '@/types/reactFlowTypes';
+import { ProductNode as ProductNodeType, ProcessNode as InfluenceNode } from '@/types/reactFlowTypes';
 import '@xyflow/react/dist/style.css';
 import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
@@ -26,6 +26,7 @@ import debounce from '@/utils/TreeVisualizer/debounce';
 import { useReactFlowSetup } from '@/hooks/useReactFlowSetup';
 import { useDagreConfig } from '@/hooks/useDagreConfig';
 import CustomEdge from '@/components/TreeVisualizer/CustomEdges';
+import { selectProductThunk, selectProcessThunk } from '@/utils/TreeVisualizer/flowThunks';
 
 interface ProcessSelection {
     nodeId: string;
@@ -42,20 +43,25 @@ const edgeTypes = {
     custom: CustomEdge,
 };
 
+/**
+ * TreeRenderer component for visualizing production chains
+ * 
+ * This component is responsible for rendering the production chain graph
+ * and handling user interactions like selecting products and processes.
+ */
 const TreeRenderer: React.FC = () => {
     const { memoryDb } = usePouchDB();
     const { nodes, edges, onNodesChange, onEdgesChange, onConnect } = useReactFlowSetup();
     const { dagreConfig, updateDagreConfig } = useDagreConfig();
     const {
-        setNodes,
-        setEdges,
         nodesRef,
         desiredAmount,
         nodesReady,
         setNodesReady,
         rootNodeId,
-        setRootNodeId,
         needsLayout,
+        isLoading,
+        error,
         dispatch
     } = useFlow();
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
@@ -65,16 +71,10 @@ const TreeRenderer: React.FC = () => {
 
     const nodesInitialized = useNodesInitialized();
 
-    useEffect(() => {
-        if (nodes.length !== nodesRef.current.length) {
-            nodesRef.current = nodes;
-            // console.log('TreeRenderer nodes updated:', nodes.length);
-        }
-    }, [nodes, nodesRef]);
+    const rawMaterialIngredients = useIngredientsList(nodes, 'rawMaterials');
+    const allProductIngredients = useIngredientsList(nodes, 'allProducts');
 
-    const { buildProductNode } = useProductNodeBuilder();
-    const { buildProcessNode } = useProcessNodeBuilder();
-
+    // Create debounced version of handleSelectProcess
     const handleSelectProcess = useCallback(
         debounce((processId: string, nodeId: string) => {
             // Add a new log entry with the node ID and process ID to the state
@@ -82,12 +82,6 @@ const TreeRenderer: React.FC = () => {
                 ...prevMap,
                 { nodeId, processId },
             ]);
-
-            // console.log('Selected Process Map:', [
-            //     ...selectedProcessMap,
-            //     { nodeId, processId },
-            // ]);
-
         }, 300),
         []
     );
@@ -108,17 +102,13 @@ const TreeRenderer: React.FC = () => {
         [memoryDb, nodesRef]
     );
 
-    const rawMaterialIngredients = useIngredientsList(nodes, 'rawMaterials');
-    const allProductIngredients = useIngredientsList(nodes, 'allProducts');
-    const updatedAmount = useMemo(() => calculateDesiredAmount(nodes, desiredAmount, rootNodeId), [desiredAmount]);
-
     useEffect(() => {
         if (nodesInitialized && nodes.every(node => node.measured?.width && node.measured?.height)) {
             setNodesReady(true);
         } else {
             setNodesReady(false);
         }
-    }, [nodesInitialized, nodes]);
+    }, [nodesInitialized, nodes]); // check of setNodesReady makes trouble
 
     useEffect(() => {
         if (nodesReady) {
@@ -126,8 +116,19 @@ const TreeRenderer: React.FC = () => {
         }
     }, [nodesReady, desiredAmount, dagreConfig]);
 
-    // In TreeRenderer.tsx, update the layout effect:
+    // START check if we still need this code section
+    useEffect(() => {
+        if (nodes.length !== nodesRef.current.length) {
+            nodesRef.current = nodes;
+            // console.log('TreeRenderer nodes updated:', nodes.length);
+        }
+    }, [nodes, nodesRef]);
 
+    // we're trying to replace this pattern with the new thunks pattern
+    // const { buildProductNode } = useProductNodeBuilder();
+    // const { buildProcessNode } = useProcessNodeBuilder();
+
+    // Layout effect for applying layout when nodes change or layout is needed
     useEffect(() => {
         console.log("Layout effect checking:", {
             layoutTriggerRef: layoutTriggerRef.current,
@@ -189,91 +190,46 @@ const TreeRenderer: React.FC = () => {
         }
     }, [nodes, edges, nodesReady, desiredAmount, rootNodeId, dagreConfig, needsLayout, dispatch]);
 
+    // Effect for product selection using the thunk pattern
     useEffect(() => {
-        const fetchAndBuildRootNode = async () => {
-            if (selectedProductId) {
-                dispatch({
-                    type: 'BATCH_UPDATE',
-                    payload: {
-                        nodes: [],
-                        edges: []
-                    }
-                });
+        if (selectedProductId) {
+            selectProductThunk(
+                dispatch,
+                selectedProductId,
+                desiredAmount,
+                handleSelectProcess,
+                handleSerialize
+            );
+        }
+    }, [selectedProductId, desiredAmount, dispatch, handleSelectProcess, handleSerialize]);
 
-                const rootNode = await buildProductNode(
-                    selectedProductId,
-                    desiredAmount,
+    // Effect for process selection using the thunk pattern
+    useEffect(() => {
+        if (selectedProcessMap.length > 0) {
+            const lastEntry = selectedProcessMap[selectedProcessMap.length - 1];
+            const { nodeId: parentNodeId, processId } = lastEntry;
+
+            if (processId && parentNodeId) {
+                // Find the parent node and its amount
+                const parentNode = nodesRef.current.find((node) => node.id === parentNodeId) as ProductNodeType;
+                if (!parentNode) return;
+
+                const parentNodeAmount = parentNode?.data?.amount ?? 1;
+                const parentNodeProductId = parentNode?.data?.productDetails?.id ?? '';
+
+                selectProcessThunk(
+                    dispatch,
+                    processId,
+                    parentNodeId,
+                    parentNodeAmount,
+                    parentNodeProductId,
+                    edges,
+                    handleSelectProcess,
+                    handleSerialize
                 );
-
-                if (rootNode) {
-                    // console.log('Root node created:', rootNode);
-                    const namedRootNode = {
-                        ...rootNode,
-                        data: {
-                            ...rootNode.data,
-                            handleSelectProcess,
-                            handleSerialize,
-                        }
-                    };
-
-                    dispatch({
-                        type: 'BATCH_UPDATE',
-                        payload: {
-                            nodes: [namedRootNode],
-                            rootNodeId: namedRootNode.id
-                        }
-                    });
-                }
             }
-        };
-
-        fetchAndBuildRootNode();
-    }, [selectedProductId, buildProductNode]);
-
-    useEffect(() => {
-        const fetchAndBuildProcessNode = async () => {
-            if (selectedProcessMap.length > 0) {
-                const lastEntry = selectedProcessMap[selectedProcessMap.length - 1];
-                const { nodeId: parentNodeId, processId } = lastEntry;
-
-                if (processId && parentNodeId) {
-                    // Find the parent node and its amount
-                    const parentNode = nodes.find((node) => node.id === parentNodeId);
-                    const parentNodeAmount: number = (parentNode as ProductNodeType)?.data?.amount ?? 1;
-                    const parentNodeProductId: string = (parentNode as ProductNodeType)?.data?.productDetails?.id ?? '';
-                    // console.log(`Amount for parentNode`, parentNode ,`: ${parentNodeAmount}`);
-
-                    // Build the process node
-                    const result = await buildProcessNode(
-                        processId,
-                        parentNodeId,
-                        parentNodeAmount,
-                        parentNodeProductId,
-                        handleSelectProcess,
-                        handleSerialize,
-                    );
-                    if (result) {
-                        const { processNode, productNodes } = result;
-
-                        dispatch({
-                            type: 'PROCESS_SELECTED',
-                            payload: {
-                                processNode,
-                                productNodes,
-                                parentNodeId,
-                                edges
-                            }
-                        });
-
-                        // Set layout trigger to recalculate positions
-                        layoutTriggerRef.current = true;
-                    }
-                }
-            }
-        };
-
-        fetchAndBuildProcessNode();
-    }, [selectedProcessMap, buildProcessNode]);
+        }
+    }, [selectedProcessMap, dispatch, edges, nodesRef, handleSelectProcess, handleSerialize]);
 
     return (
         <div className="w-full h-full relative">
