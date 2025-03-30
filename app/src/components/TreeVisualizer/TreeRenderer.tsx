@@ -57,6 +57,7 @@ const TreeRenderer: React.FC = () => {
         setNodesReady,
         rootNodeId,
         setRootNodeId,
+        needsLayout,
         dispatch
     } = useFlow();
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
@@ -128,7 +129,7 @@ const TreeRenderer: React.FC = () => {
     }, [nodesReady, desiredAmount, dagreConfig]);
 
     useEffect(() => {
-        if ((layoutTriggerRef.current || prevNodesRef.current !== nodes.length) && nodesReady) {
+        if ((layoutTriggerRef.current || prevNodesRef.current !== nodes.length || needsLayout) && nodesReady) {
             const updatedNodes = calculateDesiredAmount(nodes, desiredAmount, rootNodeId);
             const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
 
@@ -136,7 +137,8 @@ const TreeRenderer: React.FC = () => {
                 type: 'BATCH_UPDATE',
                 payload: {
                     nodes: layoutedNodes,
-                    edges: layoutedEdges
+                    edges: layoutedEdges,
+                    needsLayout: false
                 }
             });
 
@@ -144,7 +146,7 @@ const TreeRenderer: React.FC = () => {
             layoutTriggerRef.current = false;
             prevNodesRef.current = nodes.length;
         }
-    }, [nodes, edges, nodesReady, desiredAmount, rootNodeId, dagreConfig, dispatch]);
+    }, [nodes, edges, nodesReady, desiredAmount, rootNodeId, dagreConfig, needsLayout, dispatch]);
 
     useEffect(() => {
         const fetchAndBuildRootNode = async () => {

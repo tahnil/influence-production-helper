@@ -15,6 +15,7 @@ interface FlowState {
   desiredAmount: number;
   nodesReady: boolean;
   rootNodeId: string;
+  needsLayout: boolean;
 }
 
 // Define the action types
@@ -38,7 +39,8 @@ const initialState: FlowState = {
   edges: [],
   desiredAmount: 1,
   nodesReady: false,
-  rootNodeId: 'root'
+  rootNodeId: 'root',
+  needsLayout: false,
 };
 
 // Create the reducer function
@@ -115,7 +117,8 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       return {
         ...state,
         nodes: updatedNodes,
-        edges: updatedEdges
+        edges: updatedEdges,
+        needsLayout: true,
       };
     }
     default:
@@ -129,6 +132,7 @@ interface FlowContextType {
   desiredAmount: number;
   nodesReady: boolean;
   rootNodeId: string;
+  needsLayout: boolean; 
   nodesRef: React.MutableRefObject<Node[]>;
   dispatch: React.Dispatch<FlowAction>;
   setNodes: (nodes: React.SetStateAction<Node[]>) => void;
@@ -210,6 +214,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         desiredAmount: state.desiredAmount,
         nodesReady: state.nodesReady,
         rootNodeId: state.rootNodeId,
+        needsLayout: state.needsLayout,
         nodesRef,
         setNodes,
         setEdges,
