@@ -2,18 +2,11 @@ import { DagreConfig } from '@/hooks/useDagreConfig';
 import Dagre from '@dagrejs/dagre';
 import { Node, Edge, Position } from '@xyflow/react';
 
-function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig): { layoutedNodes: Node[]; layoutedEdges: Edge[] } {
-
+function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     const nodeFallbackWidth = 200;
     const nodeFallbackHeight = 100;
 
-    const allNodesHaveDimensions = nodes.every(node => node.measured?.width && node.measured?.height);
-
-    if (!allNodesHaveDimensions) {
-        console.warn("Not all nodes have dimensions. Delaying Dagre layout.");
-        return { layoutedNodes: nodes, layoutedEdges: edges };
-    }
-
+    // Use measurements if available, otherwise use fallback dimensions
     const dagreGraph = new Dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 
@@ -30,7 +23,10 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig): { 
     });
 
     nodes.forEach((node) => {
-        dagreGraph.setNode(node.id, { width: node.measured?.width || nodeFallbackWidth, height: node.measured?.height || nodeFallbackHeight });
+        dagreGraph.setNode(node.id, { 
+            width: node.measured?.width || nodeFallbackWidth, 
+            height: node.measured?.height || nodeFallbackHeight 
+        });
     });
 
     edges.forEach((edge) => {
@@ -42,15 +38,20 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig): { 
     // Map the positions from Dagre back to React Flow nodes
     const layoutedNodes = nodes.map((node) => {
         const nodeWithPosition = dagreGraph.node(node.id);
+        const width = node.measured?.width || nodeFallbackWidth;
+        const height = node.measured?.height || nodeFallbackHeight;
 
-        let relativeX = nodeWithPosition.x - (node.measured?.width || nodeFallbackWidth) / 2;
-        let relativeY = nodeWithPosition.y - (node.measured?.height || nodeFallbackHeight) / 2;
+        let relativeX = nodeWithPosition.x - width / 2;
+        let relativeY = nodeWithPosition.y - height / 2;
 
         if (node.parentId) {
             const parentNode = dagreGraph.node(node.parentId);
             if (parentNode) {
-                relativeX = nodeWithPosition.x - parentNode.x + (parentNode.width - (node.measured?.width || nodeFallbackWidth)) / 2;
-                relativeY = nodeWithPosition.y - parentNode.y + (parentNode.height - (node.measured?.height || nodeFallbackHeight)) / 2;
+                const parentWidth = nodes.find(n => n.id === node.parentId)?.measured?.width || nodeFallbackWidth;
+                const parentHeight = nodes.find(n => n.id === node.parentId)?.measured?.height || nodeFallbackHeight;
+                
+                relativeX = nodeWithPosition.x - parentNode.x + (parentWidth - width) / 2;
+                relativeY = nodeWithPosition.y - parentNode.y + (parentHeight - height) / 2;
             }
         }
 

@@ -128,10 +128,53 @@ const TreeRenderer: React.FC = () => {
         }
     }, [nodesReady, desiredAmount, dagreConfig]);
 
+    // In TreeRenderer.tsx, update the layout effect:
+
     useEffect(() => {
-        if ((layoutTriggerRef.current || prevNodesRef.current !== nodes.length || needsLayout) && nodesReady) {
+        console.log("Layout effect checking:", {
+            layoutTriggerRef: layoutTriggerRef.current,
+            prevNodesRef: prevNodesRef.current,
+            nodesLength: nodes.length,
+            needsLayout,
+            nodesReady
+        });
+
+        // If nodes have been added or needsLayout is true, apply a preliminary layout
+        // even if measurements aren't ready
+        if (prevNodesRef.current !== nodes.length || needsLayout) {
+            console.log("Applying preliminary layout");
+
+            // Use fallback dimensions for nodes without measurements
+            const nodesWithFallbackDimensions = nodes.map(node => {
+                if (!node.measured?.width || !node.measured?.height) {
+                    return {
+                        ...node,
+                        measured: {
+                            width: node.type === 'processNode' ? 250 : 300,
+                            height: node.type === 'processNode' ? 120 : 150,
+                            ...node.measured
+                        }
+                    };
+                }
+                return node;
+            });
+
+            // Calculate layout with fallback dimensions
+            // In the "Applying final layout with measurements" section:
+            console.log("Applying final layout with measurements");
             const updatedNodes = calculateDesiredAmount(nodes, desiredAmount, rootNodeId);
+
+            // Log a sample of node positions before layout
+            console.log("Sample node positions before layout:",
+                nodes.slice(0, 3).map(n => ({ id: n.id, x: n.position.x, y: n.position.y }))
+            );
+
             const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
+
+            // Log the same nodes after layout to see if positions changed
+            console.log("Sample node positions after layout:",
+                layoutedNodes.slice(0, 3).map(n => ({ id: n.id, x: n.position.x, y: n.position.y }))
+            );
 
             dispatch({
                 type: 'BATCH_UPDATE',
@@ -142,9 +185,23 @@ const TreeRenderer: React.FC = () => {
                 }
             });
 
-            // Reset the trigger after applying the layout
-            layoutTriggerRef.current = false;
             prevNodesRef.current = nodes.length;
+        }
+        // Apply more precise layout once all measurements are ready
+        else if (layoutTriggerRef.current && nodesReady) {
+            console.log("Applying final layout with measurements");
+            const updatedNodes = calculateDesiredAmount(nodes, desiredAmount, rootNodeId);
+            const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
+
+            dispatch({
+                type: 'BATCH_UPDATE',
+                payload: {
+                    nodes: layoutedNodes,
+                    edges: layoutedEdges
+                }
+            });
+
+            layoutTriggerRef.current = false;
         }
     }, [nodes, edges, nodesReady, desiredAmount, rootNodeId, dagreConfig, needsLayout, dispatch]);
 
