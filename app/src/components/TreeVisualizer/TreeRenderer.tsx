@@ -5,6 +5,7 @@ import {
     ReactFlow,
     MiniMap,
     useNodesInitialized,
+    Edge,
 } from '@xyflow/react';
 import { usePouchDB } from '@/contexts/PouchDBContext';
 import { useFlow } from '@/contexts/FlowContext';
@@ -13,13 +14,10 @@ import ProcessNode from './ProcessNode';
 import ProductNode from './ProductNode';
 import { ProductNode as ProductNodeType, ProcessNode as InfluenceNode } from '@/types/reactFlowTypes';
 import '@xyflow/react/dist/style.css';
-import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
-import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
 import LayoutConfigPanel from './LayoutConfigPanel';
 import useIngredientsList, { IngredientsListMode } from '@/utils/TreeVisualizer/useIngredientsList';
 import IngredientsList from './IngredientsList';
 import AmountInput from './AmountInput';
-import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
 import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
 import PouchDBViewer from '@/components/TreeVisualizer/PouchDbViewer';
 import debounce from '@/utils/TreeVisualizer/debounce';
@@ -78,6 +76,24 @@ const TreeRenderer: React.FC = () => {
     const layoutCountRef = useRef<number>(0);
     const lastLayoutTimeRef = useRef<number>(Date.now());
 
+    const lastSuccessfulLayoutRef = useRef<{
+        nodesCount: number;
+        edgesCount: number;
+        timestamp: number;
+    }>({ nodesCount: 0, edgesCount: 0, timestamp: 0 });
+
+    const deduplicateEdges = (edges: Edge[]): Edge[] => {
+        // Create a map using edge id as key to ensure uniqueness
+        const uniqueEdges = new Map<string, Edge>();
+
+        // Only keep the last occurrence of each edge id
+        edges.forEach(edge => {
+            uniqueEdges.set(edge.id, edge);
+        });
+
+        return Array.from(uniqueEdges.values());
+    };
+
     // Create debounced version of handleSelectProcess
     const handleSelectProcess = useCallback(
         debounce((processId: string, nodeId: string) => {
@@ -134,12 +150,26 @@ const TreeRenderer: React.FC = () => {
         const now = Date.now();
         const timeSinceLastLayout = now - lastLayoutTimeRef.current;
 
+        // Calculate current edge count from a stable source
+        const currentEdgeCount = new Set(edges.map(e => e.id)).size;
+        const previousEdgeCount = prevEdgesRef.current;
+
+        // If we've done a layout for this same node/edge count very recently, skip
+        if (timeSinceLastLayout < 200 &&
+            lastSuccessfulLayoutRef.current.nodesCount === nodes.length &&
+            lastSuccessfulLayoutRef.current.edgesCount === currentEdgeCount) {
+            return; // Skip this layout cycle
+        }
+
         // If we've triggered layout more than 10 times in 1 second, force break the loop
         if (timeSinceLastLayout < 1000) {
             layoutCountRef.current++;
             if (layoutCountRef.current > 10) {
                 console.warn("Detected potential infinite loop in layout effect, breaking cycle");
                 layoutCountRef.current = 0;
+
+                // CRITICAL: Force reset needsLayout by explicitly dispatching
+                dispatch({ type: 'BATCH_UPDATE', payload: { needsLayout: false } });
                 return; // Force exit to break the loop
             }
         } else {
@@ -148,10 +178,16 @@ const TreeRenderer: React.FC = () => {
         }
 
         lastLayoutTimeRef.current = now;
-        
-        // Calculate current edge count from a stable source
-        const currentEdgeCount = new Set(edges.map(e => e.id)).size;
-        const previousEdgeCount = prevEdgesRef.current;
+
+        // Calculate time since last successful layout
+        const timeSinceLastSuccessfulLayout = now - lastSuccessfulLayoutRef.current.timestamp;
+
+        // If we've done a layout for this same node/edge count very recently, skip
+        if (timeSinceLastSuccessfulLayout < 200 &&
+            lastSuccessfulLayoutRef.current.nodesCount === nodes.length &&
+            lastSuccessfulLayoutRef.current.edgesCount === currentEdgeCount) {
+            return; // Skip this layout cycle
+        }
 
         // Only log when something actually changes to reduce noise
         if (needsLayout || prevNodesRef.current !== nodes.length || previousEdgeCount !== currentEdgeCount) {
@@ -169,18 +205,18 @@ const TreeRenderer: React.FC = () => {
 
         const hasStructuralChanges =
             prevNodesRef.current !== nodes.length ||
-            prevEdgesRef.current !== currentEdgeCount ||
+            previousEdgeCount !== currentEdgeCount ||
             needsLayout;
 
-        // If nodes have been added or needsLayout is true, apply a preliminary layout
-        // even if measurements aren't ready
         if (hasStructuralChanges) {
             console.log("Applying layout due to structural changes");
 
-            // Deduplicate edges before passing to layout
-            const uniqueEdges = Array.from(
-                new Map(edges.map(edge => [edge.id, edge])).values()
-            );
+            // Capture current state for comparison
+            const beforeLayoutState = {
+                nodesCount: nodes.length,
+                edgesCount: currentEdgeCount,
+                needsLayout
+            };
 
             // Use fallback dimensions for nodes without measurements
             const nodesWithFallbackDimensions = nodes.map(node => {
@@ -197,27 +233,43 @@ const TreeRenderer: React.FC = () => {
                 return node;
             });
 
-            // Dispatch the specialized layout action
+            // Dispatch layout action
             dispatch({
                 type: 'APPLY_LAYOUT',
                 payload: {
                     nodes: nodesWithFallbackDimensions,
-                    edges: uniqueEdges,
+                    edges: deduplicateEdges(edges),
                     dagreConfig,
                     preserveEdgeReferences: true,
                     needsReset: true
                 }
             });
 
+            lastSuccessfulLayoutRef.current = {
+                nodesCount: nodes.length,
+                edgesCount: currentEdgeCount,
+                timestamp: Date.now()
+            };
+
+            // Update references
             prevNodesRef.current = nodes.length;
             prevEdgesRef.current = currentEdgeCount;
+
+            // CRITICAL: Force check after short delay to ensure needsLayout is reset
+            setTimeout(() => {
+                if (dispatch && needsLayout) {
+                    console.log("Force resetting needsLayout state");
+                    dispatch({ type: 'BATCH_UPDATE', payload: { needsLayout: false } });
+                }
+            }, 50);
+
             return;
         }
-        // Fine-tuning layout with measurements - only if needed and not in reaction to structural changes
+
+        // Fine-tuning layout with measurements
         if (layoutTriggerRef.current && nodesReady && !hasStructuralChanges) {
             console.log("Applying fine-tuning layout with measurements");
 
-            // Dispatch the specialized layout action
             dispatch({
                 type: 'APPLY_LAYOUT',
                 payload: {
@@ -230,8 +282,28 @@ const TreeRenderer: React.FC = () => {
             });
 
             layoutTriggerRef.current = false;
+
+            // CRITICAL: Force check after short delay
+            setTimeout(() => {
+                if (dispatch && needsLayout) {
+                    console.log("Force resetting needsLayout state after fine-tuning");
+                    dispatch({ type: 'BATCH_UPDATE', payload: { needsLayout: false } });
+                }
+            }, 50);
         }
-    }, [nodes.length, edges, nodesReady, rootNodeId, dagreConfig, needsLayout, dispatch]);
+    }, [
+        // Using more stable dependency array
+        nodes.length, 
+        // Use a more stable representation of edges count
+        edges.length,
+        nodesReady, 
+        rootNodeId, 
+        dagreConfig.rankdir, 
+        dagreConfig.nodesep, 
+        dagreConfig.ranksep,
+        needsLayout, 
+        dispatch
+      ]);
 
     // Effect for product selection using the thunk pattern
     useEffect(() => {

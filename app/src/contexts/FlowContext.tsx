@@ -13,6 +13,7 @@ import { getOutflowIds } from '@/utils/TreeVisualizer/getOutflowIds';
 import { DagreConfig } from '@/hooks/useDagreConfig';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
 import applyDagreLayout from '@/utils/TreeVisualizer/applyDagreLayout';
+import next from 'next';
 
 // Define the state interface
 interface FlowState {
@@ -70,11 +71,15 @@ const initialState: FlowState = {
 
 // Create the reducer function
 const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
+  let nextState: FlowState;
+
   switch (action.type) {
     case 'SET_NODES':
-      return { ...state, nodes: action.payload };
+      nextState = { ...state, nodes: action.payload };
+      break;
     case 'SET_EDGES':
-      return { ...state, edges: action.payload };
+      nextState = { ...state, edges: action.payload };
+      break;
     case 'APPLY_NODE_CHANGES':
       return {
         ...state,
@@ -113,12 +118,13 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       // Only update edges if the count actually changed
       const shouldUpdateEdges = finalEdges.length !== state.edges.length;
 
+      // CRITICAL: Explicitly force needsLayout to false
       return {
         ...state,
         nodes: layoutedNodes,
         // Only update edges reference if they actually changed in count
         edges: shouldUpdateEdges ? finalEdges : state.edges,
-        needsLayout: false
+        needsLayout: false // Explicitly set to false
       };
     }
     case 'SET_DESIRED_AMOUNT':
@@ -183,8 +189,16 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       return processBuildResult(state, action.payload);
 
     default:
-      return state;
+      nextState = state;
+      break;
   }
+
+  // Debug check for needsLayout changes
+  if (nextState.needsLayout !== state.needsLayout) {
+    console.log(`[DEBUG] needsLayout changed to ${nextState.needsLayout} in action: ${action.type}`);
+  }
+
+  return nextState;
 };
 
 // Add this function to FlowContext.tsx
