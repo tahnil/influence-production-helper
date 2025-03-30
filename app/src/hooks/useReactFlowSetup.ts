@@ -5,37 +5,35 @@ import {
     OnNodesChange, 
     OnEdgesChange, 
     OnConnect,
-    applyNodeChanges,
-    applyEdgeChanges,
-    addEdge
+    Connection,
+    NodeChange,
+    EdgeChange
 } from '@xyflow/react';
 import { useFlow } from '@/contexts/FlowContext';
 
 export const useReactFlowSetup = () => {
     const { nodes, edges, dispatch } = useFlow();
 
+    // Simplify to dispatch the changes directly to the reducer
     const onNodesChange: OnNodesChange = useCallback(
-        (changes) => dispatch({ 
-            type: 'SET_NODES', 
-            payload: applyNodeChanges(changes, nodes) 
-        }),
-        [dispatch, nodes]
+        (changes: NodeChange[]) => {
+            dispatch({ type: 'APPLY_NODE_CHANGES', payload: changes });
+        },
+        [dispatch]
     );
 
     const onEdgesChange: OnEdgesChange = useCallback(
-        (changes) => dispatch({ 
-            type: 'SET_EDGES', 
-            payload: applyEdgeChanges(changes, edges) 
-        }),
-        [dispatch, edges]
+        (changes: EdgeChange[]) => {
+            dispatch({ type: 'APPLY_EDGE_CHANGES', payload: changes });
+        },
+        [dispatch]
     );
 
     const onConnect: OnConnect = useCallback(
-        (connection) => dispatch({ 
-            type: 'SET_EDGES', 
-            payload: addEdge(connection, edges) 
-        }),
-        [dispatch, edges]
+        (connection: Connection) => {
+            dispatch({ type: 'CONNECT_NODES', payload: connection });
+        },
+        [dispatch]
     );
 
     return {

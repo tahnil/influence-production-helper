@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useReducer, useRef } from 'react';
-import { Node, Edge } from '@xyflow/react';
+import { 
+  Node, 
+  Edge, 
+  NodeChange,
+  EdgeChange,
+  Connection
+} from '@xyflow/react';
 import { getOutflowIds } from '@/utils/TreeVisualizer/getOutflowIds';
 
 // Define the state interface
@@ -19,7 +25,12 @@ export type FlowAction =
   | { type: 'SET_NODES_READY'; payload: boolean }
   | { type: 'SET_ROOT_NODE_ID'; payload: string }
   | { type: 'BATCH_UPDATE'; payload: Partial<FlowState> }
-  | { type: 'PROCESS_SELECTED'; payload: { processNode: Node, productNodes: Node[], parentNodeId: string, edges: Edge[] } };
+  | { type: 'PROCESS_SELECTED'; payload: { processNode: Node, productNodes: Node[], parentNodeId: string, edges: Edge[] } }
+  // dedicated action types for React Flow operations
+  | { type: 'APPLY_NODE_CHANGES'; payload: NodeChange[] }
+  | { type: 'APPLY_EDGE_CHANGES'; payload: EdgeChange[] }
+  | { type: 'CONNECT_NODES'; payload: Connection }
+  ;
 
 // Initial state
 const initialState: FlowState = {
