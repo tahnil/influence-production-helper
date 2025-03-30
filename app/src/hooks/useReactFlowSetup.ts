@@ -2,9 +2,6 @@
 
 import { useCallback } from 'react';
 import { 
-    OnNodesChange, 
-    OnEdgesChange, 
-    OnConnect,
     Connection,
     NodeChange,
     EdgeChange
@@ -14,22 +11,21 @@ import { useFlow } from '@/contexts/FlowContext';
 export const useReactFlowSetup = () => {
     const { nodes, edges, dispatch } = useFlow();
 
-    // Simplify to dispatch the changes directly to the reducer
-    const onNodesChange: OnNodesChange = useCallback(
+    const onNodesChange = useCallback(
         (changes: NodeChange[]) => {
             dispatch({ type: 'APPLY_NODE_CHANGES', payload: changes });
         },
         [dispatch]
     );
 
-    const onEdgesChange: OnEdgesChange = useCallback(
+    const onEdgesChange = useCallback(
         (changes: EdgeChange[]) => {
             dispatch({ type: 'APPLY_EDGE_CHANGES', payload: changes });
         },
         [dispatch]
     );
 
-    const onConnect: OnConnect = useCallback(
+    const onConnect = useCallback(
         (connection: Connection) => {
             dispatch({ type: 'CONNECT_NODES', payload: connection });
         },

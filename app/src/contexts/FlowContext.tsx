@@ -13,7 +13,7 @@ import { getOutflowIds } from '@/utils/TreeVisualizer/getOutflowIds';
 import { DagreConfig } from '@/hooks/useDagreConfig';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
 import applyDagreLayout from '@/utils/TreeVisualizer/applyDagreLayout';
-import next from 'next';
+import { deduplicateEdges } from '@/utils/TreeVisualizer/edgeUtils';
 
 // Define the state interface
 interface FlowState {
@@ -88,18 +88,15 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
     case 'APPLY_EDGE_CHANGES':
       return {
         ...state,
-        edges: applyEdgeChanges(action.payload, state.edges)
+        edges: deduplicateEdges(applyEdgeChanges(action.payload, state.edges))
       };
     case 'CONNECT_NODES':
       return {
         ...state,
-        edges: addEdge(action.payload, state.edges)
+        edges: deduplicateEdges(addEdge(action.payload, state.edges))
       };
     case 'APPLY_LAYOUT': {
-      const { nodes, edges, needsReset = true, dagreConfig, preserveEdgeReferences = false } = action.payload;
-
-      // First, deduplicate the edges to ensure we're not processing duplicates
-      const uniqueEdges = deduplicateEdges(edges);
+      const { nodes, edges, dagreConfig, preserveEdgeReferences = false } = action.payload;
 
       // Calculate desired amounts based on the rootNodeId
       const updatedNodes = calculateDesiredAmount(nodes, state.desiredAmount, state.rootNodeId);
@@ -107,24 +104,17 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       // Apply the dagre layout
       const { layoutedNodes, layoutedEdges } = applyDagreLayout(
         updatedNodes,
-        uniqueEdges,
+        deduplicateEdges(edges),
         dagreConfig,
         preserveEdgeReferences
       );
 
-      // Apply deduplication one more time to ensure the final state has no duplicates
-      const finalEdges = deduplicateEdges(layoutedEdges);
-
-      // Only update edges if the count actually changed
-      const shouldUpdateEdges = finalEdges.length !== state.edges.length;
-
-      // CRITICAL: Explicitly force needsLayout to false
       return {
         ...state,
         nodes: layoutedNodes,
         // Only update edges reference if they actually changed in count
-        edges: shouldUpdateEdges ? finalEdges : state.edges,
-        needsLayout: false // Explicitly set to false
+        edges: deduplicateEdges(layoutedEdges),
+        needsLayout: false
       };
     }
     case 'SET_DESIRED_AMOUNT':
@@ -199,19 +189,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
   }
 
   return nextState;
-};
-
-// Add this function to FlowContext.tsx
-const deduplicateEdges = (edges: Edge[]): Edge[] => {
-  // Create a map using edge id as key to ensure uniqueness
-  const uniqueEdges = new Map<string, Edge>();
-
-  // Only keep the last occurrence of each edge id
-  edges.forEach(edge => {
-    uniqueEdges.set(edge.id, edge);
-  });
-
-  return Array.from(uniqueEdges.values());
 };
 
 // Helper function to process the result of building a process node
