@@ -11,9 +11,9 @@ import { useFlow } from '@/contexts/FlowContext';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProcessNode from './ProcessNode';
 import ProductNode from './ProductNode';
-import { 
-    ProductNode as ProductNodeType, 
-    ProcessNode as InfluenceNode 
+import {
+    ProductNode as ProductNodeType,
+    ProcessNode as InfluenceNode
 } from '@/types/reactFlowTypes';
 import '@xyflow/react/dist/style.css';
 import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
@@ -29,17 +29,11 @@ import { useReactFlowSetup } from '@/hooks/useReactFlowSetup';
 import { useDagreConfig } from '@/hooks/useDagreConfig';
 import CustomEdge from '@/components/TreeVisualizer/CustomEdges';
 
-interface ProcessSelection {
-    nodeId: string;
-    processId: string;
-}
-
 const nodeTypes = {
     productNode: ProductNode,
     processNode: ProcessNode,
 };
 
-// Define edge types
 const edgeTypes = {
     custom: CustomEdge,
 };
@@ -55,10 +49,10 @@ const TreeRenderer: React.FC = () => {
         setNodesReady,
         rootNodeId,
         needsLayout,
+        selectedProductId,
+        processSelections,
         dispatch
     } = useFlow();
-    const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-    const [selectedProcessMap, setSelectedProcessMap] = useState<ProcessSelection[]>([]);
     const layoutTriggerRef = useRef<boolean>(false);
     const prevNodesRef = useRef<number>(0);
 
@@ -76,13 +70,17 @@ const TreeRenderer: React.FC = () => {
     const handleSelectProcess = useCallback(
         debounce((processId: string, nodeId: string) => {
             // Add a new log entry with the node ID and process ID to the state
-            setSelectedProcessMap((prevMap) => [
-                ...prevMap,
-                { nodeId, processId },
-            ]);
+            dispatch({
+                type: 'SELECT_PROCESS',
+                payload: { nodeId, processId }
+            });
         }, 300),
         []
     );
+
+    const handleProductSelect = useCallback((productId: string) => {
+        dispatch({ type: 'SELECT_PRODUCT', payload: productId });
+      }, [dispatch]);      
 
     const handleSerialize = useCallback(
         async (focalNodeId: string) => {
@@ -219,8 +217,8 @@ const TreeRenderer: React.FC = () => {
 
     useEffect(() => {
         const fetchAndBuildProcessNode = async () => {
-            if (selectedProcessMap.length > 0) {
-                const lastEntry = selectedProcessMap[selectedProcessMap.length - 1];
+            if (processSelections.length > 0) {
+                const lastEntry = processSelections[processSelections.length - 1];
                 const { nodeId: parentNodeId, processId } = lastEntry;
 
                 if (processId && parentNodeId) {
@@ -238,28 +236,28 @@ const TreeRenderer: React.FC = () => {
                         handleSelectProcess,
                         handleSerialize,
                     );
+
                     if (result) {
-                        const { processNode, productNodes } = result;
 
                         dispatch({
                             type: 'PROCESS_SELECTED',
                             payload: {
-                                processNode,
-                                productNodes,
+                                processNode: result.processNode,
+                                productNodes: result.productNodes,
                                 parentNodeId,
                                 edges
                             }
                         });
 
                         // Set layout trigger to recalculate positions
-                        layoutTriggerRef.current = true;
+                        // layoutTriggerRef.current = true;
                     }
                 }
             }
         };
 
         fetchAndBuildProcessNode();
-    }, [selectedProcessMap, buildProcessNode]);
+    }, [processSelections, buildProcessNode]);
 
     return (
         <div className="w-full h-full relative">
@@ -283,7 +281,7 @@ const TreeRenderer: React.FC = () => {
                         <h2 className="text-xl font-semibold mb-4">Controls</h2>
                         <ProductSelector
                             selectedProductId={selectedProductId}
-                            onProductSelect={setSelectedProductId}
+                            onProductSelect={handleProductSelect}
                             className="p-2 border rounded border-gray-300 mb-4 w-full"
                         />
                         <AmountInput

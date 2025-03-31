@@ -22,6 +22,8 @@ interface FlowState {
   nodesReady: boolean;
   rootNodeId: string;
   needsLayout: boolean;
+  selectedProductId: string | null;
+  processSelections: Array<{nodeId: string, processId: string}>;
 }
 
 // Define the action types
@@ -53,6 +55,10 @@ export type FlowAction =
       dagreConfig: DagreConfig
     }
   }
+  | { type: 'SELECT_PRODUCT'; payload: string | null }
+  | { type: 'SELECT_PROCESS'; payload: { nodeId: string; processId: string } }
+  | { type: 'BUILD_PRODUCT_NODE'; payload: { productId: string, node: Node } }
+  | { type: 'BUILD_PROCESS_NODE'; payload: { processNode: Node, productNodes: Node[], parentNodeId: string } }
   ;
 
 // Initial state
@@ -63,6 +69,8 @@ const initialState: FlowState = {
   nodesReady: false,
   rootNodeId: 'root',
   needsLayout: false,
+  selectedProductId: null, // check if this is correct
+  processSelections: [] // check if this is correct
 };
 
 // Create the reducer function
@@ -171,7 +179,84 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         edges: updatedEdges,
         needsLayout: true,
       };
-    }
+    };
+    case 'SELECT_PRODUCT':
+      return { ...state, selectedProductId: action.payload };
+    case 'SELECT_PROCESS':
+      return {
+        ...state,
+        processSelections: [...state.processSelections, action.payload],
+      };
+    case 'BUILD_PRODUCT_NODE': 
+      return {
+        ...state,
+        nodes: [
+          ...state.nodes,
+          {
+            ...action.payload.node,
+            data: {
+              ...action.payload.node.data,
+              // Ensure any necessary callbacks are added
+            }
+          }
+        ],
+        rootNodeId: action.payload.node.id,
+      };
+    case 'BUILD_PROCESS_NODE':
+      const { processNode, productNodes, parentNodeId } = action.payload;
+
+      const existingProcessNode = state.nodes.find(
+        (node) => node.parentId === parentNodeId && node.type === 'processNode'
+      );
+
+      let updatedNodes = [...state.nodes];
+      let updatedEdges = [...state.edges];
+
+      if (existingProcessNode) {
+        // Get all outflow IDs
+        const outflowIds = getOutflowIds(existingProcessNode.id, updatedNodes);
+
+        updatedNodes = updatedNodes.filter(
+          (node) => ![existingProcessNode.id, ...outflowIds].includes(node.id)
+        );
+
+        updatedEdges = updatedEdges.filter(
+          (edge) => ![existingProcessNode.id, ...outflowIds].includes(edge.source)
+        );
+
+        updatedNodes = [...updatedNodes, processNode, ...productNodes];
+
+        const newEdges = productNodes.map((productNode) => ({
+          id: `edge-${processNode.id}-${productNode.id}`,
+          source: processNode.id,
+          target: productNode.id,
+          type: 'custom',
+        }));
+
+        updatedEdges = [...updatedEdges, ...newEdges];
+
+        updatedEdges.push({
+          id: `edge-${parentNodeId}-${processNode.id}`,
+          source: parentNodeId,
+          target: processNode.id,
+          type: 'custom',
+        });
+
+        const parentProductNode = updatedNodes.find(
+          (node) => node.id === parentNodeId && node.type === 'productNode'
+        );
+
+        if (parentProductNode) {
+          parentProductNode.data.inflowIds = [processNode.id];
+        }
+
+        return {
+          ...state,
+          nodes: updatedNodes,
+          edges: updatedEdges,
+          needsLayout: true,
+        };
+      }
     default:
       return state;
   }
@@ -185,6 +270,8 @@ interface FlowContextType {
   rootNodeId: string;
   needsLayout: boolean;
   nodesRef: React.MutableRefObject<Node[]>;
+  selectedProductId: string | null;
+  processSelections: Array<{nodeId: string, processId: string}>; // Check if this is correct
   dispatch: React.Dispatch<FlowAction>;
   setNodes: (nodes: React.SetStateAction<Node[]>) => void;
   setEdges: (edges: React.SetStateAction<Edge[]>) => void;
@@ -265,6 +352,8 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         desiredAmount: state.desiredAmount,
         nodesReady: state.nodesReady,
         rootNodeId: state.rootNodeId,
+        selectedProductId: state.selectedProductId,
+        processSelections: state.processSelections,
         needsLayout: state.needsLayout,
         nodesRef,
         setNodes,
