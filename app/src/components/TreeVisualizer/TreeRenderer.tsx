@@ -1,6 +1,6 @@
 // components/TreeVisualizer/TreeRenderer.tsx
 
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
     ReactFlow,
     MiniMap,
@@ -11,18 +11,18 @@ import { useFlow } from '@/contexts/FlowContext';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProcessNode from './ProcessNode';
 import ProductNode from './ProductNode';
-import { ProductNode as ProductNodeType, ProcessNode as ProcessNodeType, InfluenceNode } from '@/types/reactFlowTypes';
+import { 
+    ProductNode as ProductNodeType, 
+    ProcessNode as InfluenceNode 
+} from '@/types/reactFlowTypes';
 import '@xyflow/react/dist/style.css';
 import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
 import LayoutConfigPanel from './LayoutConfigPanel';
-import applyDagreLayout from '@/utils/TreeVisualizer/applyDagreLayout';
-import useIngredientsList, { IngredientsListMode } from '@/utils/TreeVisualizer/useIngredientsList';
+import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
 import IngredientsList from './IngredientsList';
 import AmountInput from './AmountInput';
-import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
 import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
-import { getOutflowIds } from '@/utils/TreeVisualizer/getOutflowIds';
 import PouchDBViewer from '@/components/TreeVisualizer/PouchDbViewer';
 import debounce from '@/utils/TreeVisualizer/debounce';
 import { useReactFlowSetup } from '@/hooks/useReactFlowSetup';
@@ -49,14 +49,11 @@ const TreeRenderer: React.FC = () => {
     const { nodes, edges, onNodesChange, onEdgesChange, onConnect } = useReactFlowSetup();
     const { dagreConfig, updateDagreConfig } = useDagreConfig();
     const {
-        setNodes,
-        setEdges,
         nodesRef,
         desiredAmount,
         nodesReady,
         setNodesReady,
         rootNodeId,
-        setRootNodeId,
         needsLayout,
         dispatch
     } = useFlow();
@@ -70,7 +67,6 @@ const TreeRenderer: React.FC = () => {
     useEffect(() => {
         if (nodes.length !== nodesRef.current.length) {
             nodesRef.current = nodes;
-            // console.log('TreeRenderer nodes updated:', nodes.length);
         }
     }, [nodes, nodesRef]);
 
@@ -84,12 +80,6 @@ const TreeRenderer: React.FC = () => {
                 ...prevMap,
                 { nodeId, processId },
             ]);
-
-            // console.log('Selected Process Map:', [
-            //     ...selectedProcessMap,
-            //     { nodeId, processId },
-            // ]);
-
         }, 300),
         []
     );
@@ -99,12 +89,11 @@ const TreeRenderer: React.FC = () => {
             if (focalNodeId && nodesRef.current.length > 0 && memoryDb) {
                 try {
                     await serializeProductionChain(focalNodeId, nodesRef.current as InfluenceNode[], memoryDb);
-                    // console.log('Production chain serialized and saved successfully');
                 } catch (error) {
                     console.error('Error serializing production chain:', error);
                 }
             } else {
-                // console.log('No focal node selected, nodes are empty, or database is not initialized.');
+                console.log('No focal node selected, nodes are empty, or database is not initialized.');
             }
         },
         [memoryDb, nodesRef]
@@ -112,7 +101,6 @@ const TreeRenderer: React.FC = () => {
 
     const rawMaterialIngredients = useIngredientsList(nodes, 'rawMaterials');
     const allProductIngredients = useIngredientsList(nodes, 'allProducts');
-    const updatedAmount = useMemo(() => calculateDesiredAmount(nodes, desiredAmount, rootNodeId), [desiredAmount]);
 
     useEffect(() => {
         if (nodesInitialized && nodes.every(node => node.measured?.width && node.measured?.height)) {
@@ -127,8 +115,6 @@ const TreeRenderer: React.FC = () => {
             layoutTriggerRef.current = true;
         }
     }, [nodesReady, desiredAmount, dagreConfig]);
-
-    // In TreeRenderer.tsx, update the layout effect:
 
     useEffect(() => {
         console.log("Layout effect checking:", {
@@ -208,7 +194,6 @@ const TreeRenderer: React.FC = () => {
                 );
 
                 if (rootNode) {
-                    // console.log('Root node created:', rootNode);
                     const namedRootNode = {
                         ...rootNode,
                         data: {
@@ -243,7 +228,6 @@ const TreeRenderer: React.FC = () => {
                     const parentNode = nodes.find((node) => node.id === parentNodeId);
                     const parentNodeAmount: number = (parentNode as ProductNodeType)?.data?.amount ?? 1;
                     const parentNodeProductId: string = (parentNode as ProductNodeType)?.data?.productDetails?.id ?? '';
-                    // console.log(`Amount for parentNode`, parentNode ,`: ${parentNodeAmount}`);
 
                     // Build the process node
                     const result = await buildProcessNode(
