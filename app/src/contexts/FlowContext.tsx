@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useRef, useEffect } from 'react';
 import {
   Node,
   Edge,
@@ -11,8 +11,11 @@ import {
 } from '@xyflow/react';
 import { getOutflowIds } from '@/utils/TreeVisualizer/getOutflowIds';
 import { DagreConfig } from '@/hooks/useDagreConfig';
+import { usePouchDB } from '@/contexts/PouchDBContext';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
 import applyDagreLayout from '@/utils/TreeVisualizer/applyDagreLayout';
+import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
+import { InfluenceNode } from '@/types/reactFlowTypes';
 
 // Define the state interface
 interface FlowState {
@@ -23,7 +26,20 @@ interface FlowState {
   rootNodeId: string;
   needsLayout: boolean;
   selectedProductId: string | null;
-  processSelections: Array<{nodeId: string, processId: string}>;
+  processSelections: Array<{ nodeId: string, processId: string }>;
+  focalNodeId: string | null;
+  pendingSaveNodeId: string | null;
+  pendingLoadConfig: {
+    nodeId: string;
+    configId: string;
+  } | null;
+  // Add this property:
+  matchingConfigs: Array<{
+    _id: string;
+    focalProductId: string;
+    createdAt: string;
+    nodeCount: number;
+  }>;
 }
 
 // Define the action types
@@ -59,6 +75,20 @@ export type FlowAction =
   | { type: 'SELECT_PROCESS'; payload: { nodeId: string; processId: string } }
   | { type: 'BUILD_PRODUCT_NODE'; payload: { productId: string, node: Node } }
   | { type: 'BUILD_PROCESS_NODE'; payload: { processNode: Node, productNodes: Node[], parentNodeId: string } }
+  | { type: 'SAVE_PRODUCTION_CHAIN'; payload: { focalNodeId: string } }
+  | { type: 'LOAD_SAVED_CONFIG'; payload: { nodeId: string, configId: string } }
+  | { type: 'SAVE_COMPLETE' }
+  | { type: 'SAVE_ERROR'; payload: { error: string } }
+  | { type: 'LOAD_COMPLETE' }
+  | { type: 'LOAD_ERROR'; payload: { error: string } }
+  | {
+    type: 'SET_MATCHING_CONFIGS'; payload: Array<{
+      _id: string;
+      focalProductId: string;
+      createdAt: string;
+      nodeCount: number;
+    }>
+  }
   ;
 
 // Initial state
@@ -70,7 +100,11 @@ const initialState: FlowState = {
   rootNodeId: 'root',
   needsLayout: false,
   selectedProductId: null, // check if this is correct
-  processSelections: [] // check if this is correct
+  processSelections: [], // check if this is correct
+  focalNodeId: null,
+  pendingSaveNodeId: null,
+  pendingLoadConfig: null,
+  matchingConfigs: [],
 };
 
 // Create the reducer function
@@ -85,13 +119,11 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         ...state,
         nodes: applyNodeChanges(action.payload, state.nodes)
       };
-
     case 'APPLY_EDGE_CHANGES':
       return {
         ...state,
         edges: applyEdgeChanges(action.payload, state.edges)
       };
-
     case 'CONNECT_NODES':
       return {
         ...state,
@@ -108,7 +140,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         edges: layoutedEdges,
         needsLayout: needsReset ? false : state.needsLayout
       };
-    }
+    };
     case 'SET_DESIRED_AMOUNT':
       return { ...state, desiredAmount: action.payload };
     case 'SET_NODES_READY':
@@ -187,7 +219,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         ...state,
         processSelections: [...state.processSelections, action.payload],
       };
-    case 'BUILD_PRODUCT_NODE': 
+    case 'BUILD_PRODUCT_NODE':
       return {
         ...state,
         nodes: [
@@ -256,7 +288,36 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
           edges: updatedEdges,
           needsLayout: true,
         };
+      };
+    case 'SAVE_PRODUCTION_CHAIN': {
+      if ('focalNodeId' in action.payload) {
+        const { focalNodeId } = action.payload;
+        // Call serializeProductionChain or handle async in an effect
+        // For now, just mark that saving is needed
+        return {
+          ...state,
+          pendingSaveNodeId: focalNodeId
+        };
       }
+      // Handle the case where focalNodeId is not in action.payload
+      console.error('Invalid payload for SAVE_PRODUCTION_CHAIN action');
+      return state;
+    };
+    case 'LOAD_SAVED_CONFIG': {
+      const { nodeId, configId } = action.payload;
+      return {
+        ...state,
+        pendingLoadConfig: {
+          nodeId,
+          configId
+        }
+      }
+    };
+    case 'SET_MATCHING_CONFIGS':
+      return {
+        ...state,
+        matchingConfigs: action.payload
+      }; 
     default:
       return state;
   }
@@ -271,7 +332,15 @@ interface FlowContextType {
   needsLayout: boolean;
   nodesRef: React.MutableRefObject<Node[]>;
   selectedProductId: string | null;
-  processSelections: Array<{nodeId: string, processId: string}>; // Check if this is correct
+  processSelections: Array<{ nodeId: string, processId: string }>; // Check if this is correct
+  focalNodeId: string | null;
+  pendingSaveNodeId: string | null;
+  matchingConfigs: Array<{
+    _id: string;
+    focalProductId: string;
+    createdAt: string;
+    nodeCount: number;
+  }>;
   dispatch: React.Dispatch<FlowAction>;
   setNodes: (nodes: React.SetStateAction<Node[]>) => void;
   setEdges: (edges: React.SetStateAction<Edge[]>) => void;
@@ -292,6 +361,7 @@ export const useFlow = () => {
 export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(flowReducer, initialState);
   const nodesRef = useRef<Node[]>([]);
+  const { memoryDb } = usePouchDB();
 
   // Keep the nodesRef in sync with the state.nodes
   React.useEffect(() => {
@@ -344,6 +414,48 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Add to FlowProvider in FlowContext.tsx:
+  useEffect(() => {
+    // Handle pending save operation
+    if (state.pendingSaveNodeId !== null && memoryDb) {
+      const saveNode = async () => {
+        try {
+          await serializeProductionChain(
+            state.pendingSaveNodeId!,
+            nodesRef.current as InfluenceNode[],
+            memoryDb
+          );
+          dispatch({ type: 'SAVE_COMPLETE' });
+        } catch (error) {
+          console.error('Error saving:', error);
+          dispatch({
+            type: 'SAVE_ERROR',
+            payload: { error: String(error) }
+          });
+        }
+      };
+      saveNode();
+    }
+
+    // Handle pending load operation
+    if (state.pendingLoadConfig && memoryDb) {
+      const loadConfig = async () => {
+        try {
+          // Implement loading logic similar to handleReplaceNode
+          // ...
+          dispatch({ type: 'LOAD_COMPLETE' });
+        } catch (error) {
+          console.error('Error loading:', error);
+          dispatch({
+            type: 'LOAD_ERROR',
+            payload: { error: String(error) }
+          });
+        }
+      };
+      loadConfig();
+    }
+  }, [state.pendingSaveNodeId, state.pendingLoadConfig, memoryDb]);
+
   return (
     <FlowContext.Provider
       value={{
@@ -355,6 +467,9 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         selectedProductId: state.selectedProductId,
         processSelections: state.processSelections,
         needsLayout: state.needsLayout,
+        focalNodeId: state.focalNodeId,
+        pendingSaveNodeId: state.pendingSaveNodeId,
+        matchingConfigs: state.matchingConfigs,
         nodesRef,
         setNodes,
         setEdges,
