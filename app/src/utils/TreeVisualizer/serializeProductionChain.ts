@@ -3,6 +3,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { InfluenceNode, ProductNode } from '@/types/reactFlowTypes';
 import { getAllInflows } from '@/utils/TreeVisualizer/nodeHelpers';
+import { usePouchDB } from '@/contexts/PouchDBContext';
 
 type SerializableNode = Omit<InfluenceNode, 'position' | 'width' | 'height' | 'data'> & {
     data: Omit<InfluenceNode['data'], 'handleSelectProcess' | 'handleSerialize'> & { isRoot?: boolean };
@@ -31,7 +32,7 @@ export const serializeProductionChain = async (
 
     const inflowNodes = getAllInflows(nodes, focalNodeId);
     console.log("Number of inflow nodes:", inflowNodes.length);
-    
+
     const serializedNodes: SerializableNode[] = [
         {
             ...focalNode,
@@ -65,16 +66,21 @@ export const serializeProductionChain = async (
 
     try {
         const response = await db.put(serializedChain);
-        // console.log('Successfully saved configuration:', response);
+        console.log('Successfully saved configuration:', response);
 
         const attachment = new Blob([JSON.stringify(serializedNodes)], { type: 'application/json' });
         await db.putAttachment(serializedChain._id, 'nodes', response.rev, attachment, 'application/json');
-        // console.log('Successfully saved attachment');
+        console.log('Successfully saved attachment');
+
+        // Force manual sync if needed - only necessary for debugging
+        // if you implement forceSyncMemoryToLocal
+        // await forceSyncMemoryToLocal();
 
         // Log all documents after saving
         const allDocs = await db.allDocs();
-        // console.log('All document IDs in PouchDB after saving:', allDocs.rows.map(row => row.id));
+        console.log('All document IDs in PouchDB after saving:', allDocs.rows.map(row => row.id));
     } catch (error) {
         console.error('Error saving configuration:', error);
+        throw error;
     }
 };
