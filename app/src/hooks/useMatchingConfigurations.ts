@@ -9,6 +9,8 @@ const useMatchingConfigurations = (productId: string) => {
   const { memoryDb } = usePouchDB();
   const { dispatch } = useFlow();
 
+  console.log(`useMatchingConfigurations: productId: ${productId}`);
+
   useEffect(() => {
     const fetchConfigs = async () => {
       if (memoryDb && productId) {

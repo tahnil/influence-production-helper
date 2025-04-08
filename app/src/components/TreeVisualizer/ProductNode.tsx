@@ -11,6 +11,7 @@ import { Save } from 'lucide-react';
 import { getDirectChildNodes } from '@/utils/TreeVisualizer/nodeHelpers';
 import { InfluenceNode } from '@/types/reactFlowTypes';
 import { useToast } from "@/hooks/use-toast";
+import useMatchingConfigurations from '@/hooks/useMatchingConfigurations';
 
 export type ProductNode = Node<{
   amount: number;
@@ -28,7 +29,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   const {
     nodes,
     dispatch,
-    matchingConfigs
+    matchingConfigs,
   } = useFlow();
   const { toast } = useToast();
   const {
@@ -104,6 +105,12 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   }, [dispatch, id, name, toast]);
 
   const hasInflows = getDirectChildNodes(nodes as InfluenceNode[], id).length > 0;
+
+  useMatchingConfigurations(productDetails.id);
+
+  console.log('Matching configs for', productDetails.id, ':', 
+    matchingConfigs.filter(config => config.focalProductId === productDetails.id)
+  );
 
   return (
     <div className="product-node bg-mako-900 border overflow-hidden rounded-lg shadow-lg w-72">

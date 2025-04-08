@@ -16,6 +16,7 @@ import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmoun
 import applyDagreLayout from '@/utils/TreeVisualizer/applyDagreLayout';
 import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
 import { InfluenceNode } from '@/types/reactFlowTypes';
+import { handleReplaceNode } from '@/utils/TreeVisualizer/handleReplaceNode';
 
 // Define the state interface
 interface FlowState {
@@ -40,6 +41,10 @@ interface FlowState {
     createdAt: string;
     nodeCount: number;
   }>;
+  saveStatus?: 'pending' | 'complete' | 'error';
+  saveError?: string;
+  loadStatus?: 'pending' | 'complete' | 'error';
+  loadError?: string;
 }
 
 // Define the action types
@@ -296,12 +301,28 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         // For now, just mark that saving is needed
         return {
           ...state,
-          pendingSaveNodeId: focalNodeId
+          pendingSaveNodeId: focalNodeId,
+          saveStatus: 'pending',
         };
       }
       // Handle the case where focalNodeId is not in action.payload
       console.error('Invalid payload for SAVE_PRODUCTION_CHAIN action');
       return state;
+    };
+    case 'SAVE_COMPLETE': {
+      return {
+        ...state,
+        pendingSaveNodeId: null,
+        saveStatus: 'complete',
+      };
+    };
+    case 'SAVE_ERROR': {
+      return {
+        ...state,
+        pendingSaveNodeId: null,
+        saveStatus: 'error',
+        saveError: action.payload.error,
+      };
     };
     case 'LOAD_SAVED_CONFIG': {
       const { nodeId, configId } = action.payload;
@@ -310,14 +331,31 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         pendingLoadConfig: {
           nodeId,
           configId
-        }
+        },
+        loadStatus: 'pending',
       }
     };
-    case 'SET_MATCHING_CONFIGS':
+    case 'LOAD_COMPLETE': {
+      return {
+        ...state,
+        pendingLoadConfig: null,
+        loadStatus: 'complete',
+      };
+    };
+    case 'LOAD_ERROR': {
+      return {
+        ...state,
+        pendingLoadConfig: null,
+        loadStatus: 'error',
+        loadError: action.payload.error,
+      };
+    };
+    case 'SET_MATCHING_CONFIGS': {
       return {
         ...state,
         matchingConfigs: action.payload
-      }; 
+      };
+    };
     default:
       return state;
   }
@@ -414,7 +452,6 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Add to FlowProvider in FlowContext.tsx:
   useEffect(() => {
     // Handle pending save operation
     if (state.pendingSaveNodeId !== null && memoryDb) {
@@ -441,9 +478,36 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (state.pendingLoadConfig && memoryDb) {
       const loadConfig = async () => {
         try {
-          // Implement loading logic similar to handleReplaceNode
-          // ...
-          dispatch({ type: 'LOAD_COMPLETE' });
+          const { nodeId, configId } = state.pendingLoadConfig ?? {};
+
+          if (nodeId && configId) {
+
+            // Use the existing handleReplaceNode function
+            await handleReplaceNode(
+              nodeId,
+              configId,
+              memoryDb,
+              nodesRef.current,
+              state.edges,
+              dispatch,
+              nodesRef,
+              (processId, nodeId) => {
+                dispatch({
+                  type: 'SELECT_PROCESS',
+                  payload: { nodeId, processId }
+                });
+              },
+              (focalNodeId) => {
+                dispatch({
+                  type: 'SAVE_PRODUCTION_CHAIN',
+                  payload: { focalNodeId }
+                });
+              },
+              state.desiredAmount
+            );
+
+            dispatch({ type: 'LOAD_COMPLETE' });
+          }
         } catch (error) {
           console.error('Error loading:', error);
           dispatch({
@@ -454,7 +518,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       loadConfig();
     }
-  }, [state.pendingSaveNodeId, state.pendingLoadConfig, memoryDb]);
+  }, [state.pendingSaveNodeId, state.pendingLoadConfig, state.edges, state.desiredAmount, memoryDb, dispatch]);
 
   return (
     <FlowContext.Provider
