@@ -379,6 +379,10 @@ interface FlowContextType {
     createdAt: string;
     nodeCount: number;
   }>;
+  saveStatus?: 'pending' | 'complete' | 'error';
+  saveError?: string;
+  loadStatus?: 'pending' | 'complete' | 'error';
+  loadError?: string;
   dispatch: React.Dispatch<FlowAction>;
   setNodes: (nodes: React.SetStateAction<Node[]>) => void;
   setEdges: (edges: React.SetStateAction<Edge[]>) => void;

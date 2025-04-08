@@ -30,6 +30,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     nodes,
     dispatch,
     matchingConfigs,
+    saveStatus,
   } = useFlow();
   const { toast } = useToast();
   const {
@@ -108,7 +109,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
 
   useMatchingConfigurations(productDetails.id);
 
-  console.log('Matching configs for', productDetails.id, ':', 
+  console.log('Matching configs for', productDetails.id, ':',
     matchingConfigs.filter(config => config.focalProductId === productDetails.id)
   );
 
@@ -125,6 +126,9 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
           </div>
           {hasInflows && (
             <div className="flex items-center justify-center">
+              {saveStatus === 'pending' && <span className="text-yellow-500 text-xs">Saving...</span>}
+              {saveStatus === 'complete' && <span className="text-green-500 text-xs">Saved!</span>}
+              {saveStatus === 'error' && <span className="text-red-500 text-xs">Error!</span>}
               <Save
                 size={20}
                 onClick={handleSaveProductionChain}
@@ -158,7 +162,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
           </label>
           <ProcessSelector
             processes={processesByProductId}
-            savedConfigurations={matchingConfigs.filter(config => 
+            savedConfigurations={matchingConfigs.filter(config =>
               config.focalProductId === productDetails.id
             )}
             selectedId={selectedId}
