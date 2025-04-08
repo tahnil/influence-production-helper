@@ -1,6 +1,6 @@
 // hooks/useMatchingConfigurations.ts
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { usePouchDB } from '@/contexts/PouchDBContext';
 import { getMatchingConfigurations } from '@/utils/TreeVisualizer/getMatchingConfigurations';
 import { useFlow } from '@/contexts/FlowContext';

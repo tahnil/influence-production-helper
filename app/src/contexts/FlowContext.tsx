@@ -460,12 +460,15 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Handle pending save operation
     if (state.pendingSaveNodeId !== null && memoryDb) {
       const saveNode = async () => {
+        console.log("Starting serialization with nodeId:", state.pendingSaveNodeId);
+        console.log("Current nodes:", nodesRef.current.length);
         try {
           await serializeProductionChain(
             state.pendingSaveNodeId!,
             nodesRef.current as InfluenceNode[],
             memoryDb
           );
+          console.log("Serialization successful");
           dispatch({ type: 'SAVE_COMPLETE' });
         } catch (error) {
           console.error('Error saving:', error);

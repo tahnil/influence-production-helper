@@ -9,27 +9,34 @@ type SerializableNode = Omit<InfluenceNode, 'position' | 'width' | 'height' | 'd
 };
 
 export const serializeProductionChain = async (
-    focalNodeId: string, 
-    nodes: InfluenceNode[], 
+    focalNodeId: string,
+    nodes: InfluenceNode[],
     db: PouchDB.Database
 ): Promise<void> => {
+    console.log("serializeProductionChain called with focalNodeId:", focalNodeId);
+    console.log("Number of nodes:", nodes.length);
+
     if (!db) {
         console.error('PouchDB instance is not available');
         return;
     }
 
     const focalNode = nodes.find(node => node.id === focalNodeId);
+    console.log("Found focal node:", focalNode?.id, focalNode?.type);
+
     if (!focalNode || focalNode.type !== 'productNode') {
         console.error('Focal node not found or is not a ProductNode');
         return;
     }
 
     const inflowNodes = getAllInflows(nodes, focalNodeId);
+    console.log("Number of inflow nodes:", inflowNodes.length);
+    
     const serializedNodes: SerializableNode[] = [
         {
             ...focalNode,
-            data: { 
-                ...focalNode.data, 
+            data: {
+                ...focalNode.data,
                 isRoot: true,
                 handleSelectProcess: undefined,
                 handleSerialize: undefined,
@@ -37,8 +44,8 @@ export const serializeProductionChain = async (
         },
         ...inflowNodes.map(node => ({
             ...node,
-            data: { 
-                ...node.data, 
+            data: {
+                ...node.data,
                 handleSelectProcess: undefined,
                 handleSerialize: undefined,
             },

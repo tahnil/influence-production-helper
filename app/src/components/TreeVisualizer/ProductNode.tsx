@@ -1,6 +1,6 @@
 // components/TreeVisualizer/ProductNode.tsx
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Node, Handle, Position, NodeProps } from '@xyflow/react';
 import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 import { formatNumber } from '@/utils/formatNumber';
@@ -31,6 +31,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     dispatch,
     matchingConfigs,
     saveStatus,
+    saveError,
   } = useFlow();
   const { toast } = useToast();
   const {
@@ -89,11 +90,6 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
         payload: { focalNodeId: id }
       });
 
-      toast({
-        title: "Configuration Saved",
-        description: `Production chain for ${name} has been successfully saved.`,
-        duration: 3000,
-      });
     } catch (error) {
       console.error('Error saving configuration:', error);
       toast({
@@ -103,7 +99,25 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
         duration: 3000,
       });
     }
-  }, [dispatch, id, name, toast]);
+  }, [dispatch, id, toast]);
+
+  // Add a useEffect to handle toast based on saveStatus
+  useEffect(() => {
+    if (saveStatus === 'complete') {
+      toast({
+        title: "Configuration Saved",
+        description: `Production chain for ${name} has been successfully saved.`,
+        duration: 3000,
+      });
+    } else if (saveStatus === 'error') {
+      toast({
+        title: "Error",
+        description: saveError || "Failed to save the configuration. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  }, [saveStatus, saveError, name, toast]);
 
   const hasInflows = getDirectChildNodes(nodes as InfluenceNode[], id).length > 0;
 
