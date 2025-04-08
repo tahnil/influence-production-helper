@@ -3,7 +3,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { InfluenceNode, ProductNode } from '@/types/reactFlowTypes';
 import { getAllInflows } from '@/utils/TreeVisualizer/nodeHelpers';
-import { usePouchDB } from '@/contexts/PouchDBContext';
 
 type SerializableNode = Omit<InfluenceNode, 'position' | 'width' | 'height' | 'data'> & {
     data: Omit<InfluenceNode['data'], 'handleSelectProcess' | 'handleSerialize'> & { isRoot?: boolean };
