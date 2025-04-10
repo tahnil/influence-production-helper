@@ -1,6 +1,6 @@
 // components/TreeVisualizer/ProductNode.tsx
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { Node, Handle, Position, NodeProps } from '@xyflow/react';
 import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 import { formatNumber } from '@/utils/formatNumber';
@@ -45,61 +45,58 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   } = data;
 
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = productDetails;
-  const [selectedId, setSelectedId] = useState<string | null>(selectedProcessId);
+  // const [selectedId, setSelectedId] = useState<string | null>(selectedProcessId);
 
-  const formattedAmount = formatNumber(amount, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 6,
-    scaleForUnit: true,
-    scaleType: 'units',
-  });
+  // Setup configurations for this product
+  useMatchingConfigurations(productDetails.id);
 
-  const formattedWeight = formatNumber(totalWeight, {
-    scaleForUnit: true,
-    scaleType: 'weight',
-  });
+  // Memoize formatted values to prevent recalculations
+  const formattedValues = useMemo(() => ({
+    amount: formatNumber(amount, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 6,
+      scaleForUnit: true,
+      scaleType: 'units',
+    }),
+    weight: formatNumber(totalWeight, {
+      scaleForUnit: true,
+      scaleType: 'weight',
+    }),
+    volume: formatNumber(totalVolume, {
+      scaleForUnit: true,
+      scaleType: 'volume',
+    })
+  }), [amount, totalWeight, totalVolume]);
 
-  const formattedVolume = formatNumber(totalVolume, {
-    scaleForUnit: true,
-    scaleType: 'volume',
-  });
+  // Memoize filtered configurations
+  const filteredConfigs = useMemo(() => 
+    matchingConfigs.filter(config => config.focalProductId === productDetails.id),
+  [matchingConfigs, productDetails.id]
+  )
 
-  // Direct dispatch for process selection
+  // Memoize process selection handler
   const handleProcessSelection = useCallback((processId: string) => {
-    setSelectedId(processId);
     dispatch({
       type: 'SELECT_PROCESS',
       payload: { nodeId: id, processId }
     });
   }, [dispatch, id]);
 
-  // Direct dispatch for config selection
+  // Memoize config selection handler
   const handleConfigSelection = useCallback((configId: string) => {
-    setSelectedId(configId);
     dispatch({
       type: 'LOAD_SAVED_CONFIG',
       payload: { nodeId: id, configId }
     });
   }, [dispatch, id]);
 
-  // Direct dispatch for saving the production chain
-  const handleSaveProductionChain = useCallback(async () => {
-    try {
-      dispatch({
-        type: 'SAVE_PRODUCTION_CHAIN',
-        payload: { focalNodeId: id }
-      });
-
-    } catch (error) {
-      console.error('Error saving configuration:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save the configuration. Please try again.",
-        variant: "destructive",
-        duration: 3000,
-      });
-    }
-  }, [dispatch, id, toast]);
+  // Memoize save handler
+  const handleSaveProductionChain = useCallback(() => {
+    dispatch({
+      type: 'SAVE_PRODUCTION_CHAIN',
+      payload: { focalNodeId: id }
+    });
+  }, [dispatch, id]);
 
   // Add a useEffect to handle toast based on saveStatus
   useEffect(() => {
@@ -119,9 +116,10 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     }
   }, [saveStatus, saveError, name, toast]);
 
-  const hasInflows = getDirectChildNodes(nodes as InfluenceNode[], id).length > 0;
-
-  useMatchingConfigurations(productDetails.id);
+  const hasInflows = useMemo(() => 
+    getDirectChildNodes(nodes as InfluenceNode[], id).length > 0,
+  [nodes, id]
+  );
 
   console.log('Matching configs for', productDetails.id, ':',
     matchingConfigs.filter(config => config.focalProductId === productDetails.id)
@@ -158,16 +156,16 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
         </div>
         <div id="outputSection" className="p-2 w-full bg-mako-950 flex justify-center items-center gap-2.5 grid grid-cols-3">
           <div id="units" className="flex flex-col items-center">
-            <div>{formattedAmount.formattedValue} {formattedAmount.scale}</div>
-            <div>{formattedAmount.unit}</div>
+            <div>{formattedValues.amount.formattedValue} {formattedValues.amount.scale}</div>
+            <div>{formattedValues.amount.unit}</div>
           </div>
           <div id="weight" className="flex flex-col items-center">
-            <div>{formattedWeight.formattedValue} {formattedWeight.scale}</div>
-            <div>{formattedWeight.unit}</div>
+            <div>{formattedValues.weight.formattedValue} {formattedValues.weight.scale}</div>
+            <div>{formattedValues.weight.unit}</div>
           </div>
           <div id="volume" className="flex flex-col items-center">
-            <div>{formattedVolume.formattedValue} {formattedVolume.scale}</div>
-            <div>{formattedVolume.unit}</div>
+            <div>{formattedValues.volume.formattedValue} {formattedValues.volume.scale}</div>
+            <div>{formattedValues.volume.unit}</div>
           </div>
         </div>
         <div id="moreInfosSection" className="bg-lunarGreen-500 w-full py-1 px-2.5 flex flex-col items-start gap-1">
@@ -179,7 +177,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
             savedConfigurations={matchingConfigs.filter(config =>
               config.focalProductId === productDetails.id
             )}
-            selectedId={selectedId}
+            selectedId={selectedProcessId}
             onProcessSelect={handleProcessSelection}
             onConfigSelect={handleConfigSelection}
             className="w-full border-lunarGreen-700 bg-lunarGreen-600"
@@ -197,5 +195,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     </div>
   );
 };
+
+ProductNode.displayName = 'ProductNode';
 
 export default ProductNode;
