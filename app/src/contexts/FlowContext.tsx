@@ -17,6 +17,17 @@ import applyDagreLayout from '@/utils/TreeVisualizer/applyDagreLayout';
 import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
 import { InfluenceNode } from '@/types/reactFlowTypes';
 import { handleReplaceNode } from '@/utils/TreeVisualizer/handleReplaceNode';
+import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
+import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
+
+interface NodeCreationRequest {
+  type: 'product' | 'process';
+  productId?: string;
+  processId?: string;
+  parentNodeId?: string;
+  amount?: number;
+  isRoot?: boolean;
+}
 
 // Define the state interface
 interface FlowState {
@@ -41,10 +52,12 @@ interface FlowState {
     createdAt: string;
     nodeCount: number;
   }>;
+  pendingNodeCreation: NodeCreationRequest | null;
   saveStatus?: 'pending' | 'complete' | 'error';
   saveError?: string;
   loadStatus?: 'pending' | 'complete' | 'error';
   loadError?: string;
+  nodeCreationError?: string;
 }
 
 // Define the action types
@@ -78,8 +91,6 @@ export type FlowAction =
   }
   | { type: 'SELECT_PRODUCT'; payload: string | null }
   | { type: 'SELECT_PROCESS'; payload: { nodeId: string; processId: string } }
-  | { type: 'BUILD_PRODUCT_NODE'; payload: { productId: string, node: Node } }
-  | { type: 'BUILD_PROCESS_NODE'; payload: { processNode: Node, productNodes: Node[], parentNodeId: string } }
   | { type: 'SAVE_PRODUCTION_CHAIN'; payload: { focalNodeId: string } }
   | { type: 'LOAD_SAVED_CONFIG'; payload: { nodeId: string, configId: string } }
   | { type: 'SAVE_COMPLETE' }
@@ -94,6 +105,10 @@ export type FlowAction =
       nodeCount: number;
     }>
   }
+  | { type: 'REQUEST_PRODUCT_NODE_CREATION'; payload: { productId: string, amount: number, isRoot?: boolean } }
+  | { type: 'REQUEST_PROCESS_NODE_CREATION'; payload: { processId: string, parentNodeId: string } }
+  | { type: 'NODE_CREATION_COMPLETED' }
+  | { type: 'NODE_CREATION_FAILED'; payload: { error: string } }
   ;
 
 // Initial state
@@ -110,6 +125,7 @@ const initialState: FlowState = {
   pendingSaveNodeId: null,
   pendingLoadConfig: null,
   matchingConfigs: [],
+  pendingNodeCreation: null,
 };
 
 // Create the reducer function
@@ -224,76 +240,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         ...state,
         processSelections: [...state.processSelections, action.payload],
       };
-    case 'BUILD_PRODUCT_NODE':
-      return {
-        ...state,
-        nodes: [
-          ...state.nodes,
-          {
-            ...action.payload.node,
-            data: {
-              ...action.payload.node.data,
-              // Ensure any necessary callbacks are added
-            }
-          }
-        ],
-        rootNodeId: action.payload.node.id,
-      };
-    case 'BUILD_PROCESS_NODE':
-      const { processNode, productNodes, parentNodeId } = action.payload;
-
-      const existingProcessNode = state.nodes.find(
-        (node) => node.parentId === parentNodeId && node.type === 'processNode'
-      );
-
-      let updatedNodes = [...state.nodes];
-      let updatedEdges = [...state.edges];
-
-      if (existingProcessNode) {
-        // Get all outflow IDs
-        const outflowIds = getOutflowIds(existingProcessNode.id, updatedNodes);
-
-        updatedNodes = updatedNodes.filter(
-          (node) => ![existingProcessNode.id, ...outflowIds].includes(node.id)
-        );
-
-        updatedEdges = updatedEdges.filter(
-          (edge) => ![existingProcessNode.id, ...outflowIds].includes(edge.source)
-        );
-
-        updatedNodes = [...updatedNodes, processNode, ...productNodes];
-
-        const newEdges = productNodes.map((productNode) => ({
-          id: `edge-${processNode.id}-${productNode.id}`,
-          source: processNode.id,
-          target: productNode.id,
-          type: 'custom',
-        }));
-
-        updatedEdges = [...updatedEdges, ...newEdges];
-
-        updatedEdges.push({
-          id: `edge-${parentNodeId}-${processNode.id}`,
-          source: parentNodeId,
-          target: processNode.id,
-          type: 'custom',
-        });
-
-        const parentProductNode = updatedNodes.find(
-          (node) => node.id === parentNodeId && node.type === 'productNode'
-        );
-
-        if (parentProductNode) {
-          parentProductNode.data.inflowIds = [processNode.id];
-        }
-
-        return {
-          ...state,
-          nodes: updatedNodes,
-          edges: updatedEdges,
-          needsLayout: true,
-        };
-      };
     case 'SAVE_PRODUCTION_CHAIN': {
       if ('focalNodeId' in action.payload) {
         const { focalNodeId } = action.payload;
@@ -356,6 +302,33 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         matchingConfigs: action.payload
       };
     };
+    case 'REQUEST_PRODUCT_NODE_CREATION':
+      return {
+        ...state,
+        pendingNodeCreation: {
+          type: 'product',
+          ...action.payload
+        }
+      };
+    case 'REQUEST_PROCESS_NODE_CREATION':
+      return {
+        ...state,
+        pendingNodeCreation: {
+          type: 'process',
+          ...action.payload
+        }
+      };
+    case 'NODE_CREATION_COMPLETED':
+      return {
+        ...state,
+        pendingNodeCreation: null
+      };
+    case 'NODE_CREATION_FAILED':
+      return {
+        ...state,
+        pendingNodeCreation: null,
+        nodeCreationError: action.payload.error
+      };
     default:
       return state;
   }
@@ -404,6 +377,8 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [state, dispatch] = useReducer(flowReducer, initialState);
   const nodesRef = useRef<Node[]>([]);
   const { memoryDb } = usePouchDB();
+  const { buildProductNode } = useProductNodeBuilder();
+  const { buildProcessNode } = useProcessNodeBuilder();
 
   // Keep the nodesRef in sync with the state.nodes
   React.useEffect(() => {
@@ -455,6 +430,136 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
       dispatch({ type: 'SET_ROOT_NODE_ID', payload: id });
     }
   };
+
+  useEffect(() => {
+    if (!state.pendingNodeCreation) return;
+
+    const processRequest = async () => {
+      try {
+        if (state.pendingNodeCreation && state.pendingNodeCreation.type === 'product') {
+          const { productId, amount = 1, isRoot = false } = state.pendingNodeCreation;
+
+          // Use buildProductNode from hook
+          if (!productId) {
+            throw new Error('Product ID is undefined');
+          }
+          const productNode = await buildProductNode(productId, amount);
+
+          if (productNode) {
+            // Add callbacks
+            const enhancedNode = {
+              ...productNode,
+              data: {
+                ...productNode.data,
+                handleSelectProcess: (processId: string, nodeId: string) => {
+                  dispatch({
+                    type: 'SELECT_PROCESS',
+                    payload: { nodeId, processId }
+                  });
+                },
+                handleSerialize: (focalNodeId: string) => {
+                  dispatch({
+                    type: 'SAVE_PRODUCTION_CHAIN',
+                    payload: { focalNodeId }
+                  });
+                },
+                isRoot
+              }
+            };
+
+            if (isRoot) {
+              dispatch({
+                type: 'BATCH_UPDATE',
+                payload: {
+                  nodes: [enhancedNode],
+                  rootNodeId: enhancedNode.id
+                }
+              });
+            } else {
+              dispatch({
+                type: 'BATCH_UPDATE',
+                payload: {
+                  nodes: [...state.nodes, enhancedNode]
+                }
+              });
+            }
+
+            dispatch({ type: 'NODE_CREATION_COMPLETED' });
+          }
+        }
+        else if (state.pendingNodeCreation && state.pendingNodeCreation.type === 'process') {
+          const { processId, parentNodeId } = state.pendingNodeCreation;
+
+          // Find parent node
+          const parentNode = state.nodes.find(node => node.id === parentNodeId);
+          if (!parentNode) {
+            throw new Error(`Parent node with ID ${parentNodeId} not found`);
+          }
+
+          const parentNodeAmount = Number(parentNode.data.amount) || 1;
+          const parentNodeProductId = (parentNode.data.productDetails as { id: string })?.id || '';
+
+          // Use buildProcessNode from hook
+          if (!processId) {
+            throw new Error('Process ID is undefined');
+          }
+
+          if (!parentNodeId) {
+            throw new Error('Parent Node ID is undefined');
+          }
+
+          const result = await buildProcessNode(
+            processId,
+            parentNodeId,
+            parentNodeAmount,
+            parentNodeProductId,
+            (processId, nodeId) =>
+              dispatch({ type: 'SELECT_PROCESS', payload: { nodeId, processId } }),
+            (focalNodeId) =>
+              dispatch({ type: 'SAVE_PRODUCTION_CHAIN', payload: { focalNodeId } })
+          );
+
+          if (!result) {
+            throw new Error('Failed to build process node');
+          }
+
+          dispatch({
+            type: 'PROCESS_SELECTED',
+            payload: {
+              processNode: result.processNode,
+              productNodes: result.productNodes,
+              parentNodeId,
+              edges: state.edges
+            }
+          });
+
+          dispatch({ type: 'NODE_CREATION_COMPLETED' });
+
+          if (result) {
+            dispatch({
+              type: 'PROCESS_SELECTED',
+              payload: {
+                processNode: result.processNode,
+                productNodes: result.productNodes,
+                parentNodeId,
+                edges: state.edges
+              }
+            });
+
+            dispatch({ type: 'NODE_CREATION_COMPLETED' });
+          }
+        }
+      } catch (error) {
+        console.error('Error creating node:', error);
+        dispatch({
+          type: 'NODE_CREATION_FAILED',
+          payload: { error: String(error) }
+        });
+      }
+    };
+
+    processRequest();
+  }, [state.pendingNodeCreation, buildProductNode, buildProcessNode, state.nodes, state.edges, dispatch]);
 
   useEffect(() => {
     // Handle pending save operation

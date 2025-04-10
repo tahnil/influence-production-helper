@@ -80,7 +80,7 @@ const TreeRenderer: React.FC = () => {
 
     const handleProductSelect = useCallback((productId: string) => {
         dispatch({ type: 'SELECT_PRODUCT', payload: productId });
-      }, [dispatch]);      
+    }, [dispatch]);
 
     const handleSerialize = useCallback(
         async (focalNodeId: string) => {
@@ -176,44 +176,25 @@ const TreeRenderer: React.FC = () => {
     }, [nodes, edges, nodesReady, desiredAmount, rootNodeId, dagreConfig, needsLayout, dispatch]);
 
     useEffect(() => {
-        const fetchAndBuildRootNode = async () => {
-            if (selectedProductId) {
-                dispatch({
-                    type: 'BATCH_UPDATE',
-                    payload: {
-                        nodes: [],
-                        edges: []
-                    }
-                });
-
-                const rootNode = await buildProductNode(
-                    selectedProductId,
-                    desiredAmount,
-                );
-
-                if (rootNode) {
-                    const namedRootNode = {
-                        ...rootNode,
-                        data: {
-                            ...rootNode.data,
-                            handleSelectProcess,
-                            handleSerialize,
-                        }
-                    };
-
-                    dispatch({
-                        type: 'BATCH_UPDATE',
-                        payload: {
-                            nodes: [namedRootNode],
-                            rootNodeId: namedRootNode.id
-                        }
-                    });
+        if (selectedProductId) {
+            dispatch({
+                type: 'BATCH_UPDATE',
+                payload: {
+                    nodes: [],
+                    edges: []
                 }
-            }
-        };
+            });
 
-        fetchAndBuildRootNode();
-    }, [selectedProductId, buildProductNode]);
+            dispatch({
+                type: 'REQUEST_PRODUCT_NODE_CREATION',
+                payload: {
+                    productId: selectedProductId,
+                    amount: desiredAmount,
+                    isRoot: true
+                }
+            });
+        }
+    }, [selectedProductId, desiredAmount, dispatch]);
 
     useEffect(() => {
         const fetchAndBuildProcessNode = async () => {

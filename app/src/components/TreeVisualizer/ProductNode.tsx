@@ -1,6 +1,6 @@
 // components/TreeVisualizer/ProductNode.tsx
 
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Node, Handle, Position, NodeProps } from '@xyflow/react';
 import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 import { formatNumber } from '@/utils/formatNumber';
@@ -45,7 +45,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   } = data;
 
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = productDetails;
-  // const [selectedId, setSelectedId] = useState<string | null>(selectedProcessId);
+  const [selectedId, setSelectedId] = useState<string | null>(selectedProcessId);
 
   // Setup configurations for this product
   useMatchingConfigurations(productDetails.id);
@@ -76,9 +76,13 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
 
   // Memoize process selection handler
   const handleProcessSelection = useCallback((processId: string) => {
+    setSelectedId(processId);
     dispatch({
-      type: 'SELECT_PROCESS',
-      payload: { nodeId: id, processId }
+      type: 'REQUEST_PROCESS_NODE_CREATION',
+      payload: { 
+        processId,
+        parentNodeId: id,
+      }
     });
   }, [dispatch, id]);
 
@@ -177,7 +181,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
             savedConfigurations={matchingConfigs.filter(config =>
               config.focalProductId === productDetails.id
             )}
-            selectedId={selectedProcessId}
+            selectedId={selectedId}
             onProcessSelect={handleProcessSelection}
             onConfigSelect={handleConfigSelection}
             className="w-full border-lunarGreen-700 bg-lunarGreen-600"
