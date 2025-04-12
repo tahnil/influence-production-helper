@@ -215,7 +215,6 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
         });
 
         // Recalculate amounts for all nodes using the current desired amount
-        console.log('calling calculateDesiredAmount with rootNode.id:', rootNode.id);
         const recalculatedNodes = calculateDesiredAmount(
           nodesWithCallbacks,
           desiredAmount,

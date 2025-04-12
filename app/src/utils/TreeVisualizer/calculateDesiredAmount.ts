@@ -4,7 +4,6 @@ import { Node } from '@xyflow/react';
 import { ProductNode, ProcessNode } from '@/types/reactFlowTypes';
 
 export default function calculateDesiredAmount(nodes: Node[], desiredAmount: number, rootNodeId: string): Node[] {
-    console.log('calculateDesiredAmount called with desiredAmount: ', desiredAmount, ' and rootNodeId: ', rootNodeId);
     const updateProcessNode = (processNode: ProcessNode, parentNode: ProductNode): ProcessNode => {
         const output = processNode.data.processDetails.outputs.find(
             output => output.productId === parentNode.data.productDetails.id

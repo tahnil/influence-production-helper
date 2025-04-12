@@ -16,7 +16,6 @@ import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProcessNode from './ProcessNode';
 import ProductNode from './ProductNode';
 import {
-    ProductNode as ProductNodeType,
     ProcessNode as InfluenceNode
 } from '@/types/reactFlowTypes';
 import '@xyflow/react/dist/style.css';
@@ -83,6 +82,11 @@ const TreeRenderer: React.FC = () => {
     const { buildProcessNode } = useProcessNodeBuilder();
 
     const handleSelectProcess = useCallback(
+        // TODO: Investigate if handleSelectProcess is still needed. It appears to be unused.
+        // Maintains Node Interactivity: When loading saved 
+        // configurations, handleSelectProcess ensures that 
+        // process nodes remain interactive and can trigger 
+        // state updates when selected.
         debounce((processId: string, nodeId: string) => {
             // Add a new log entry with the node ID and process ID to the state
             dispatch({
@@ -137,7 +141,6 @@ const TreeRenderer: React.FC = () => {
     const applyLayoutIfNeeded = useCallback(() => {
         // Check if preliminary layout is needed
         if (prevNodesRef.current !== nodes.length || needsLayout) {
-            console.log("Applying preliminary layout");
 
             // Use fallback dimensions for nodes without measurements
             const nodesWithFallbackDimensions = nodes.map(node => {
@@ -169,7 +172,6 @@ const TreeRenderer: React.FC = () => {
         }
         // Apply more precise layout once all measurements are ready
         else if (layoutTriggerRef.current && nodesReady) {
-            console.log("Applying final layout with measurements");
 
             // Dispatch the specialized layout action
             dispatch({
@@ -187,7 +189,6 @@ const TreeRenderer: React.FC = () => {
     }, [nodesReady, dagreConfig, needsLayout, dispatch]);
 
     useEffect(() => {
-        console.log("Layout effect triggered");
         applyLayoutIfNeeded();
     }, [applyLayoutIfNeeded]);
 
