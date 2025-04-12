@@ -138,7 +138,7 @@ const TreeRenderer: React.FC = () => {
         // Check if preliminary layout is needed
         if (prevNodesRef.current !== nodes.length || needsLayout) {
             console.log("Applying preliminary layout");
-    
+
             // Use fallback dimensions for nodes without measurements
             const nodesWithFallbackDimensions = nodes.map(node => {
                 if (!node.measured?.width || !node.measured?.height) {
@@ -153,7 +153,7 @@ const TreeRenderer: React.FC = () => {
                 }
                 return node;
             });
-    
+
             // Dispatch the specialized layout action
             dispatch({
                 type: 'APPLY_LAYOUT',
@@ -164,13 +164,13 @@ const TreeRenderer: React.FC = () => {
                     needsReset: true
                 }
             });
-    
+
             prevNodesRef.current = nodes.length;
         }
         // Apply more precise layout once all measurements are ready
         else if (layoutTriggerRef.current && nodesReady) {
             console.log("Applying final layout with measurements");
-    
+
             // Dispatch the specialized layout action
             dispatch({
                 type: 'APPLY_LAYOUT',
@@ -181,7 +181,7 @@ const TreeRenderer: React.FC = () => {
                     needsReset: false
                 }
             });
-    
+
             layoutTriggerRef.current = false;
         }
     }, [nodesReady, dagreConfig, needsLayout, dispatch]);
@@ -219,48 +219,29 @@ const TreeRenderer: React.FC = () => {
         }
     }, [selectedProductId, dispatch]);
 
+    const lastProcessedSelectionRef = useRef<number>(0);
+
     useEffect(() => {
-        const fetchAndBuildProcessNode = async () => {
-            if (processSelections.length > 0) {
-                const lastEntry = processSelections[processSelections.length - 1];
-                const { nodeId: parentNodeId, processId } = lastEntry;
+        // Only process selections we haven't seen yet
+        if (processSelections.length > lastProcessedSelectionRef.current) {
+            // Get only the newest selection
+            const newSelection = processSelections[processSelections.length - 1];
+            const { nodeId: parentNodeId, processId } = newSelection;
 
-                if (processId && parentNodeId) {
-                    // Find the parent node and its amount
-                    const parentNode = nodes.find((node) => node.id === parentNodeId);
-                    const parentNodeAmount: number = (parentNode as ProductNodeType)?.data?.amount ?? 1;
-                    const parentNodeProductId: string = (parentNode as ProductNodeType)?.data?.productDetails?.id ?? '';
+            if (processId && parentNodeId) {
+                // Update our ref to mark this selection as processed
+                lastProcessedSelectionRef.current = processSelections.length;
 
-                    // Build the process node
-                    const result = await buildProcessNode(
+                // Request node creation through the reducer
+                dispatch({
+                    type: 'REQUEST_PROCESS_NODE_CREATION',
+                    payload: {
                         processId,
-                        parentNodeId,
-                        parentNodeAmount,
-                        parentNodeProductId,
-                        handleSelectProcess,
-                        handleSerialize,
-                    );
-
-                    if (result) {
-
-                        dispatch({
-                            type: 'PROCESS_SELECTED',
-                            payload: {
-                                processNode: result.processNode,
-                                productNodes: result.productNodes,
-                                parentNodeId,
-                                edges
-                            }
-                        });
-
-                        // Set layout trigger to recalculate positions
-                        // layoutTriggerRef.current = true;
+                        parentNodeId
                     }
-                }
+                });
             }
-        };
-
-        fetchAndBuildProcessNode();
+        }
     }, [processSelections, buildProcessNode]);
 
     return (
