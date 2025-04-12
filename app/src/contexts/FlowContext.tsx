@@ -152,8 +152,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       };
     case 'APPLY_LAYOUT': {
       const { nodes, edges, needsReset = true, dagreConfig } = action.payload;
-      const updatedNodes = calculateDesiredAmount(nodes, state.desiredAmount, state.rootNodeId);
-      const { layoutedNodes, layoutedEdges } = applyDagreLayout(updatedNodes, edges, dagreConfig);
+      const { layoutedNodes, layoutedEdges } = applyDagreLayout(nodes, edges, dagreConfig);
 
       return {
         ...state,
@@ -163,7 +162,16 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       };
     };
     case 'SET_DESIRED_AMOUNT':
-      return { ...state, desiredAmount: action.payload };
+      const updatedNodes = calculateDesiredAmount(
+        state.nodes,
+        action.payload,
+        state.rootNodeId,
+      )
+      return { 
+        ...state, 
+        desiredAmount: action.payload,
+        nodes: updatedNodes
+      };
     case 'SET_NODES_READY':
       return { ...state, nodesReady: action.payload };
     case 'SET_ROOT_NODE_ID':

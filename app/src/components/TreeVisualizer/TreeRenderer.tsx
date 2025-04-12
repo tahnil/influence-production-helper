@@ -116,7 +116,7 @@ const TreeRenderer: React.FC = () => {
     );
 
     const rawMaterialIngredients = useIngredientsList(nodes, 'rawMaterials');
-    
+
     const allProductIngredients = useIngredientsList(nodes, 'allProducts');
 
     useEffect(() => {
@@ -133,26 +133,12 @@ const TreeRenderer: React.FC = () => {
         }
     }, [nodesInitialized, nodes, dispatch]);
 
-    useEffect(() => {
-        if (nodesReady) {
-            layoutTriggerRef.current = true;
-        }
-    }, [nodesReady, desiredAmount, dagreConfig]);
 
-    useEffect(() => {
-        console.log("Layout effect checking:", {
-            layoutTriggerRef: layoutTriggerRef.current,
-            prevNodesRef: prevNodesRef.current,
-            nodesLength: nodes.length,
-            needsLayout,
-            nodesReady
-        });
-
-        // If nodes have been added or needsLayout is true, apply a preliminary layout
-        // even if measurements aren't ready
+    const applyLayoutIfNeeded = useCallback(() => {
+        // Check if preliminary layout is needed
         if (prevNodesRef.current !== nodes.length || needsLayout) {
             console.log("Applying preliminary layout");
-
+    
             // Use fallback dimensions for nodes without measurements
             const nodesWithFallbackDimensions = nodes.map(node => {
                 if (!node.measured?.width || !node.measured?.height) {
@@ -167,7 +153,7 @@ const TreeRenderer: React.FC = () => {
                 }
                 return node;
             });
-
+    
             // Dispatch the specialized layout action
             dispatch({
                 type: 'APPLY_LAYOUT',
@@ -178,13 +164,13 @@ const TreeRenderer: React.FC = () => {
                     needsReset: true
                 }
             });
-
+    
             prevNodesRef.current = nodes.length;
         }
         // Apply more precise layout once all measurements are ready
         else if (layoutTriggerRef.current && nodesReady) {
             console.log("Applying final layout with measurements");
-
+    
             // Dispatch the specialized layout action
             dispatch({
                 type: 'APPLY_LAYOUT',
@@ -195,10 +181,22 @@ const TreeRenderer: React.FC = () => {
                     needsReset: false
                 }
             });
-
+    
             layoutTriggerRef.current = false;
         }
-    }, [nodes, edges, nodesReady, desiredAmount, rootNodeId, dagreConfig, needsLayout, dispatch]);
+    }, [nodesReady, dagreConfig, needsLayout, dispatch]);
+
+    useEffect(() => {
+        console.log("Layout effect triggered");
+        applyLayoutIfNeeded();
+    }, [applyLayoutIfNeeded]);
+
+    useEffect(() => {
+        if (nodesReady) {
+            layoutTriggerRef.current = true;
+            applyLayoutIfNeeded(); // Apply layout immediately when triggered
+        }
+    }, [nodesReady, dagreConfig, applyLayoutIfNeeded]);
 
     useEffect(() => {
         if (selectedProductId) {
