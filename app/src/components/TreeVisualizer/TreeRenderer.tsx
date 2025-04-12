@@ -6,58 +6,28 @@ import React, {
     useRef
 } from 'react';
 import {
-    ReactFlow,
-    MiniMap,
     useNodesInitialized,
 } from '@xyflow/react';
-import { usePouchDB } from '@/contexts/PouchDBContext';
 import { useFlow } from '@/contexts/FlowContext';
-import ProcessNode from './ProcessNode';
-import ProductNode from './ProductNode';
-import {
-    ProcessNode as InfluenceNode
-} from '@/types/reactFlowTypes';
 import '@xyflow/react/dist/style.css';
-import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
-import LayoutConfigPanel from './LayoutConfigPanel';
-import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
-import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
-import debounce from '@/utils/TreeVisualizer/debounce';
 import { useReactFlowSetup } from '@/hooks/useReactFlowSetup';
 import { useDagreConfig } from '@/hooks/useDagreConfig';
-import CustomEdge from '@/components/TreeVisualizer/CustomEdges';
-import ControlPanel from '@/components/TreeVisualizer/ControlPanel';
-
-const nodeTypes = {
-    productNode: ProductNode,
-    processNode: ProcessNode,
-};
-
-const edgeTypes = {
-    custom: CustomEdge,
-};
 
 const TreeRenderer: React.FC = () => {
-    const { memoryDb } = usePouchDB();
 
     const {
         nodes,
         edges,
-        onNodesChange,
-        onEdgesChange,
-        onConnect
     } = useReactFlowSetup();
 
     const {
         dagreConfig,
-        updateDagreConfig
     } = useDagreConfig();
 
     const {
         nodesRef,
         desiredAmount,
         nodesReady,
-        rootNodeId,
         needsLayout,
         selectedProductId,
         processSelections,
@@ -75,50 +45,6 @@ const TreeRenderer: React.FC = () => {
             nodesRef.current = nodes;
         }
     }, [nodes, nodesRef]);
-
-    const { buildProcessNode } = useProcessNodeBuilder();
-
-    const handleSelectProcess = useCallback(
-        // TODO: Investigate if handleSelectProcess is still needed. It appears to be unused.
-        // Maintains Node Interactivity: When loading saved 
-        // configurations, handleSelectProcess ensures that 
-        // process nodes remain interactive and can trigger 
-        // state updates when selected.
-        debounce((processId: string, nodeId: string) => {
-            // Add a new log entry with the node ID and process ID to the state
-            dispatch({
-                type: 'SELECT_PROCESS',
-                payload: { nodeId, processId }
-            });
-        }, 300),
-        []
-    );
-
-    const handleProductSelect = useCallback((productId: string) => {
-        dispatch({
-            type: 'SELECT_PRODUCT',
-            payload: productId
-        });
-    }, [dispatch]);
-
-    const handleSerialize = useCallback(
-        async (focalNodeId: string) => {
-            if (focalNodeId && nodesRef.current.length > 0 && memoryDb) {
-                try {
-                    await serializeProductionChain(focalNodeId, nodesRef.current as InfluenceNode[], memoryDb);
-                } catch (error) {
-                    console.error('Error serializing production chain:', error);
-                }
-            } else {
-                console.log('No focal node selected, nodes are empty, or database is not initialized.');
-            }
-        },
-        [memoryDb, nodesRef]
-    );
-
-    const rawMaterialIngredients = useIngredientsList(nodes, 'rawMaterials');
-
-    const allProductIngredients = useIngredientsList(nodes, 'allProducts');
 
     useEffect(() => {
         if (nodesInitialized && nodes.every(node => node.measured?.width && node.measured?.height)) {
@@ -240,46 +166,9 @@ const TreeRenderer: React.FC = () => {
                 });
             }
         }
-    }, [processSelections, buildProcessNode]);
+    }, [processSelections]);
 
-    return (
-        <div className="w-full h-full relative">
-            <div className="tree-renderer" style={{ width: '100%', height: '100%' }}>
-                <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
-                    onNodesChange={onNodesChange}
-                    onEdgesChange={onEdgesChange}
-                    onConnect={onConnect}
-                    nodeTypes={nodeTypes}
-                    edgeTypes={edgeTypes}
-                    fitView
-                    style={{ backgroundColor: '#282C34' }}
-                    minZoom={0.1}
-                    maxZoom={1}
-                    nodesDraggable={false}
-                    colorMode="dark"
-                >
-                    <ControlPanel
-                        rawMaterialIngredients={rawMaterialIngredients}
-                        allProductIngredients={allProductIngredients}
-                        handleSelectProcess={handleSelectProcess}
-                        handleSerialize={handleSerialize}
-                    />
-                    <LayoutConfigPanel
-                        dagreConfig={dagreConfig}
-                        updateDagreConfig={updateDagreConfig}
-                    />
-                    <MiniMap
-                        nodeStrokeWidth={3}
-                        pannable={true}
-                        inversePan={true}
-                        maskColor='rgba(30,30,30,1)'
-                    />
-                </ReactFlow>
-            </div>
-        </div>
-    );
+    return null;
 };
 
 TreeRenderer.displayName = 'TreeRenderer';

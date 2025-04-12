@@ -1,0 +1,122 @@
+import React, { useCallback } from 'react';
+import { ReactFlow, MiniMap, useNodesInitialized } from '@xyflow/react';
+import { useReactFlowSetup } from '@/hooks/useReactFlowSetup';
+import ProductNode from './ProductNode';
+import ProcessNode from './ProcessNode';
+import CustomEdge from './CustomEdges';
+import ControlPanel from './ControlPanel';
+import LayoutConfigPanel from './LayoutConfigPanel';
+import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
+import debounce from '@/utils/TreeVisualizer/debounce';
+import '@xyflow/react/dist/style.css';
+import { useFlow } from '@/contexts/FlowContext';
+import { usePouchDB } from '@/contexts/PouchDBContext';
+import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
+import { InfluenceNode } from '@/types/reactFlowTypes';
+import { useDagreConfig } from '@/hooks/useDagreConfig';
+
+const nodeTypes = {
+    productNode: ProductNode,
+    processNode: ProcessNode,
+};
+
+const edgeTypes = {
+    custom: CustomEdge,
+};
+
+const ProductionChainCanvas: React.FC = () => {
+    const { memoryDb } = usePouchDB();
+
+    const {
+        nodes,
+        edges,
+        onNodesChange,
+        onEdgesChange,
+        onConnect
+    } = useReactFlowSetup();
+
+    const {
+        dagreConfig,
+        updateDagreConfig
+    } = useDagreConfig();
+
+    const {
+        nodesRef,
+        dispatch
+    } = useFlow();
+
+    // Calculate ingredient lists
+    const rawMaterialIngredients = useIngredientsList(nodes, 'rawMaterials');
+    const allProductIngredients = useIngredientsList(nodes, 'allProducts');
+
+    // Process selection handler
+    const handleSelectProcess = useCallback(
+        debounce((processId: string, nodeId: string) => {
+            dispatch({
+                type: 'SELECT_PROCESS',
+                payload: { nodeId, processId }
+            });
+        }, 300),
+        []
+    );
+
+    // Serialization handler
+    const handleSerialize = useCallback(
+        async (focalNodeId: string) => {
+            if (focalNodeId && nodesRef.current.length > 0 && memoryDb) {
+                try {
+                    await serializeProductionChain(focalNodeId, nodesRef.current as InfluenceNode[], memoryDb);
+                } catch (error) {
+                    console.error('Error serializing production chain:', error);
+                }
+            } else {
+                console.log('No focal node selected, nodes are empty, or database is not initialized.');
+            }
+        },
+        [memoryDb, nodesRef]
+    );
+
+    return (
+        <div className="w-full h-full relative">
+            <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
+                fitView
+                style={{ backgroundColor: '#282C34' }}
+                minZoom={0.1}
+                maxZoom={1}
+                nodesDraggable={false}
+                colorMode="dark"
+            >
+                {/* Control Panel Component */}
+                <ControlPanel
+                    rawMaterialIngredients={rawMaterialIngredients}
+                    allProductIngredients={allProductIngredients}
+                    handleSelectProcess={handleSelectProcess}
+                    handleSerialize={handleSerialize}
+                />
+
+                {/* Layout Config Panel */}
+                <LayoutConfigPanel
+                    dagreConfig={dagreConfig}
+                    updateDagreConfig={updateDagreConfig}
+                />
+
+                {/* MiniMap */}
+                <MiniMap
+                    nodeStrokeWidth={3}
+                    pannable={true}
+                    inversePan={true}
+                    maskColor='rgba(30,30,30,1)'
+                />
+            </ReactFlow>
+        </div>
+    );
+};
+
+export default ProductionChainCanvas;
