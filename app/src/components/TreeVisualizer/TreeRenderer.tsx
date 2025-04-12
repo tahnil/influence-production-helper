@@ -1,6 +1,10 @@
 // components/TreeVisualizer/TreeRenderer.tsx
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, {
+    useCallback,
+    useEffect,
+    useRef
+} from 'react';
 import {
     ReactFlow,
     MiniMap,
@@ -16,7 +20,6 @@ import {
     ProcessNode as InfluenceNode
 } from '@/types/reactFlowTypes';
 import '@xyflow/react/dist/style.css';
-import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
 import LayoutConfigPanel from './LayoutConfigPanel';
 import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
@@ -40,20 +43,33 @@ const edgeTypes = {
 
 const TreeRenderer: React.FC = () => {
     const { memoryDb } = usePouchDB();
-    const { nodes, edges, onNodesChange, onEdgesChange, onConnect } = useReactFlowSetup();
-    const { dagreConfig, updateDagreConfig } = useDagreConfig();
+
+    const {
+        nodes,
+        edges,
+        onNodesChange,
+        onEdgesChange,
+        onConnect
+    } = useReactFlowSetup();
+
+    const {
+        dagreConfig,
+        updateDagreConfig
+    } = useDagreConfig();
+
     const {
         nodesRef,
         desiredAmount,
         nodesReady,
-        setNodesReady,
         rootNodeId,
         needsLayout,
         selectedProductId,
         processSelections,
         dispatch
     } = useFlow();
+
     const layoutTriggerRef = useRef<boolean>(false);
+
     const prevNodesRef = useRef<number>(0);
 
     const nodesInitialized = useNodesInitialized();
@@ -64,7 +80,6 @@ const TreeRenderer: React.FC = () => {
         }
     }, [nodes, nodesRef]);
 
-    const { buildProductNode } = useProductNodeBuilder();
     const { buildProcessNode } = useProcessNodeBuilder();
 
     const handleSelectProcess = useCallback(
@@ -79,7 +94,10 @@ const TreeRenderer: React.FC = () => {
     );
 
     const handleProductSelect = useCallback((productId: string) => {
-        dispatch({ type: 'SELECT_PRODUCT', payload: productId });
+        dispatch({
+            type: 'SELECT_PRODUCT',
+            payload: productId
+        });
     }, [dispatch]);
 
     const handleSerialize = useCallback(
@@ -98,15 +116,22 @@ const TreeRenderer: React.FC = () => {
     );
 
     const rawMaterialIngredients = useIngredientsList(nodes, 'rawMaterials');
+    
     const allProductIngredients = useIngredientsList(nodes, 'allProducts');
 
     useEffect(() => {
         if (nodesInitialized && nodes.every(node => node.measured?.width && node.measured?.height)) {
-            setNodesReady(true);
+            dispatch({
+                type: 'SET_NODES_READY',
+                payload: true
+            });
         } else {
-            setNodesReady(false);
+            dispatch({
+                type: 'SET_NODES_READY',
+                payload: false
+            });
         }
-    }, [nodesInitialized, nodes]);
+    }, [nodesInitialized, nodes, dispatch]);
 
     useEffect(() => {
         if (nodesReady) {

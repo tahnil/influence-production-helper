@@ -125,9 +125,9 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   [nodes, id]
   );
 
-  console.log('Matching configs for', productDetails.id, ':',
-    matchingConfigs.filter(config => config.focalProductId === productDetails.id)
-  );
+  // console.log('Matching configs for', productDetails.id, ':',
+  //   matchingConfigs.filter(config => config.focalProductId === productDetails.id)
+  // );
 
   return (
     <div className="product-node bg-mako-900 border overflow-hidden rounded-lg shadow-lg w-72">
