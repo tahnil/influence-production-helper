@@ -12,7 +12,6 @@ import {
 } from '@xyflow/react';
 import { usePouchDB } from '@/contexts/PouchDBContext';
 import { useFlow } from '@/contexts/FlowContext';
-import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import ProcessNode from './ProcessNode';
 import ProductNode from './ProductNode';
 import {
@@ -22,14 +21,12 @@ import '@xyflow/react/dist/style.css';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
 import LayoutConfigPanel from './LayoutConfigPanel';
 import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
-import IngredientsList from './IngredientsList';
-import AmountInput from './AmountInput';
 import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
-import PouchDBViewer from '@/components/TreeVisualizer/PouchDbViewer';
 import debounce from '@/utils/TreeVisualizer/debounce';
 import { useReactFlowSetup } from '@/hooks/useReactFlowSetup';
 import { useDagreConfig } from '@/hooks/useDagreConfig';
 import CustomEdge from '@/components/TreeVisualizer/CustomEdges';
+import ControlPanel from '@/components/TreeVisualizer/ControlPanel';
 
 const nodeTypes = {
     productNode: ProductNode,
@@ -263,25 +260,12 @@ const TreeRenderer: React.FC = () => {
                     nodesDraggable={false}
                     colorMode="dark"
                 >
-                    <div className="absolute bottom-4 left-4 bg-background p-4 shadow-lg rounded-lg z-10 max-h-[90vh] overflow-y-auto w-[35ch]">
-                        <h2 className="text-xl font-semibold mb-4">Controls</h2>
-                        <ProductSelector
-                            selectedProductId={selectedProductId}
-                            onProductSelect={handleProductSelect}
-                            className="p-2 border rounded border-gray-300 mb-4 w-full"
-                        />
-                        <AmountInput
-                            label="Desired Amount"
-                        />
-                        <IngredientsList
-                            rawMaterialIngredients={rawMaterialIngredients}
-                            allProductIngredients={allProductIngredients}
-                        />
-                        <PouchDBViewer
-                            handleSelectProcess={handleSelectProcess}
-                            handleSerialize={handleSerialize}
-                        />
-                    </div>
+                    <ControlPanel
+                        rawMaterialIngredients={rawMaterialIngredients}
+                        allProductIngredients={allProductIngredients}
+                        handleSelectProcess={handleSelectProcess}
+                        handleSerialize={handleSerialize}
+                    />
                     <LayoutConfigPanel
                         dagreConfig={dagreConfig}
                         updateDagreConfig={updateDagreConfig}
