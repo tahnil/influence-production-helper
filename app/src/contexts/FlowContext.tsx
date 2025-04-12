@@ -37,6 +37,12 @@ interface FlowState {
   nodesReady: boolean;
   rootNodeId: string;
   needsLayout: boolean;
+  layoutStatus: {
+    lastLayoutTime: number;
+    trigger: string | null;
+    allNodesMeasured: boolean;
+  }
+  layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | null;
   selectedProductId: string | null;
   processSelections: Array<{ nodeId: string, processId: string }>;
   focalNodeId: string | null;
@@ -85,10 +91,11 @@ export type FlowAction =
     type: 'APPLY_LAYOUT'; payload: {
       nodes: Node[],
       edges: Edge[],
-      needsReset?: boolean,
-      dagreConfig: DagreConfig
+      dagreConfig: DagreConfig,
+      layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE'
     }
   }
+  | { type: 'REQUEST_LAYOUT'; payload: { trigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' } }
   | { type: 'SELECT_PRODUCT'; payload: string | null }
   | { type: 'SELECT_PROCESS'; payload: { nodeId: string; processId: string } }
   | { type: 'SAVE_PRODUCTION_CHAIN'; payload: { focalNodeId: string } }
@@ -119,6 +126,12 @@ const initialState: FlowState = {
   nodesReady: false,
   rootNodeId: 'root',
   needsLayout: false,
+  layoutStatus: {
+    lastLayoutTime: 0,
+    trigger: null,
+    allNodesMeasured: false
+  },
+  layoutTrigger: null,
   selectedProductId: null, // check if this is correct
   processSelections: [], // check if this is correct
   focalNodeId: null,
@@ -151,24 +164,65 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         edges: addEdge(action.payload, state.edges)
       };
     case 'APPLY_LAYOUT': {
-      const { nodes, edges, needsReset = true, dagreConfig } = action.payload;
-      const { layoutedNodes, layoutedEdges } = applyDagreLayout(nodes, edges, dagreConfig);
+      const { nodes, edges, dagreConfig, layoutTrigger } = action.payload;
+
+      // Determine if we should apply layout based on the trigger type
+      const shouldApplyLayout =
+        layoutTrigger === 'FORCE' || // Always apply when forced
+        (layoutTrigger === 'NODE_CHANGE' && nodes.length !== state.nodes.length) || // Node count changed
+        (layoutTrigger === 'STRUCTURE_CHANGE') || // Graph structure changed (new connections)
+        (layoutTrigger === 'MEASUREMENTS_READY' && nodes.every(node => node.measured?.width && node.measured?.height)); // Measurements are ready
+
+      if (!shouldApplyLayout) {
+        return state;
+      }
+
+      // Check if measurements are available for all nodes
+      const allNodesMeasured = nodes.every(node => node.measured?.width && node.measured?.height);
+
+      // Apply fallback dimensions for nodes without measurements
+      const nodesWithDimensions = !allNodesMeasured ? nodes.map(node => ({
+        ...node,
+        measured: {
+          width: node.type === 'processNode' ? 250 : 300,
+          height: node.type === 'processNode' ? 120 : 150,
+          ...node.measured
+        }
+      })) : nodes;
+
+      // Calculate layout with the utility
+      const { layoutedNodes, layoutedEdges } = applyDagreLayout(
+        nodesWithDimensions,
+        edges,
+        dagreConfig
+      );
 
       return {
         ...state,
         nodes: layoutedNodes,
         edges: layoutedEdges,
-        needsLayout: needsReset ? false : state.needsLayout
+        needsLayout: false,
+        layoutStatus: {
+          lastLayoutTime: Date.now(),
+          trigger: layoutTrigger,
+          allNodesMeasured
+        }
       };
     };
+    case 'REQUEST_LAYOUT':
+      return {
+        ...state,
+        needsLayout: true,
+        layoutTrigger: action.payload.trigger
+      };
     case 'SET_DESIRED_AMOUNT':
       const updatedNodes = calculateDesiredAmount(
         state.nodes,
         action.payload,
         state.rootNodeId,
       )
-      return { 
-        ...state, 
+      return {
+        ...state,
         desiredAmount: action.payload,
         nodes: updatedNodes
       };
@@ -239,6 +293,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         nodes: updatedNodes,
         edges: updatedEdges,
         needsLayout: true,
+        layoutTrigger: 'STRUCTURE_CHANGE',
       };
     };
     case 'SELECT_PRODUCT':
@@ -294,6 +349,8 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         ...state,
         pendingLoadConfig: null,
         loadStatus: 'complete',
+        needsLayout: true,
+        layoutTrigger: 'FORCE'
       };
     };
     case 'LOAD_ERROR': {
@@ -329,7 +386,9 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
     case 'NODE_CREATION_COMPLETED':
       return {
         ...state,
-        pendingNodeCreation: null
+        pendingNodeCreation: null,
+        needsLayout: true,
+        layoutTrigger: 'NODE_CHANGE'
       };
     case 'NODE_CREATION_FAILED':
       return {
@@ -349,6 +408,12 @@ interface FlowContextType {
   nodesReady: boolean;
   rootNodeId: string;
   needsLayout: boolean;
+  layoutStatus: {
+    lastLayoutTime: number;
+    trigger: string | null;
+    allNodesMeasured: boolean;
+  }
+  layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | null;
   nodesRef: React.MutableRefObject<Node[]>;
   selectedProductId: string | null;
   processSelections: Array<{ nodeId: string, processId: string }>; // Check if this is correct
@@ -651,6 +716,8 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         selectedProductId: state.selectedProductId,
         processSelections: state.processSelections,
         needsLayout: state.needsLayout,
+        layoutStatus: state.layoutStatus,
+        layoutTrigger: state.layoutTrigger,
         focalNodeId: state.focalNodeId,
         pendingSaveNodeId: state.pendingSaveNodeId,
         matchingConfigs: state.matchingConfigs,
