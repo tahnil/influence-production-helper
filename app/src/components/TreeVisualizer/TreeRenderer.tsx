@@ -217,7 +217,7 @@ const TreeRenderer: React.FC = () => {
                 }
             });
         }
-    }, [selectedProductId, desiredAmount, dispatch]);
+    }, [selectedProductId, dispatch]);
 
     useEffect(() => {
         const fetchAndBuildProcessNode = async () => {
