@@ -424,7 +424,6 @@ interface FlowContextType {
   loadStatus?: 'pending' | 'complete' | 'error';
   loadError?: string;
   dispatch: React.Dispatch<FlowAction>;
-  setNodesReady: (ready: React.SetStateAction<boolean>) => void;
 }
 const FlowContext = createContext<FlowContextType | undefined>(undefined);
 
@@ -447,16 +446,6 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   React.useEffect(() => {
     nodesRef.current = state.nodes;
   }, [state.nodes]);
-
-  // Create compatibility setters for existing components
-  const setNodesReady = (ready: React.SetStateAction<boolean>) => {
-    if (typeof ready === 'function') {
-      const updatedReady = ready(state.nodesReady);
-      dispatch({ type: 'SET_NODES_READY', payload: updatedReady });
-    } else {
-      dispatch({ type: 'SET_NODES_READY', payload: ready });
-    }
-  };
 
   useEffect(() => {
     if (!state.pendingNodeCreation) return;
@@ -676,7 +665,6 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         pendingSaveNodeId: state.pendingSaveNodeId,
         matchingConfigs: state.matchingConfigs,
         nodesRef,
-        setNodesReady,
         dispatch
       }}
     >
