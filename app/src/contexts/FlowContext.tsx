@@ -425,7 +425,6 @@ interface FlowContextType {
   loadError?: string;
   dispatch: React.Dispatch<FlowAction>;
   setNodesReady: (ready: React.SetStateAction<boolean>) => void;
-  setRootNodeId: (id: React.SetStateAction<string>) => void;
 }
 const FlowContext = createContext<FlowContextType | undefined>(undefined);
 
@@ -456,15 +455,6 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
       dispatch({ type: 'SET_NODES_READY', payload: updatedReady });
     } else {
       dispatch({ type: 'SET_NODES_READY', payload: ready });
-    }
-  };
-
-  const setRootNodeId = (id: React.SetStateAction<string>) => {
-    if (typeof id === 'function') {
-      const updatedId = id(state.rootNodeId);
-      dispatch({ type: 'SET_ROOT_NODE_ID', payload: updatedId });
-    } else {
-      dispatch({ type: 'SET_ROOT_NODE_ID', payload: id });
     }
   };
 
@@ -687,7 +677,6 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         matchingConfigs: state.matchingConfigs,
         nodesRef,
         setNodesReady,
-        setRootNodeId,
         dispatch
       }}
     >
