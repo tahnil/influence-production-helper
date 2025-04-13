@@ -295,6 +295,8 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         processSelections: [...state.processSelections, action.payload],
       };
     case 'SAVE_PRODUCTION_CHAIN': {
+      console.log('SAVE_PRODUCTION_CHAIN action dispatched with focal node:', action.payload.focalNodeId);
+
       if ('focalNodeId' in action.payload) {
         const { focalNodeId } = action.payload;
         // Call serializeProductionChain or handle async in an effect
@@ -337,7 +339,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         ...state,
         saveStatus: undefined,
         saveError: undefined,
-        lastSavedNodeId: null, 
+        lastSavedNodeId: null,
       };
     }
     case 'LOAD_SAVED_CONFIG': {
@@ -615,16 +617,16 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       saveNode();
     }
+  }, [state.pendingSaveNodeId, state.saveStatus, memoryDb]); // Reduced dependencies
 
-    // Handle pending load operation
+  // Handle load operations
+  useEffect(() => {
     if (state.pendingLoadConfig && memoryDb) {
       const loadConfig = async () => {
         try {
           const { nodeId, configId } = state.pendingLoadConfig ?? {};
 
           if (nodeId && configId) {
-
-            // Use the existing handleReplaceNode function
             await handleReplaceNode(
               nodeId,
               configId,
@@ -660,7 +662,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       loadConfig();
     }
-  }, [state.pendingSaveNodeId, state.saveStatus, state.pendingLoadConfig, state.edges, state.desiredAmount, memoryDb, dispatch]);
+  }, [state.pendingLoadConfig, state.edges, state.desiredAmount, memoryDb]);
 
   return (
     <FlowContext.Provider

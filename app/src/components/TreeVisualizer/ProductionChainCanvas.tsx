@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { ReactFlow, MiniMap, useNodesInitialized } from '@xyflow/react';
+import { ReactFlow, MiniMap } from '@xyflow/react';
 import { useReactFlowSetup } from '@/hooks/useReactFlowSetup';
 import ProductNode from './ProductNode';
 import ProcessNode from './ProcessNode';
@@ -11,8 +11,6 @@ import debounce from '@/utils/TreeVisualizer/debounce';
 import '@xyflow/react/dist/style.css';
 import { useFlow } from '@/contexts/FlowContext';
 import { usePouchDB } from '@/contexts/PouchDBContext';
-import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
-import { InfluenceNode } from '@/types/reactFlowTypes';
 import { useDagreConfig } from '@/hooks/useDagreConfig';
 
 const nodeTypes = {
