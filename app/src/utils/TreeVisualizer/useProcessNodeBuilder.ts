@@ -21,7 +21,7 @@ const useProcessNodeBuilder = () => {
         parentNodeProductId: string,
         handleSelectProcess: (processId: string, nodeId: string) => void,
         handleSerialize: (focalProductId: string) => void,
-    ): Promise<{ processNode: Node, productNodes: Node[] } | null> => {
+    ): Promise<{ processNode: Node, productNodes: Node[], sideProductNodes: Node[] } | null> => {
         try {
             const [processDetails, inputProducts] = await Promise.all([
                 getProcessDetails(selectedProcessId),
@@ -80,8 +80,37 @@ const useProcessNodeBuilder = () => {
                 return null;
             });
 
+            // Build SideProductNodes
+            const sideProductNodesPromises = processDetails.outputs
+                .filter(output => output.productId !== parentNodeProductId)
+                .map(async (output) => {
+                    const amount = parseFloat(output.unitsPerSR) * totalRuns;
+
+                    const sideProductNode = await buildProductNode(
+                        output.productId,
+                        amount,
+                    );
+
+                    if (sideProductNode) {
+                        const newSideProductNode = {
+                            ...sideProductNode,
+                            type: 'sideProductNode',
+                            data: {
+                                ...sideProductNode.data,
+                                ancestorIds: [processNodeId], // The process node is the ancestor
+                                handleSelectProcess,
+                                handleSerialize,
+                            }
+                        };
+
+                        return newSideProductNode;
+                    }
+                    return null;
+                });
+
             // After all product nodes are created
             const productNodes = (await Promise.all(productNodesPromises)).filter(Boolean) as Node[];
+            const sideProductNodes = (await Promise.all(sideProductNodesPromises)).filter(Boolean) as Node[];
 
             // Update the process node
             const newProcessNode: Node = {
@@ -95,11 +124,11 @@ const useProcessNodeBuilder = () => {
                     image: buildingIcon,
                     totalRuns,
                     inflowIds: productNodes.map(node => node.id), // Input products are inflows of the process
-                    outflowIds: [parentId], // The parent product node is the outflow
+                    outflowIds: [parentId, ...sideProductNodes.map(node => node.id)], // The parent product node is the outflow
                 },
             };
 
-            return { processNode: newProcessNode, productNodes };
+            return { processNode: newProcessNode, productNodes, sideProductNodes };
         } catch (err) {
             console.error('[useProcessNodeBuilder] Error:', err);
             return null;
