@@ -88,7 +88,8 @@ const TreeRenderer: React.FC = () => {
               type: 'REQUEST_PROCESS_NODE_CREATION',
               payload: {
                 processId,
-                parentNodeId
+                parentNodeId,
+                includeSideProducts: true,
               }
             });
           }

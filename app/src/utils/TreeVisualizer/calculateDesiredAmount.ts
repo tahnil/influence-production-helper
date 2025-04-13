@@ -2,6 +2,7 @@
 
 import { Node } from '@xyflow/react';
 import { ProductNode, ProcessNode } from '@/types/reactFlowTypes';
+import { SideProductNode } from '@/components/TreeVisualizer/SideProductNode';
 
 export default function calculateDesiredAmount(nodes: Node[], desiredAmount: number, rootNodeId: string): Node[] {
     const updateProcessNode = (processNode: ProcessNode, parentNode: ProductNode): ProcessNode => {
@@ -39,8 +40,8 @@ export default function calculateDesiredAmount(nodes: Node[], desiredAmount: num
         const node = nodeMap.get(nodeId);
         if (!node) return;
 
-        if (node.type === 'productNode') {
-            const productNode = node as ProductNode;
+        if (node.type === 'productNode' || node.type === 'sideProductNode') {
+            const productNode = node as ProductNode | SideProductNode;
             if (!parentNode) {
                 // Root node scenario
                 productNode.data.amount = desiredAmount;
@@ -49,7 +50,9 @@ export default function calculateDesiredAmount(nodes: Node[], desiredAmount: num
                 productNode.data.totalVolume =
                     desiredAmount * parseFloat(productNode.data.productDetails.volumeLitersPerUnit || '0');
             } else if (parentNode.type === 'processNode') {
-                updateProductNode(productNode, parentNode as ProcessNode);
+                if ('processesByProductId' in productNode.data && 'selectedProcessId' in productNode.data) {
+                    updateProductNode(productNode as ProductNode, parentNode as ProcessNode);
+                }
             }
         } else if (node.type === 'processNode') {
             if (parentNode && parentNode.type === 'productNode') {

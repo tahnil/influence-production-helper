@@ -3,6 +3,7 @@ import { ReactFlow, MiniMap } from '@xyflow/react';
 import { useReactFlowSetup } from '@/hooks/useReactFlowSetup';
 import ProductNode from './ProductNode';
 import ProcessNode from './ProcessNode';
+import SideProductNode from './SideProductNode';
 import CustomEdge from './CustomEdges';
 import ControlPanel from './ControlPanel';
 import LayoutConfigPanel from './LayoutConfigPanel';
@@ -16,6 +17,7 @@ import { useDagreConfig } from '@/hooks/useDagreConfig';
 const nodeTypes = {
     productNode: ProductNode,
     processNode: ProcessNode,
+    sideProductNode: SideProductNode,
 };
 
 const edgeTypes = {
