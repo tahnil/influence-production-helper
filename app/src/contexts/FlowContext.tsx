@@ -342,7 +342,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         saveError: undefined,
         lastSavedNodeId: null,
       };
-    }
+    };
     case 'LOAD_SAVED_CONFIG': {
       const { nodeId, configId } = action.payload;
       return {
@@ -469,6 +469,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
     nodesRef.current = state.nodes;
   }, [state.nodes]);
 
+  // Handle building of product nodes
   useEffect(() => {
     if (!state.pendingNodeCreation || state.pendingNodeCreation.type !== 'product') return;
 
@@ -513,6 +514,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
     state.nodes
   ]);
 
+  // Handle building of process nodes
   useEffect(() => {
     if (!state.pendingNodeCreation || state.pendingNodeCreation.type !== 'process') return;
   
