@@ -17,8 +17,8 @@ import applyDagreLayout from '@/utils/TreeVisualizer/applyDagreLayout';
 import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
 import { InfluenceNode } from '@/types/reactFlowTypes';
 import { handleReplaceNode } from '@/utils/TreeVisualizer/handleReplaceNode';
-import useProductNodeBuilder from '@/utils/TreeVisualizer/useProductNodeBuilder';
-import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
+import { useProductNodeCreation } from '@/hooks/useProductNodeCreation';
+import { useProcessNodeCreation } from '@/hooks/useProcessNodeCreation';
 
 interface NodeCreationRequest {
   type: 'product' | 'process';
@@ -113,6 +113,7 @@ export type FlowAction =
   }
   | { type: 'REQUEST_PRODUCT_NODE_CREATION'; payload: { productId: string, amount: number, isRoot?: boolean } }
   | { type: 'REQUEST_PROCESS_NODE_CREATION'; payload: { processId: string, parentNodeId: string, includeSideProducts: boolean } }
+  | { type: 'CLEAR_PENDING_NODE_CREATION' }
   | { type: 'NODE_CREATION_COMPLETED' }
   | { type: 'NODE_CREATION_FAILED'; payload: { error: string } }
   ;
@@ -352,7 +353,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         saveError: undefined,
         lastSavedNodeId: null,
       };
-    }
+    };
     case 'LOAD_SAVED_CONFIG': {
       const { nodeId, configId } = action.payload;
       return {
@@ -402,6 +403,11 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
           type: 'process',
           ...action.payload
         }
+      };
+    case 'CLEAR_PENDING_NODE_CREATION':
+      return {
+        ...state,
+        pendingNodeCreation: null
       };
     case 'NODE_CREATION_COMPLETED':
       return {
@@ -466,132 +472,158 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [state, dispatch] = useReducer(flowReducer, initialState);
   const nodesRef = useRef<Node[]>([]);
   const { memoryDb } = usePouchDB();
-  const { buildProductNode } = useProductNodeBuilder();
-  const { buildProcessNode } = useProcessNodeBuilder();
+  const createProductNode = useProductNodeCreation(dispatch);
+  const createProcessNode = useProcessNodeCreation(dispatch);
 
   // Keep the nodesRef in sync with the state.nodes
   React.useEffect(() => {
     nodesRef.current = state.nodes;
   }, [state.nodes]);
 
+  // Handle building of product nodes
   useEffect(() => {
-    console.log('pendingNodeCreation changed:', state.pendingNodeCreation);
-    if (!state.pendingNodeCreation) return;
+    if (!state.pendingNodeCreation || state.pendingNodeCreation.type !== 'product') return;
 
-    const processRequest = async () => {
-      console.log('Processing node creation:', state.pendingNodeCreation);
+    const { productId, amount = 1, isRoot = false } = state.pendingNodeCreation;
+
+    const handleProductNodeCreation = async () => {
+      if (!productId) {
+        throw new Error('Product ID is undefined');
+      }
+      const enhancedNode = await createProductNode(productId, amount, isRoot);
+
+      if (!enhancedNode) return; // Creation failed or was cancelled
+
+      if (isRoot) {
+        dispatch({
+          type: 'BATCH_UPDATE',
+          payload: {
+            nodes: [enhancedNode],
+            rootNodeId: enhancedNode.id,
+            nodesReady: true
+          }
+        });
+      } else {
+        dispatch({
+          type: 'BATCH_UPDATE',
+          payload: {
+            nodes: [...state.nodes, enhancedNode]
+          }
+        });
+      }
+
+      dispatch({ type: 'NODE_CREATION_COMPLETED' });
+    };
+
+    handleProductNodeCreation();
+  }, [
+    state.pendingNodeCreation?.type,
+    state.pendingNodeCreation?.productId,
+    state.pendingNodeCreation?.amount,
+    state.pendingNodeCreation?.isRoot,
+    createProductNode,
+    state.nodes
+  ]);
+
+  // Handle building of process nodes
+  useEffect(() => {
+    if (!state.pendingNodeCreation || state.pendingNodeCreation.type !== 'process') return;
+  
+    const { processId, parentNodeId } = state.pendingNodeCreation;
+    
+    const handleProcessNodeCreation = async () => {
       try {
-        if (state.pendingNodeCreation && state.pendingNodeCreation.type === 'product') {
-          const { productId, amount = 1, isRoot = false } = state.pendingNodeCreation;
-
-          // Use buildProductNode from hook
-          if (!productId) {
-            throw new Error('Product ID is undefined');
-          }
-          const productNode = await buildProductNode(productId, amount);
-
-          if (productNode) {
-            // Add callbacks
-            const enhancedNode = {
-              ...productNode,
-              data: {
-                ...productNode.data,
-                handleSelectProcess: (processId: string, nodeId: string) => {
-                  dispatch({
-                    type: 'SELECT_PROCESS',
-                    payload: { nodeId, processId }
-                  });
-                },
-                handleSerialize: (focalNodeId: string) => {
-                  dispatch({
-                    type: 'SAVE_PRODUCTION_CHAIN',
-                    payload: { focalNodeId }
-                  });
-                },
-                isRoot
-              }
-            };
-
-            if (isRoot) {
-              dispatch({
-                type: 'BATCH_UPDATE',
-                payload: {
-                  nodes: [enhancedNode],
-                  rootNodeId: enhancedNode.id
-                }
-              });
-            } else {
-              dispatch({
-                type: 'BATCH_UPDATE',
-                payload: {
-                  nodes: [...state.nodes, enhancedNode]
-                }
-              });
-            }
-
-            dispatch({ type: 'NODE_CREATION_COMPLETED' });
-          }
+        // Find parent node
+        const parentNode = state.nodes.find(node => node.id === parentNodeId);
+        if (!parentNode) {
+          throw new Error(`Parent node with ID ${parentNodeId} not found`);
         }
-        else if (state.pendingNodeCreation && state.pendingNodeCreation.type === 'process') {
-          const { processId, parentNodeId } = state.pendingNodeCreation;
-
-          // Find parent node
-          const parentNode = state.nodes.find(node => node.id === parentNodeId);
-          if (!parentNode) {
-            throw new Error(`Parent node with ID ${parentNodeId} not found`);
-          }
-
-          const parentNodeAmount = Number(parentNode.data.amount) || 1;
-          const parentNodeProductId = (parentNode.data.productDetails as { id: string })?.id || '';
-
-          // Use buildProcessNode from hook
-          if (!processId) {
-            throw new Error('Process ID is undefined');
-          }
-
-          if (!parentNodeId) {
-            throw new Error('Parent Node ID is undefined');
-          }
-
-          const result = await buildProcessNode(
-            processId,
-            parentNodeId,
-            parentNodeAmount,
-            parentNodeProductId,
-            (processId, nodeId) =>
-              dispatch({ type: 'SELECT_PROCESS', payload: { nodeId, processId } }),
-            (focalNodeId) =>
-              dispatch({ type: 'SAVE_PRODUCTION_CHAIN', payload: { focalNodeId } })
+  
+        const parentNodeAmount = Number(parentNode.data.amount) || 1;
+        const parentNodeProductId = (parentNode.data.productDetails as { id: string })?.id || '';
+  
+        const result = await createProcessNode(
+          processId ?? (() => { throw new Error('Process ID is undefined'); })(),
+          parentNodeId ?? (() => { throw new Error('Parent Node ID is undefined'); })(),
+          parentNodeAmount,
+          parentNodeProductId
+        );
+        
+        if (!result) return; // Creation failed or was cancelled
+  
+        // Handle the existing process node removal and new node addition
+        const { processNode, productNodes, edges: newEdges } = result;
+  
+        // Find the existing ProcessNode with the same parentId
+        const existingProcessNode = state.nodes.find(
+          (node) => node.parentId === parentNodeId && node.type === 'processNode'
+        );
+  
+        let updatedNodes = [...state.nodes];
+        let updatedEdges = [...state.edges];
+  
+        if (existingProcessNode) {
+          // Get all outflow IDs
+          const outflowIds = getOutflowIds(existingProcessNode.id, updatedNodes);
+  
+          // Remove existing ProcessNode and its outflows
+          updatedNodes = updatedNodes.filter(
+            (node) => ![existingProcessNode.id, ...outflowIds].includes(node.id)
           );
-
-          if (!result) {
-            throw new Error('Failed to build process node');
-          }
-
-          dispatch({
-            type: 'PROCESS_SELECTED',
-            payload: {
-              processNode: result.processNode,
-              productNodes: result.productNodes,
-              sideProductNodes: result.sideProductNodes,
-              parentNodeId,
-              edges: state.edges
-            }
-          });
-
-          dispatch({ type: 'NODE_CREATION_COMPLETED' });
+  
+          // Remove connected edges
+          updatedEdges = updatedEdges.filter(
+            (edge) => ![existingProcessNode.id, ...outflowIds].includes(edge.source) &&
+                     ![existingProcessNode.id, ...outflowIds].includes(edge.target)
+          );
         }
+  
+        // Add the new ProcessNode and its child ProductNodes
+        updatedNodes = [...updatedNodes, processNode, ...productNodes];
+  
+        // Add the new edges
+        updatedEdges = [...updatedEdges, ...newEdges];
+  
+        // Update inflowIds in parent ProductNode
+        const parentProductNode = updatedNodes.find(
+          (node) => node.id === parentNodeId && node.type === 'productNode'
+        );
+  
+        if (parentProductNode) {
+          parentProductNode.data.inflowIds = [processNode.id];
+        }
+  
+        // Update the state
+        dispatch({
+          type: 'BATCH_UPDATE',
+          payload: {
+            nodes: updatedNodes,
+            edges: updatedEdges,
+            needsLayout: true,
+            layoutTrigger: 'STRUCTURE_CHANGE'
+          }
+        });
+  
+        dispatch({ type: 'NODE_CREATION_COMPLETED' });
       } catch (error) {
-        console.error('Error creating node:', error);
+        console.error('Error in process node creation:', error);
         dispatch({
           type: 'NODE_CREATION_FAILED',
           payload: { error: String(error) }
         });
       }
     };
-
-    processRequest();
-  }, [state.pendingNodeCreation, buildProductNode, buildProcessNode, dispatch]);
+  
+    handleProcessNodeCreation();
+  }, [
+    state.pendingNodeCreation?.type,
+    state.pendingNodeCreation?.processId,
+    state.pendingNodeCreation?.parentNodeId,
+    createProcessNode,
+    state.nodes,
+    state.edges,
+    getOutflowIds
+  ]);
 
   // Handle pending save operation
   useEffect(() => {
