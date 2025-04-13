@@ -7,19 +7,19 @@ import Image from 'next/image';
 import { InfluenceProduct } from '@/types/influenceTypes';
 
 export type SideProductNode = Node<{
-    amount: number;
-    totalWeight: number;
-    totalVolume: number;
-    image: string;
-    productDetails: InfluenceProduct;
-    // selectedProcessId: string | null;
-    handleSelectProcess: (processId: string, nodeId: string) => void;
-    handleSerialize: (focalProductId: string) => Promise<void>;
-    ancestorIds?: string[];
-    // descendantIds?: string[];
+  amount: number;
+  totalWeight: number;
+  totalVolume: number;
+  image: string;
+  productDetails: InfluenceProduct;
+  // selectedProcessId: string | null;
+  handleSelectProcess: (processId: string, nodeId: string) => void;
+  handleSerialize: (focalProductId: string) => Promise<void>;
+  ancestorIds?: string[];
+  // descendantIds?: string[];
 }>;
 
-const SideProductNode: React.FC<NodeProps<SideProductNode>> = ({ data }) => {
+const SideProductNode: React.FC<NodeProps<SideProductNode>> = ({ id, data }) => {
   const { productDetails, amount, totalWeight, totalVolume, image } = data;
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume } = productDetails;
 
@@ -42,7 +42,12 @@ const SideProductNode: React.FC<NodeProps<SideProductNode>> = ({ data }) => {
 
   return (
     <div className="side-product-node bg-lunarGreen-800 border overflow-hidden rounded-lg shadow-lg w-64">
-      <Handle type="target" position={Position.Bottom} className="bg-yellow-500"/>
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="bg-yellow-500"
+        id={`source-${id}`}
+      />
       <div className="flex flex-col items-center">
         <div className="p-2 bg-lunarGreen-700 w-full flex items-center gap-2.5">
           <Image src={image} width={40} height={40} alt={name} className='object-contain' />
