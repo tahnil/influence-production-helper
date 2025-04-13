@@ -32,6 +32,8 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     matchingConfigs,
     saveStatus,
     saveError,
+    pendingSaveNodeId,
+    lastSavedNodeId,
   } = useFlow();
   const { toast } = useToast();
   const {
@@ -69,9 +71,9 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   }), [amount, totalWeight, totalVolume]);
 
   // Memoize filtered configurations
-  const filteredConfigs = useMemo(() => 
+  const filteredConfigs = useMemo(() =>
     matchingConfigs.filter(config => config.focalProductId === productDetails.id),
-  [matchingConfigs, productDetails.id]
+    [matchingConfigs, productDetails.id]
   )
 
   // Memoize process selection handler
@@ -79,7 +81,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     setSelectedId(processId);
     dispatch({
       type: 'REQUEST_PROCESS_NODE_CREATION',
-      payload: { 
+      payload: {
         processId,
         parentNodeId: id,
       }
@@ -96,20 +98,34 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
 
   // Memoize save handler
   const handleSaveProductionChain = useCallback(() => {
-    dispatch({
-      type: 'SAVE_PRODUCTION_CHAIN',
-      payload: { focalNodeId: id }
-    });
-  }, [dispatch, id]);
+    if (saveStatus !== 'pending') {
+      dispatch({
+        type: 'SAVE_PRODUCTION_CHAIN',
+        payload: { focalNodeId: id }
+      });
+    }
+  }, [dispatch, id, saveStatus]);
 
   // Add a useEffect to handle toast based on saveStatus
   useEffect(() => {
+    console.log(
+      "Save status changed:",
+      ...[saveStatus, saveError].filter(value => value !== undefined && value !== null)
+    );
+
     if (saveStatus === 'complete') {
       toast({
         title: "Configuration Saved",
         description: `Production chain for ${name} has been successfully saved.`,
         duration: 3000,
       });
+
+      // Reset after a delay to ensure the UI updates are seen
+      const timer = setTimeout(() => {
+        dispatch({ type: 'RESET_SAVE_STATUS' });
+      }, 1500);
+
+      return () => clearTimeout(timer);
     } else if (saveStatus === 'error') {
       toast({
         title: "Error",
@@ -117,12 +133,19 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
         variant: "destructive",
         duration: 3000,
       });
-    }
-  }, [saveStatus, saveError, name, toast]);
 
-  const hasInflows = useMemo(() => 
+      // Reset after a delay
+      const timer = setTimeout(() => {
+        dispatch({ type: 'RESET_SAVE_STATUS' });
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [saveStatus, saveError, name, toast, dispatch]);
+
+  const hasInflows = useMemo(() =>
     getDirectChildNodes(nodes as InfluenceNode[], id).length > 0,
-  [nodes, id]
+    [nodes, id]
   );
 
   // console.log('Matching configs for', productDetails.id, ':',
@@ -142,13 +165,19 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
           </div>
           {hasInflows && (
             <div className="flex items-center justify-center">
-              {saveStatus === 'pending' && <span className="text-yellow-500 text-xs">Saving...</span>}
-              {saveStatus === 'complete' && <span className="text-green-500 text-xs">Saved!</span>}
-              {saveStatus === 'error' && <span className="text-red-500 text-xs">Error!</span>}
+                {saveStatus === 'pending' && pendingSaveNodeId === id && (
+                  <span className="text-yellow-500 text-xs">Saving...</span>
+                )}
+                {saveStatus === 'complete' && lastSavedNodeId === id && (
+                  <span className="text-green-500 text-xs">Saved!</span>
+                )}
+                {saveStatus === 'error' && lastSavedNodeId === id && (
+                  <span className="text-red-500 text-xs">Error!</span>
+                )}
               <Save
                 size={20}
                 onClick={handleSaveProductionChain}
-                className="text-falconWhite hover:text-fuscousGray-400 transition-colors cursor-pointer"
+                className={`ml-1 ${saveStatus === 'pending' && pendingSaveNodeId === id ? 'text-gray-400 cursor-not-allowed' : 'text-falconWhite hover:text-fuscousGray-400 cursor-pointer'} transition-colors`}
               />
             </div>
           )}

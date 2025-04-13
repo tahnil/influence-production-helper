@@ -47,6 +47,7 @@ interface FlowState {
   processSelections: Array<{ nodeId: string, processId: string }>;
   focalNodeId: string | null;
   pendingSaveNodeId: string | null;
+  lastSavedNodeId: string | null;
   pendingLoadConfig: {
     nodeId: string;
     configId: string;
@@ -95,6 +96,7 @@ export type FlowAction =
   | { type: 'SELECT_PRODUCT'; payload: string | null }
   | { type: 'SELECT_PROCESS'; payload: { nodeId: string; processId: string } }
   | { type: 'SAVE_PRODUCTION_CHAIN'; payload: { focalNodeId: string } }
+  | { type: 'RESET_SAVE_STATUS' }
   | { type: 'LOAD_SAVED_CONFIG'; payload: { nodeId: string, configId: string } }
   | { type: 'SAVE_COMPLETE' }
   | { type: 'SAVE_ERROR'; payload: { error: string } }
@@ -132,6 +134,7 @@ const initialState: FlowState = {
   processSelections: [], // check if this is correct
   focalNodeId: null,
   pendingSaveNodeId: null,
+  lastSavedNodeId: null,
   pendingLoadConfig: null,
   matchingConfigs: [],
   pendingNodeCreation: null,
@@ -299,12 +302,20 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         return {
           ...state,
           pendingSaveNodeId: focalNodeId,
+          lastSavedNodeId: focalNodeId,
           saveStatus: 'pending',
         };
       }
       // Handle the case where focalNodeId is not in action.payload
       console.error('Invalid payload for SAVE_PRODUCTION_CHAIN action');
       return state;
+    };
+    case 'RESET_SAVE_STATUS': {
+      return {
+        ...state,
+        saveStatus: undefined,
+        saveError: undefined,
+      };
     };
     case 'SAVE_COMPLETE': {
       return {
@@ -321,6 +332,14 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         saveError: action.payload.error,
       };
     };
+    case 'RESET_SAVE_STATUS': {
+      return {
+        ...state,
+        saveStatus: undefined,
+        saveError: undefined,
+        lastSavedNodeId: null, 
+      };
+    }
     case 'LOAD_SAVED_CONFIG': {
       const { nodeId, configId } = action.payload;
       return {
@@ -407,6 +426,7 @@ interface FlowContextType {
   processSelections: Array<{ nodeId: string, processId: string }>; // Check if this is correct
   focalNodeId: string | null;
   pendingSaveNodeId: string | null;
+  lastSavedNodeId: string | null;
   matchingConfigs: Array<{
     _id: string;
     focalProductId: string;
@@ -571,9 +591,9 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
     processRequest();
   }, [state.pendingNodeCreation, buildProductNode, buildProcessNode, state.nodes, state.edges, dispatch]);
 
+  // Handle pending save operation
   useEffect(() => {
-    // Handle pending save operation
-    if (state.pendingSaveNodeId !== null && memoryDb) {
+    if (state.pendingSaveNodeId !== null && memoryDb && state.saveStatus === 'pending') {
       const saveNode = async () => {
         console.log("Starting serialization with nodeId:", state.pendingSaveNodeId);
         console.log("Current nodes:", nodesRef.current.length);
@@ -640,7 +660,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       loadConfig();
     }
-  }, [state.pendingSaveNodeId, state.pendingLoadConfig, state.edges, state.desiredAmount, memoryDb, dispatch]);
+  }, [state.pendingSaveNodeId, state.saveStatus, state.pendingLoadConfig, state.edges, state.desiredAmount, memoryDb, dispatch]);
 
   return (
     <FlowContext.Provider
@@ -657,7 +677,10 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         layoutTrigger: state.layoutTrigger,
         focalNodeId: state.focalNodeId,
         pendingSaveNodeId: state.pendingSaveNodeId,
+        lastSavedNodeId: state.lastSavedNodeId,
         matchingConfigs: state.matchingConfigs,
+        saveStatus: state.saveStatus,
+        saveError: state.saveError,
         nodesRef,
         dispatch
       }}
