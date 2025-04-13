@@ -68,7 +68,6 @@ interface FlowState {
 
 // Define the action types
 export type FlowAction =
-  | { type: 'SET_NODES'; payload: Node[] }
   | { type: 'SET_EDGES'; payload: Edge[] }
   | { type: 'SET_DESIRED_AMOUNT'; payload: number }
   | { type: 'SET_NODES_READY'; payload: boolean }
@@ -144,8 +143,6 @@ const initialState: FlowState = {
 // Create the reducer function
 const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
   switch (action.type) {
-    case 'SET_NODES':
-      return { ...state, nodes: action.payload };
     case 'SET_EDGES':
       return { ...state, edges: action.payload };
     case 'APPLY_NODE_CHANGES':
@@ -430,7 +427,6 @@ interface FlowContextType {
   loadStatus?: 'pending' | 'complete' | 'error';
   loadError?: string;
   dispatch: React.Dispatch<FlowAction>;
-  setNodes: (nodes: React.SetStateAction<Node[]>) => void;
   setEdges: (edges: React.SetStateAction<Edge[]>) => void;
   setDesiredAmount: (amount: React.SetStateAction<number>) => void;
   setNodesReady: (ready: React.SetStateAction<boolean>) => void;
@@ -459,15 +455,6 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [state.nodes]);
 
   // Create compatibility setters for existing components
-  const setNodes = (nodes: React.SetStateAction<Node[]>) => {
-    if (typeof nodes === 'function') {
-      const updatedNodes = nodes(state.nodes);
-      dispatch({ type: 'SET_NODES', payload: updatedNodes });
-    } else {
-      dispatch({ type: 'SET_NODES', payload: nodes });
-    }
-  };
-
   const setEdges = (edges: React.SetStateAction<Edge[]>) => {
     if (typeof edges === 'function') {
       const updatedEdges = edges(state.edges);
@@ -722,7 +709,6 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         pendingSaveNodeId: state.pendingSaveNodeId,
         matchingConfigs: state.matchingConfigs,
         nodesRef,
-        setNodes,
         setEdges,
         setDesiredAmount,
         setNodesReady,
