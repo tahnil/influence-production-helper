@@ -84,6 +84,7 @@ const useProcessNodeBuilder = () => {
             const sideProductNodesPromises = processDetails.outputs
                 .filter(output => output.productId !== parentNodeProductId)
                 .map(async (output) => {
+                    console.log(`[SideProducts] Creating side product for output:`, output);
                     const amount = parseFloat(output.unitsPerSR) * totalRuns;
 
                     const sideProductNode = await buildProductNode(
@@ -92,6 +93,7 @@ const useProcessNodeBuilder = () => {
                     );
 
                     if (sideProductNode) {
+                        console.log(`[SideProducts] Created node for ${output.productId} with ID ${sideProductNode.id}`);
                         const newSideProductNode = {
                             ...sideProductNode,
                             type: 'sideProductNode',
@@ -111,6 +113,8 @@ const useProcessNodeBuilder = () => {
             // After all product nodes are created
             const productNodes = (await Promise.all(productNodesPromises)).filter(Boolean) as Node[];
             const sideProductNodes = (await Promise.all(sideProductNodesPromises)).filter(Boolean) as Node[];
+            console.log(`[SideProducts] Finished creating ${sideProductNodes.length} side product nodes:`, 
+                sideProductNodes.map(n => ({ id: n.id, productId: (n.data as { productDetails: { id: string } }).productDetails.id })));
 
             // Update the process node
             const newProcessNode: Node = {

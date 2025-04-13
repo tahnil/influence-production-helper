@@ -35,13 +35,29 @@ export default function calculateDesiredAmount(nodes: Node[], desiredAmount: num
         return productNode;
     };
 
+    const updateSideProductNode = (sideProductNode: SideProductNode, parentNode: ProcessNode): SideProductNode => {
+        const output = parentNode.data.processDetails.outputs.find(
+            output => output.productId === sideProductNode.data.productDetails.id
+        );
+
+        if (output) {
+            const unitsPerSR = parseFloat(output.unitsPerSR || '0');
+            sideProductNode.data.amount = parentNode.data.totalRuns * unitsPerSR;
+            sideProductNode.data.totalWeight =
+                sideProductNode.data.amount * parseFloat(sideProductNode.data.productDetails.massKilogramsPerUnit || '0');
+            sideProductNode.data.totalVolume =
+                sideProductNode.data.amount * parseFloat(sideProductNode.data.productDetails.volumeLitersPerUnit || '0');
+        }
+        return sideProductNode;
+    };
+
     const nodeMap = new Map(nodes.map(node => [node.id, { ...node }]));
     const updateNodeRecursively = (nodeId: string, parentNode?: Node): void => {
         const node = nodeMap.get(nodeId);
         if (!node) return;
 
-        if (node.type === 'productNode' || node.type === 'sideProductNode') {
-            const productNode = node as ProductNode | SideProductNode;
+        if (node.type === 'productNode') {
+            const productNode = node as ProductNode;
             if (!parentNode) {
                 // Root node scenario
                 productNode.data.amount = desiredAmount;
@@ -50,9 +66,13 @@ export default function calculateDesiredAmount(nodes: Node[], desiredAmount: num
                 productNode.data.totalVolume =
                     desiredAmount * parseFloat(productNode.data.productDetails.volumeLitersPerUnit || '0');
             } else if (parentNode.type === 'processNode') {
-                if ('processesByProductId' in productNode.data && 'selectedProcessId' in productNode.data) {
-                    updateProductNode(productNode as ProductNode, parentNode as ProcessNode);
-                }
+                updateProductNode(productNode as ProductNode, parentNode as ProcessNode);
+            }
+        } else if (node.type === 'sideProductNode') {
+            // Handle side product nodes separately
+            const sideProductNode = node as SideProductNode;
+            if (parentNode && parentNode.type === 'processNode') {
+                updateSideProductNode(sideProductNode, parentNode as ProcessNode);
             }
         } else if (node.type === 'processNode') {
             if (parentNode && parentNode.type === 'productNode') {

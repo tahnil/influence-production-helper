@@ -475,9 +475,11 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [state.nodes]);
 
   useEffect(() => {
+    console.log('pendingNodeCreation changed:', state.pendingNodeCreation);
     if (!state.pendingNodeCreation) return;
 
     const processRequest = async () => {
+      console.log('Processing node creation:', state.pendingNodeCreation);
       try {
         if (state.pendingNodeCreation && state.pendingNodeCreation.type === 'product') {
           const { productId, amount = 1, isRoot = false } = state.pendingNodeCreation;
@@ -589,7 +591,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     processRequest();
-  }, [state.pendingNodeCreation, buildProductNode, buildProcessNode, state.nodes, state.edges, dispatch]);
+  }, [state.pendingNodeCreation, buildProductNode, buildProcessNode, dispatch]);
 
   // Handle pending save operation
   useEffect(() => {

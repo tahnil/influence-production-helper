@@ -84,6 +84,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
       payload: {
         processId,
         parentNodeId: id,
+        includeSideProducts: true, // Set to true or false as per your requirement
       }
     });
   }, [dispatch, id]);
