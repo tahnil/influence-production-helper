@@ -499,14 +499,24 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updatedNodes = [...updatedNodes, processNode, ...(productNodes || []), ...(sideProductNodes || [])];
 
         // Create specific edges for side products if needed
-        const sideProductEdges = (sideProductNodes ?? []).map(sideProduct => ({
-          id: `edge-${sideProduct.id}-${processNode.id}`,
-          source: sideProduct.id,  // From side product
-          target: processNode.id,  // To process
-          type: 'custom',
-        }));
+        // const sideProductEdges = (result.sideProductNodes ?? []).map(sideProduct => ({
+        //   id: `edge-${sideProduct.id}-${result.processNode.id}`,
+        //   source: sideProduct.id,
+        //   sourcePosition: Position.Bottom,
+        //   target: result.processNode.id,
+        //   targetPosition: Position.Top,
+        //   type: 'custom',
+        // }));
+        // const sideProductEdges = (result.sideProductNodes ?? []).map(sideProduct => ({
+        //   id: `edge-${sideProduct.id}-${result.processNode.id}`,
+        //   source: sideProduct.id,  // From side product (source)
+        //   target: result.processNode.id,  // To process (target)
+        //   sourcePosition: Position.Bottom,
+        //   targetPosition: Position.Top,
+        //   type: 'custom',
+        // }));
 
-        updatedEdges = [...updatedEdges, ...newEdges, ...sideProductEdges];
+        updatedEdges = [...updatedEdges, ...newEdges];
 
         // Update inflowIds in parent ProductNode
         const parentProductNode = updatedNodes.find(

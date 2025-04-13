@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
-import { Node, Edge } from '@xyflow/react';
+import { Edge } from '@xyflow/react';
 import { FlowAction } from '@/contexts/FlowContext';
 import { ProcessNode, ProductNode } from '@/types/reactFlowTypes';
 
@@ -63,6 +63,15 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
           id: `edge-${result.processNode.id}-${productNode.id}`,
           source: result.processNode.id,
           target: productNode.id,
+          type: 'custom',
+        });
+      });
+
+      result.sideProductNodes?.forEach(sideProductNode => {
+        newEdges.push({
+          id: `edge-${sideProductNode.id}-${result.processNode.id}`,
+          source: sideProductNode.id,
+          target: result.processNode.id,
           type: 'custom',
         });
       });
