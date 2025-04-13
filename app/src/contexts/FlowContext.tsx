@@ -263,9 +263,11 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
 
       // Create edges for side product nodes
       const sideProductEdges = sideProductNodes.map((sideProductNode) => ({
-        id: `edge-${processNode.id}-${sideProductNode.id}`,
-        source: processNode.id,
-        target: sideProductNode.id,
+        id: `edge-${sideProductNode.id}-${processNode.id}`,
+        source: sideProductNode.id,
+        target: processNode.id,
+        sourceHandle: null,
+        targetHandle: `sideProduct-${processNode.id}`,
         type: 'custom',
       }));
 
@@ -576,21 +578,6 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
 
           dispatch({ type: 'NODE_CREATION_COMPLETED' });
-
-          if (result) {
-            dispatch({
-              type: 'PROCESS_SELECTED',
-              payload: {
-                processNode: result.processNode,
-                productNodes: result.productNodes,
-                sideProductNodes: result.sideProductNodes,
-                parentNodeId,
-                edges: state.edges
-              }
-            });
-
-            dispatch({ type: 'NODE_CREATION_COMPLETED' });
-          }
         }
       } catch (error) {
         console.error('Error creating node:', error);
