@@ -71,15 +71,6 @@ interface FlowState {
 export type FlowAction =
   | { type: 'SET_DESIRED_AMOUNT'; payload: number }
   | { type: 'BATCH_UPDATE'; payload: Partial<FlowState> }
-  | {
-    type: 'PROCESS_SELECTED'; payload: {
-      processNode: Node,
-      productNodes: Node[],
-      sideProductNodes: Node[],
-      parentNodeId: string,
-      edges: Edge[]
-    }
-  }
   // dedicated action types for React Flow operations
   | { type: 'APPLY_NODE_CHANGES'; payload: NodeChange[] }
   | { type: 'APPLY_EDGE_CHANGES'; payload: EdgeChange[] }
@@ -225,80 +216,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       };
     case 'BATCH_UPDATE':
       return { ...state, ...action.payload };
-    case 'PROCESS_SELECTED': {
-      const { processNode, productNodes, sideProductNodes, parentNodeId, edges } = action.payload;
-
-      // Find the existing ProcessNode with the same parentId
-      const existingProcessNode = state.nodes.find(
-        (node) => node.parentId === parentNodeId && node.type === 'processNode'
-      );
-
-      let updatedNodes = [...state.nodes];
-      let updatedEdges = [...edges];
-
-      if (existingProcessNode) {
-        // Get all outflow IDs
-        const outflowIds = getOutflowIds(existingProcessNode.id, updatedNodes);
-
-        // Remove existing ProcessNode and its outflows
-        updatedNodes = updatedNodes.filter(
-          (node) => ![existingProcessNode.id, ...outflowIds].includes(node.id)
-        );
-
-        // Remove connected edges
-        updatedEdges = updatedEdges.filter(
-          (edge) => ![existingProcessNode.id, ...outflowIds].includes(edge.source)
-        );
-      }
-
-      // Add the new ProcessNode and its child ProductNodes
-      updatedNodes = [...updatedNodes, processNode, ...productNodes, ...sideProductNodes];
-
-      // Create edges between the ProcessNode and each ProductNode
-      const newEdges = productNodes.map((productNode) => ({
-        id: `edge-${processNode.id}-${productNode.id}`,
-        source: processNode.id,
-        target: productNode.id,
-        type: 'custom',
-      }));
-
-      // Create edges for side product nodes
-      const sideProductEdges = sideProductNodes.map((sideProductNode) => ({
-        id: `edge-${sideProductNode.id}-${processNode.id}`,
-        source: sideProductNode.id,
-        target: processNode.id,
-        sourceHandle: null,
-        targetHandle: `sideProduct-${processNode.id}`,
-        type: 'custom',
-      }));
-
-      updatedEdges = [...updatedEdges, ...newEdges, ...sideProductEdges];
-
-      // Add edge between parent ProductNode and ProcessNode
-      updatedEdges.push({
-        id: `edge-${parentNodeId}-${processNode.id}`,
-        source: parentNodeId,
-        target: processNode.id,
-        type: 'custom',
-      });
-
-      // Update inflowIds in parent ProductNode
-      const parentProductNode = updatedNodes.find(
-        (node) => node.id === parentNodeId && node.type === 'productNode'
-      );
-
-      if (parentProductNode) {
-        parentProductNode.data.inflowIds = [processNode.id];
-      }
-
-      return {
-        ...state,
-        nodes: updatedNodes,
-        edges: updatedEdges,
-        needsLayout: true,
-        layoutTrigger: 'STRUCTURE_CHANGE',
-      };
-    };
     case 'SELECT_PRODUCT':
       return { ...state, selectedProductId: action.payload };
     case 'SELECT_PROCESS':
@@ -528,9 +445,9 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Handle building of process nodes
   useEffect(() => {
     if (!state.pendingNodeCreation || state.pendingNodeCreation.type !== 'process') return;
-  
+
     const { processId, parentNodeId } = state.pendingNodeCreation;
-    
+
     const handleProcessNodeCreation = async () => {
       try {
         // Find parent node
@@ -538,61 +455,68 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!parentNode) {
           throw new Error(`Parent node with ID ${parentNodeId} not found`);
         }
-  
+
         const parentNodeAmount = Number(parentNode.data.amount) || 1;
         const parentNodeProductId = (parentNode.data.productDetails as { id: string })?.id || '';
-  
+
         const result = await createProcessNode(
           processId ?? (() => { throw new Error('Process ID is undefined'); })(),
           parentNodeId ?? (() => { throw new Error('Parent Node ID is undefined'); })(),
           parentNodeAmount,
           parentNodeProductId
         );
-        
+
         if (!result) return; // Creation failed or was cancelled
-  
+
         // Handle the existing process node removal and new node addition
-        const { processNode, productNodes, edges: newEdges } = result;
-  
+        const { processNode, productNodes, sideProductNodes, edges: newEdges } = result;
+
         // Find the existing ProcessNode with the same parentId
         const existingProcessNode = state.nodes.find(
           (node) => node.parentId === parentNodeId && node.type === 'processNode'
         );
-  
+
         let updatedNodes = [...state.nodes];
         let updatedEdges = [...state.edges];
-  
+
         if (existingProcessNode) {
           // Get all outflow IDs
           const outflowIds = getOutflowIds(existingProcessNode.id, updatedNodes);
-  
+
           // Remove existing ProcessNode and its outflows
           updatedNodes = updatedNodes.filter(
             (node) => ![existingProcessNode.id, ...outflowIds].includes(node.id)
           );
-  
+
           // Remove connected edges
           updatedEdges = updatedEdges.filter(
             (edge) => ![existingProcessNode.id, ...outflowIds].includes(edge.source) &&
-                     ![existingProcessNode.id, ...outflowIds].includes(edge.target)
+              ![existingProcessNode.id, ...outflowIds].includes(edge.target)
           );
         }
-  
+
         // Add the new ProcessNode and its child ProductNodes
-        updatedNodes = [...updatedNodes, processNode, ...productNodes];
-  
-        // Add the new edges
-        updatedEdges = [...updatedEdges, ...newEdges];
-  
+        updatedNodes = [...updatedNodes, processNode, ...(productNodes || []), ...(sideProductNodes || [])];
+
+        // Create specific edges for side products if needed
+        const sideProductEdges = (sideProductNodes ?? []).map(sideProduct => ({
+          id: `edge-${sideProduct.id}-${processNode.id}`,
+          source: sideProduct.id,  // From side product
+          target: processNode.id,  // To process
+          type: 'custom',
+        }));
+
+        updatedEdges = [...updatedEdges, ...newEdges, ...sideProductEdges];
+
         // Update inflowIds in parent ProductNode
         const parentProductNode = updatedNodes.find(
           (node) => node.id === parentNodeId && node.type === 'productNode'
         );
-  
+
         if (parentProductNode) {
           parentProductNode.data.inflowIds = [processNode.id];
         }
-  
+
         // Update the state
         dispatch({
           type: 'BATCH_UPDATE',
@@ -603,7 +527,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
             layoutTrigger: 'STRUCTURE_CHANGE'
           }
         });
-  
+
         dispatch({ type: 'NODE_CREATION_COMPLETED' });
       } catch (error) {
         console.error('Error in process node creation:', error);
@@ -613,7 +537,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
     };
-  
+
     handleProcessNodeCreation();
   }, [
     state.pendingNodeCreation?.type,

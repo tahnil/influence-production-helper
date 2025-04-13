@@ -7,6 +7,7 @@ import { ProcessNode, ProductNode } from '@/types/reactFlowTypes';
 interface ProcessNodeCreationResult {
   processNode: ProcessNode;
   productNodes: ProductNode[];
+  sideProductNodes?: ProductNode[];
   edges: Edge[];
 }
 
@@ -87,6 +88,17 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
           }
         } as ProcessNode,
         productNodes: result.productNodes.map(node => ({
+          ...node,
+          data: {
+            ...node.data,
+            amount: node.data.amount || 0,
+            totalWeight: node.data.totalWeight || 0,
+            totalVolume: node.data.totalVolume || 0,
+            image: node.data.image || '',
+            productDetails: node.data.productDetails || null,
+          }
+        })) as ProductNode[],
+        sideProductNodes: result.sideProductNodes.map(node => ({
           ...node,
           data: {
             ...node.data,
