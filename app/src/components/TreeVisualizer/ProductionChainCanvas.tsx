@@ -61,20 +61,14 @@ const ProductionChainCanvas: React.FC = () => {
     );
 
     // Serialization handler
-    const handleSerialize = useCallback(
-        async (focalNodeId: string) => {
-            if (focalNodeId && nodesRef.current.length > 0 && memoryDb) {
-                try {
-                    await serializeProductionChain(focalNodeId, nodesRef.current as InfluenceNode[], memoryDb);
-                } catch (error) {
-                    console.error('Error serializing production chain:', error);
-                }
-            } else {
-                console.log('No focal node selected, nodes are empty, or database is not initialized.');
-            }
-        },
-        [memoryDb, nodesRef]
-    );
+    const handleSerialize = useCallback((focalNodeId: string): Promise<void> => {
+        return Promise.resolve(
+            dispatch({
+                type: 'SAVE_PRODUCTION_CHAIN',
+                payload: { focalNodeId }
+            })
+        );
+    }, [dispatch]);
 
     return (
         <div className="w-full h-full relative">
