@@ -69,8 +69,6 @@ interface FlowState {
 // Define the action types
 export type FlowAction =
   | { type: 'SET_DESIRED_AMOUNT'; payload: number }
-  | { type: 'SET_NODES_READY'; payload: boolean }
-  | { type: 'SET_ROOT_NODE_ID'; payload: string }
   | { type: 'BATCH_UPDATE'; payload: Partial<FlowState> }
   | {
     type: 'PROCESS_SELECTED'; payload: {
@@ -220,10 +218,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         desiredAmount: action.payload,
         nodes: updatedNodes
       };
-    case 'SET_NODES_READY':
-      return { ...state, nodesReady: action.payload };
-    case 'SET_ROOT_NODE_ID':
-      return { ...state, rootNodeId: action.payload };
     case 'BATCH_UPDATE':
       return { ...state, ...action.payload };
     case 'PROCESS_SELECTED': {
