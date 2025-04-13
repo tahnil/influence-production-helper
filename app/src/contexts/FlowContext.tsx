@@ -68,7 +68,6 @@ interface FlowState {
 
 // Define the action types
 export type FlowAction =
-  | { type: 'SET_EDGES'; payload: Edge[] }
   | { type: 'SET_DESIRED_AMOUNT'; payload: number }
   | { type: 'SET_NODES_READY'; payload: boolean }
   | { type: 'SET_ROOT_NODE_ID'; payload: string }
@@ -143,8 +142,6 @@ const initialState: FlowState = {
 // Create the reducer function
 const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
   switch (action.type) {
-    case 'SET_EDGES':
-      return { ...state, edges: action.payload };
     case 'APPLY_NODE_CHANGES':
       return {
         ...state,
@@ -427,8 +424,6 @@ interface FlowContextType {
   loadStatus?: 'pending' | 'complete' | 'error';
   loadError?: string;
   dispatch: React.Dispatch<FlowAction>;
-  setEdges: (edges: React.SetStateAction<Edge[]>) => void;
-  setDesiredAmount: (amount: React.SetStateAction<number>) => void;
   setNodesReady: (ready: React.SetStateAction<boolean>) => void;
   setRootNodeId: (id: React.SetStateAction<string>) => void;
 }
@@ -455,24 +450,6 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [state.nodes]);
 
   // Create compatibility setters for existing components
-  const setEdges = (edges: React.SetStateAction<Edge[]>) => {
-    if (typeof edges === 'function') {
-      const updatedEdges = edges(state.edges);
-      dispatch({ type: 'SET_EDGES', payload: updatedEdges });
-    } else {
-      dispatch({ type: 'SET_EDGES', payload: edges });
-    }
-  };
-
-  const setDesiredAmount = (amount: React.SetStateAction<number>) => {
-    if (typeof amount === 'function') {
-      const updatedAmount = amount(state.desiredAmount);
-      dispatch({ type: 'SET_DESIRED_AMOUNT', payload: updatedAmount });
-    } else {
-      dispatch({ type: 'SET_DESIRED_AMOUNT', payload: amount });
-    }
-  };
-
   const setNodesReady = (ready: React.SetStateAction<boolean>) => {
     if (typeof ready === 'function') {
       const updatedReady = ready(state.nodesReady);
@@ -709,8 +686,6 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         pendingSaveNodeId: state.pendingSaveNodeId,
         matchingConfigs: state.matchingConfigs,
         nodesRef,
-        setEdges,
-        setDesiredAmount,
         setNodesReady,
         setRootNodeId,
         dispatch
