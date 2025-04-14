@@ -5,21 +5,10 @@ import { Node, Handle, Position, NodeProps } from '@xyflow/react';
 import { formatNumber } from '@/utils/formatNumber';
 import Image from 'next/image';
 import { InfluenceProduct } from '@/types/influenceTypes';
+import { SideProductNode as SideProductNodeType, SideProductNodeData } from '@/types/reactFlowTypes';
 
-export type SideProductNode = Node<{
-  amount: number;
-  totalWeight: number;
-  totalVolume: number;
-  image: string;
-  productDetails: InfluenceProduct;
-  // selectedProcessId: string | null;
-  handleSelectProcess: (processId: string, nodeId: string) => void;
-  handleSerialize: (focalProductId: string) => Promise<void>;
-  ancestorIds?: string[];
-  // descendantIds?: string[];
-}>;
 
-const SideProductNode: React.FC<NodeProps<SideProductNode>> = ({ id, data }) => {
+const SideProductNode: React.FC<NodeProps<SideProductNodeType>> = ({ id, data }) => {
   const { productDetails, amount, totalWeight, totalVolume, image } = data;
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume } = productDetails;
 

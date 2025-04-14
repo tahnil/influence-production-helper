@@ -28,8 +28,19 @@ export interface ProcessNodeData extends Record<string, unknown> {
     outflowIds?: string[];
 }
 
+export interface SideProductNodeData extends Record<string, unknown> {
+    amount: number;
+    totalWeight: number;
+    totalVolume: number;
+    image: string;
+    productDetails: InfluenceProduct;
+    handleSelectProcess: (processId: string, nodeId: string) => void;
+    handleSerialize: (focalProductId: string) => void;
+    ancestorIds: string[]; // Array of process IDs that produce this side product
+}
+
 export type ProcessNode = ReactFlowNode<ProcessNodeData>;
-
 export type ProductNode = ReactFlowNode<ProductNodeData>;
+export type SideProductNode = ReactFlowNode<SideProductNodeData>;
 
-export type InfluenceNode = ProductNode | ProcessNode;
+export type InfluenceNode = ProductNode | ProcessNode | SideProductNode;
