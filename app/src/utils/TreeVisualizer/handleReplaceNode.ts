@@ -39,6 +39,10 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
       if (newNode.data.outflowIds) {
         newNode.data.outflowIds = newNode.data.outflowIds.map((id: string) => idMap.get(id) || id);
       }
+
+      if (newNode.data.ancestorIds) {
+        newNode.data.ancestorIds = newNode.data.ancestorIds.map((id: string) => idMap.get(id) || id);
+      }
   
       return newNode;
     });
@@ -124,11 +128,12 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
             if (parentNode) {
                 console.log(`Before update - Parent node ${parentId} inflowIds:`, parentNode.data.inflowIds);
                 parentNode.data.inflowIds = parentNode.data.inflowIds || [];
-                const index = parentNode.data.inflowIds.indexOf(currentNodeId);
+                const inflowIds = parentNode.data.inflowIds as string[]; // Explicitly cast to string[]
+                const index = inflowIds.indexOf(currentNodeId);
                 if (index !== -1) {
-                    parentNode.data.inflowIds[index] = rootSavedNode.id;
+                    (parentNode.data.inflowIds as string[])[index] = rootSavedNode.id;
                 } else {
-                    parentNode.data.inflowIds.push(rootSavedNode.id);
+                    (parentNode.data.inflowIds as string[]).push(rootSavedNode.id);
                 }
                 console.log(`After update - Parent node ${parentId} inflowIds:`, parentNode.data.inflowIds);
                 updatedNodes = updateInfluenceNode(updatedNodes, parentNode);
@@ -207,22 +212,42 @@ const getInflowIds = (nodeId: string, nodes: InfluenceNode[]): string[] => {
         return [];
     }
     return [
-        ...node.data.inflowIds,
-        ...node.data.inflowIds.flatMap(id => getInflowIds(id, nodes))];
+        ...(node.data.inflowIds as string[]),
+        ...(Array.isArray(node.data.inflowIds) ? node.data.inflowIds.flatMap(id => getInflowIds(id, nodes)) : [])
+    ];
 };
 
 const createEdgesBetweenNodes = (nodes: InfluenceNode[]): Edge[] => {
     return nodes.flatMap(node => {
+        const edges: Edge[] = [];
+        
+        // Handle regular inflow connections
         if (node.data.inflowIds) {
-            return node.data.inflowIds.map(inflowId => ({
-                id: `edge-${node.id}-${inflowId}`,
-                source: node.id,  // The outflow (current node) is the source
-                target: inflowId,  // The inflow is the target
-                sourcePosition: Position.Bottom,
-                targetPosition: Position.Top,
-                type: 'custom',
-            }));
+            Array.isArray(node.data.inflowIds) && node.data.inflowIds.forEach(inflowId => {
+                edges.push({
+                    id: `edge-${node.id}-${inflowId}`,
+                    source: node.id,
+                    target: inflowId,
+                    type: 'custom',
+                });
+            });
         }
-        return [];
+        
+        // Handle side product connections
+        if (node.type === 'sideProductNode' && node.data.ancestorIds) {
+            Array.isArray(node.data.ancestorIds) && node.data.ancestorIds.forEach(ancestorId => {
+                edges.push({
+                    id: `edge-sideProduct-${node.id}-${ancestorId}`,
+                    source: node.id,
+                    target: ancestorId,
+                    type: 'custom',
+                    data: {
+                        isSideProductConnection: true
+                    }
+                });
+            });
+        }
+        
+        return edges;
     });
 };

@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
-import { Edge, Position } from '@xyflow/react';
+import { Edge } from '@xyflow/react';
 import { FlowAction } from '@/contexts/FlowContext';
 import { ProcessNode, ProductNode } from '@/types/reactFlowTypes';
 
@@ -67,14 +67,17 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
         });
       });
 
+      // Create edges between the process node and side product nodes
+      // Mark these edges as side product connections
       result.sideProductNodes?.forEach(sideProductNode => {
         newEdges.push({
-          id: `edge-${sideProductNode.id}-${result.processNode.id}`,
+          id: `edge-sideProduct-${sideProductNode.id}-${result.processNode.id}`,
           source: sideProductNode.id,
           target: result.processNode.id,
-          sourceHandle: `source-${sideProductNode.id}`,
-          targetHandle: `side-product-target-${result.processNode.id}`,
           type: 'custom',
+          data: {
+            isSideProductConnection: true
+          }
         });
       });
 

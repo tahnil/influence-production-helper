@@ -5,10 +5,20 @@ import { Node, Handle, Position, NodeProps } from '@xyflow/react';
 import { formatNumber } from '@/utils/formatNumber';
 import Image from 'next/image';
 import { InfluenceProduct } from '@/types/influenceTypes';
-import { SideProductNode as SideProductNodeType, SideProductNodeData } from '@/types/reactFlowTypes';
+import { ArrowUpRight } from 'lucide-react';
 
+export type SideProductNode = Node<{
+    amount: number;
+    totalWeight: number;
+    totalVolume: number;
+    image: string;
+    productDetails: InfluenceProduct;
+    handleSelectProcess: (processId: string, nodeId: string) => void;
+    handleSerialize: (focalProductId: string) => Promise<void>;
+    ancestorIds?: string[];
+}>;
 
-const SideProductNode: React.FC<NodeProps<SideProductNodeType>> = ({ id, data }) => {
+const SideProductNode: React.FC<NodeProps<SideProductNode>> = ({ data }) => {
   const { productDetails, amount, totalWeight, totalVolume, image } = data;
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume } = productDetails;
 
@@ -30,19 +40,19 @@ const SideProductNode: React.FC<NodeProps<SideProductNodeType>> = ({ id, data })
   });
 
   return (
-    <div className="side-product-node bg-lunarGreen-800 border overflow-hidden rounded-lg shadow-lg w-64">
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="bg-yellow-500"
-        id={`source-${id}`}
-      />
+    <div className="side-product-node bg-lunarGreen-700 border overflow-hidden rounded-lg shadow-lg w-56">
+      <Handle type="source" position={Position.Bottom} className="bg-yellow-500"/>
       <div className="flex flex-col items-center">
-        <div className="p-2 bg-lunarGreen-700 w-full flex items-center gap-2.5">
-          <Image src={image} width={40} height={40} alt={name} className='object-contain' />
-          <h2 className="text-lg font-bold text-white">{name}</h2>
+        <div className="p-2 bg-lunarGreen-600 w-full flex items-center gap-2">
+          {/* Side Product Indicator */}
+          <div className="rounded-full bg-yellow-400 p-1 flex items-center justify-center">
+            <ArrowUpRight size={14} className="text-lunarGreen-950" />
+          </div>
+
+          <Image src={image} width={28} height={28} alt={name} className='object-contain' />
+          <h2 className="text-md font-bold text-white">{name}</h2>
         </div>
-        <div className="p-2 w-full grid grid-cols-3 gap-2 text-white text-sm">
+        <div className="p-2 w-full grid grid-cols-3 gap-2 text-white text-xs">
           <div className="flex flex-col items-center">
             <div>{formattedAmount.formattedValue} {formattedAmount.scale}</div>
             <div>{formattedAmount.unit}</div>

@@ -1,16 +1,28 @@
 import { DagreConfig } from '@/hooks/useDagreConfig';
 import Dagre from '@dagrejs/dagre';
-import { Node, Edge, Position } from '@xyflow/react';
-import { InfluenceNode, SideProductNode, SideProductNodeData } from '@/types/reactFlowTypes';
+import { Node, Edge } from '@xyflow/react';
 
 function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     const nodeFallbackWidth = 200;
     const nodeFallbackHeight = 100;
 
-    // Use measurements if available, otherwise use fallback dimensions
+    // Separate side product nodes from main nodes
+    const sideProductNodes = nodes.filter(node => node.type === 'sideProductNode');
+    const mainNodes = nodes.filter(node => node.type !== 'sideProductNode');
+    
+    // Find process nodes that are parents of side products for later use
+    const processNodesWithSideProducts = new Set(
+        sideProductNodes
+            .map(node => nodes.find(n => Array.isArray(n.data?.outflowIds) && n.data.outflowIds.includes(node.id)))
+            .filter(Boolean)
+            .map(node => node?.id)
+    );
+
+    // Create a new dagre graph for main layout
     const dagreGraph = new Dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 
+    // Set graph properties
     dagreGraph.setGraph({
         rankdir: config.rankdir,
         align: config.align,
@@ -23,33 +35,28 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         ranker: config.ranker,
     });
 
-    // First pass: Add all nodes except sideProductNodes to the Dagre graph
-    const nonSideProductNodes = nodes.filter(node => node.type !== 'sideProductNode');
-
-    nonSideProductNodes.forEach((node) => {
-        dagreGraph.setNode(node.id, {
-            width: node.measured?.width || nodeFallbackWidth,
-            height: node.measured?.height || nodeFallbackHeight
+    // Add main nodes to dagre
+    mainNodes.forEach((node) => {
+        dagreGraph.setNode(node.id, { 
+            width: node.measured?.width || nodeFallbackWidth, 
+            height: node.measured?.height || nodeFallbackHeight 
         });
     });
 
-    // Add edges between non-side-product nodes
+    // Add edges between main nodes to dagre
     edges.forEach((edge) => {
-        const sourceNode = nodes.find(n => n.id === edge.source);
-        const targetNode = nodes.find(n => n.id === edge.target);
-
-        if (sourceNode && targetNode &&
-            sourceNode.type !== 'sideProductNode' &&
-            targetNode.type !== 'sideProductNode') {
+        // Only include edges between main nodes
+        if (mainNodes.some(n => n.id === edge.source) && 
+            mainNodes.some(n => n.id === edge.target)) {
             dagreGraph.setEdge(edge.source, edge.target);
         }
     });
 
-    // Apply Dagre layout to the main production chain
+    // Run the dagre layout algorithm
     Dagre.layout(dagreGraph);
 
-    // Map the positions from Dagre back to React Flow nodes
-    let layoutedNodes = nonSideProductNodes.map((node) => {
+    // Apply positions to main nodes
+    const layoutedNodes = mainNodes.map((node) => {
         const nodeWithPosition = dagreGraph.node(node.id);
         const width = node.measured?.width || nodeFallbackWidth;
         const height = node.measured?.height || nodeFallbackHeight;
@@ -62,7 +69,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
             if (parentNode) {
                 const parentWidth = nodes.find(n => n.id === node.parentId)?.measured?.width || nodeFallbackWidth;
                 const parentHeight = nodes.find(n => n.id === node.parentId)?.measured?.height || nodeFallbackHeight;
-
+                
                 relativeX = nodeWithPosition.x - parentNode.x + (parentWidth - width) / 2;
                 relativeY = nodeWithPosition.y - parentNode.y + (parentHeight - height) / 2;
             }
@@ -73,101 +80,75 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
             position: {
                 x: relativeX,
                 y: relativeY,
-            },
-            targetPosition: config.rankdir === 'LR' ? Position.Left : Position.Top,
-            sourcePosition: config.rankdir === 'LR' ? Position.Right : Position.Bottom,
+            }
         };
     });
 
-    // Group side products by their process node
-    interface ProcessSideProductMap {
-        [processId: string]: Node[];
-    }
-    const sideProductsByProcess: ProcessSideProductMap = {};
-
-    // Find all side product nodes and group them by their ancestor process
-    const sideProductNodes = nodes.filter(node => node.type === 'sideProductNode');
-
-    sideProductNodes.forEach((node) => {
-        const ancestorIds = (node.data as SideProductNodeData).ancestorIds;
-        if (ancestorIds && ancestorIds.length > 0) {
-            const processId = ancestorIds[0];
-            sideProductsByProcess[processId] = sideProductsByProcess[processId] || [];
-            sideProductsByProcess[processId].push(node);
-        }
-    });
-
-    // Position each side product horizontally aligned with its process
-    const sideProductLayoutedNodes: Node[] = [];
-
-    Object.entries(sideProductsByProcess).forEach(([processId, sideProductNodes]) => {
-        const processNode = layoutedNodes.find(n => n.id === processId);
-        if (!processNode) return;
-
-        // Calculate the width of all side products for this process
-        const totalSideProductWidth = sideProductNodes.reduce((total, sp) => {
-            const width = sp.measured?.width || nodeFallbackWidth;
-            return total + width + config.nodesep;
-        }, 0);
-
-        // Starting X position for the first side product (centered around the process node)
-        const processNodeWidth = processNode.measured?.width || nodeFallbackWidth;
-        const startX = processNode.position.x + processNodeWidth + config.nodesep * 2;
-
-        // Position each side product node horizontally
-        let currentX = startX;
-        sideProductNodes.forEach((sideProduct, index) => {
-            const width = sideProduct.measured?.width || nodeFallbackWidth;
-
-            sideProductLayoutedNodes.push({
-                ...sideProduct,
-                position: {
-                    x: currentX,
-                    y: processNode.position.y,
-                },
-                targetPosition: Position.Left,
-                sourcePosition: Position.Right,
-            });
-
-            currentX += width + config.nodesep;
-        });
-    });
-
-    // Combine all nodes
-    layoutedNodes = [
-        ...layoutedNodes.map(node => ({
-            ...node,
-            targetPosition: node.targetPosition || (config.rankdir === 'LR' ? Position.Left : Position.Top),
-            sourcePosition: node.sourcePosition || (config.rankdir === 'LR' ? Position.Right : Position.Bottom),
-        })),
-        ...sideProductLayoutedNodes.map(node => ({
-            ...node,
-            targetPosition: node.targetPosition || Position.Left,
-            sourcePosition: node.sourcePosition || Position.Right,
-        })),
-    ];
-
-    // Create the edge layout
-    const layoutedEdges = edges.map((edge) => {
-        const sourceNode = nodes.find(n => n.id === edge.source);
-        const targetNode = nodes.find(n => n.id === edge.target);
-
-        // Special handling for side product connections
-        if (sourceNode?.type === 'sideProductNode' || targetNode?.type === 'sideProductNode') {
+    // Process side product nodes and position them next to their process nodes
+    const positionedSideProducts = sideProductNodes.map(sideProductNode => {
+        // Find the process node that produces this side product
+        const processNode = nodes.find(node => 
+            node.type === 'processNode' && 
+            Array.isArray(node.data?.outflowIds) && (node.data.outflowIds as string[]).includes(sideProductNode.id)
+        );
+        
+        if (!processNode) {
+            // If no process node found, place at origin
             return {
-                ...edge,
-                type: 'custom',
-                animated: true,
+                ...sideProductNode,
+                position: { x: 0, y: 0 }
             };
         }
 
+        // Get the positioned process node
+        const positionedProcess = layoutedNodes.find(node => node.id === processNode.id);
+        if (!positionedProcess) {
+            return {
+                ...sideProductNode,
+                position: { x: 0, y: 0 }
+            };
+        }
+
+        // Find all side products for this process node
+        const processSideProducts = sideProductNodes.filter(node => 
+            (Array.isArray(processNode.data.outflowIds) && processNode.data.outflowIds.includes(node.id))
+        );
+        
+        // Get index of this side product among all side products of this process
+        const sideProductIndex = processSideProducts.findIndex(node => node.id === sideProductNode.id);
+        
+        // Calculate horizontal offset for each side product
+        const sideProductWidth = sideProductNode.measured?.width || nodeFallbackWidth;
+        const processWidth = positionedProcess.measured?.width || nodeFallbackWidth;
+        const horizontalSpacing = 30; // Space between side products
+        
+        // Calculate total width of all side products + spacing
+        const totalSideProductsWidth = processSideProducts.length * sideProductWidth + 
+                                       (processSideProducts.length - 1) * horizontalSpacing;
+        
+        // Starting X position
+        const startX = positionedProcess.position.x + (processWidth - totalSideProductsWidth) / 2;
+        
+        // Position side product horizontally aligned with process node but to the right
         return {
-            ...edge,
-            type: 'custom',
+            ...sideProductNode,
+            position: {
+                x: startX + sideProductIndex * (sideProductWidth + horizontalSpacing),
+                y: positionedProcess.position.y, // Same Y as process node
+            }
         };
     });
 
-    return { layoutedNodes, layoutedEdges };
+    // Combine the main and side product nodes
+    const allLayoutedNodes = [...layoutedNodes, ...positionedSideProducts];
+
+    // Update edges for the layouted graph
+    const layoutedEdges = edges.map((edge) => ({
+        ...edge,
+        type: 'custom',
+    }));
+
+    return { layoutedNodes: allLayoutedNodes, layoutedEdges };
 }
 
 export default applyDagreLayout;
