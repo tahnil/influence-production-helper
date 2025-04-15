@@ -9,7 +9,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     // Separate side product nodes from main nodes
     const sideProductNodes = nodes.filter(node => node.type === 'sideProductNode');
     const mainNodes = nodes.filter(node => node.type !== 'sideProductNode');
-    
+
     // Find process nodes that are parents of side products for later use
     const processNodesWithSideProducts = new Set(
         sideProductNodes
@@ -37,16 +37,16 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
 
     // Add main nodes to dagre
     mainNodes.forEach((node) => {
-        dagreGraph.setNode(node.id, { 
-            width: node.measured?.width || nodeFallbackWidth, 
-            height: node.measured?.height || nodeFallbackHeight 
+        dagreGraph.setNode(node.id, {
+            width: node.measured?.width || nodeFallbackWidth,
+            height: node.measured?.height || nodeFallbackHeight
         });
     });
 
     // Add edges between main nodes to dagre
     edges.forEach((edge) => {
         // Only include edges between main nodes
-        if (mainNodes.some(n => n.id === edge.source) && 
+        if (mainNodes.some(n => n.id === edge.source) &&
             mainNodes.some(n => n.id === edge.target)) {
             dagreGraph.setEdge(edge.source, edge.target);
         }
@@ -56,7 +56,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     Dagre.layout(dagreGraph);
 
     // Apply positions to main nodes
-    const layoutedNodes = mainNodes.map((node) => {
+    let layoutedNodes = mainNodes.map((node) => {
         const nodeWithPosition = dagreGraph.node(node.id);
         const width = node.measured?.width || nodeFallbackWidth;
         const height = node.measured?.height || nodeFallbackHeight;
@@ -69,7 +69,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
             if (parentNode) {
                 const parentWidth = nodes.find(n => n.id === node.parentId)?.measured?.width || nodeFallbackWidth;
                 const parentHeight = nodes.find(n => n.id === node.parentId)?.measured?.height || nodeFallbackHeight;
-                
+
                 relativeX = nodeWithPosition.x - parentNode.x + (parentWidth - width) / 2;
                 relativeY = nodeWithPosition.y - parentNode.y + (parentHeight - height) / 2;
             }
@@ -84,14 +84,36 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         };
     });
 
+    // After Dagre layout, adjust side product positions
+    layoutedNodes = layoutedNodes.map(node => {
+        if (node.type === 'sideProductNode') {
+            // Find connected process node (which should be the source now)
+            const processEdge = edges.find(edge => edge.target === node.id);
+            if (processEdge) {
+                const processNode = layoutedNodes.find(n => n.id === processEdge.source);
+                if (processNode) {
+                    // Position side product at same horizontal level as process
+                    return {
+                        ...node,
+                        position: {
+                            x: node.position.x,
+                            y: processNode.position.y  // Align with process Y-position
+                        }
+                    };
+                }
+            }
+        }
+        return node;
+    });
+
     // Process side product nodes and position them next to their process nodes
     const positionedSideProducts = sideProductNodes.map(sideProductNode => {
         // Find the process node that produces this side product
-        const processNode = nodes.find(node => 
-            node.type === 'processNode' && 
+        const processNode = nodes.find(node =>
+            node.type === 'processNode' &&
             Array.isArray(node.data?.outflowIds) && (node.data.outflowIds as string[]).includes(sideProductNode.id)
         );
-        
+
         if (!processNode) {
             // If no process node found, place at origin
             return {
@@ -110,25 +132,25 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         }
 
         // Find all side products for this process node
-        const processSideProducts = sideProductNodes.filter(node => 
+        const processSideProducts = sideProductNodes.filter(node =>
             (Array.isArray(processNode.data.outflowIds) && processNode.data.outflowIds.includes(node.id))
         );
-        
+
         // Get index of this side product among all side products of this process
         const sideProductIndex = processSideProducts.findIndex(node => node.id === sideProductNode.id);
-        
+
         // Calculate horizontal offset for each side product
         const sideProductWidth = sideProductNode.measured?.width || nodeFallbackWidth;
         const processWidth = positionedProcess.measured?.width || nodeFallbackWidth;
         const horizontalSpacing = 30; // Space between side products
-        
+
         // Calculate total width of all side products + spacing
-        const totalSideProductsWidth = processSideProducts.length * sideProductWidth + 
-                                       (processSideProducts.length - 1) * horizontalSpacing;
-        
+        const totalSideProductsWidth = processSideProducts.length * sideProductWidth +
+            (processSideProducts.length - 1) * horizontalSpacing;
+
         // Starting X position
         const startX = positionedProcess.position.x + (processWidth - totalSideProductsWidth) / 2;
-        
+
         // Position side product horizontally aligned with process node but to the right
         return {
             ...sideProductNode,
