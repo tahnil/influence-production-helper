@@ -4,8 +4,8 @@ import { Node, Edge, Position } from '@xyflow/react';
 
 // Define a type for the side product node data
 interface SideProductNodeData {
-  ancestorIds?: string[];
-  [key: string]: any;
+    ancestorIds?: string[];
+    [key: string]: any;
 }
 
 function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
@@ -86,33 +86,59 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
 
     // Build a map of process nodes to their side products using ancestorIds
     const processSideProductsMap = new Map<string, Node[]>();
-    
+
     sideProductNodes.forEach(sideProduct => {
         // Type-safe access to ancestorIds
         const sideProductData = sideProduct.data as SideProductNodeData;
         const ancestorIds = sideProductData.ancestorIds || [];
-        
+
         if (ancestorIds.length > 0) {
-            const ancestorId = ancestorIds[0];
-            if (!processSideProductsMap.has(ancestorId)) {
-                processSideProductsMap.set(ancestorId, []);
+            const processId = ancestorIds[0];
+
+            // Debug output
+            console.log(`Side product ${sideProduct.id} has ancestor process: ${processId}`);
+
+            // Verify the process exists in layoutedMainNodes
+            const processNode = layoutedMainNodes.find(node => node.id === processId);
+            if (!processNode) {
+                console.warn(`Process node ${processId} not found for side product ${sideProduct.id}`);
+                return;
             }
-            processSideProductsMap.get(ancestorId)?.push(sideProduct);
+
+            // Verify it's a process node
+            if (processNode.type !== 'processNode') {
+                console.warn(`Node ${processId} is not a process node! It's a ${processNode.type}`);
+                return;
+            }
+
+            // Add to map
+            if (!processSideProductsMap.has(processId)) {
+                processSideProductsMap.set(processId, []);
+            }
+            processSideProductsMap.get(processId)?.push(sideProduct);
+        } else {
+            console.warn(`Side product ${sideProduct.id} has no ancestorIds!`);
         }
+    });
+
+    // Log the resulting map
+    console.log('Process Side Products Map:');
+    processSideProductsMap.forEach((products, processId) => {
+        console.log(`Process ${processId} has ${products.length} side products: ${products.map(p => p.id).join(', ')}`);
     });
 
     // Position side product nodes next to their process nodes
     const layoutedSideProducts: Node[] = [];
-    
+
     processSideProductsMap.forEach((sideProducts, processId) => {
         // Find the positioned process node
         const processNode = layoutedMainNodes.find(node => node.id === processId);
         if (!processNode) return;
-        
+
         // Calculate positions for all side products of this process
         const sideProductWidth = 224; // From your example data
         const horizontalSpacing = 30;
-        
+
         sideProducts.forEach((sideProduct, index) => {
             // Position side product to the left of the process node with horizontal spacing
             layoutedSideProducts.push({
@@ -120,7 +146,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
                 position: {
                     // Position to the left of the process
                     x: processNode.position.x - sideProductWidth - horizontalSpacing - (index * (sideProductWidth + horizontalSpacing)),
-                    y: processNode.position.y + 500, // Same Y as process node
+                    y: processNode.position.y, // Same Y as process node
                 },
                 targetPosition: config.rankdir === 'LR' ? Position.Right : Position.Left,
                 sourcePosition: config.rankdir === 'LR' ? Position.Left : Position.Right,

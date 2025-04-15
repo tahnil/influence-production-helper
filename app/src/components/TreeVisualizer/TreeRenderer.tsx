@@ -55,7 +55,7 @@ const TreeRenderer: React.FC = () => {
                 }
             });
         }
-    }, [nodes, edges, dagreConfig, needsLayout, layoutTrigger, dispatch]);
+    }, [nodes, edges, dagreConfig, layoutTrigger, dispatch]);
 
     useEffect(() => {
         if (selectedProductId) {
