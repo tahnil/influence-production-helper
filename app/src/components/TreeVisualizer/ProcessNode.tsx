@@ -38,7 +38,20 @@ const ProcessNode: React.FC<NodeProps<ProcessNode>> = ({ id, data }) => {
       <Handle
         type="target"
         position={Position.Top}
-        className="bg-blue-500"
+        className="process-outflow-handle bg-blue-500"
+        id={`target-${id}`}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="process-inflow-handle bg-green-500"
+        id={`source-${id}`}
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="process-outflow-side-product-handle bg-purple-500"
+        id={`target-side-product-${id}`}
       />
       <div id="processNodeCard" className="flex flex-col items-center">
         <div id="titleSection" className="p-2 bg-falcon-800 w-full flex justify-center items-center gap-2.5 grid grid-cols-3">
@@ -66,18 +79,6 @@ const ProcessNode: React.FC<NodeProps<ProcessNode>> = ({ id, data }) => {
           </div>
         )}
       </div>
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="bg-green-500"
-        id={`source-${id}`}
-      />
-      <Handle
-        type="target"
-        position={Position.Right}
-        className="bg-purple-500"
-        id={`side-product-target-${id}`}
-      />
     </div>
   );
 };

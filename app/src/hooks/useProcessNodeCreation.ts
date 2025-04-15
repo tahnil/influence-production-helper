@@ -71,9 +71,11 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
       // Mark these edges as side product connections
       result.sideProductNodes?.forEach(sideProductNode => {
         newEdges.push({
-          id: `edge-sideProduct-${result.processNode.id}-${sideProductNode.id}`,
-          source: result.processNode.id,
-          target: sideProductNode.id,
+          id: `edge-${sideProductNode.id}-${result.processNode.id}`,
+          source: sideProductNode.id,
+          sourceHandle: `source-${sideProductNode.id}`,
+          target: result.processNode.id,
+          targetHandle: `target-side-product-${result.processNode.id}`,
           type: 'custom',
           data: {
             isSideProductConnection: true

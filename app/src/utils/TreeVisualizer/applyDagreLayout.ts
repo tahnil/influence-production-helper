@@ -79,8 +79,8 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
                 x: relativeX,
                 y: relativeY,
             },
-            targetPosition: config.rankdir === 'LR' ? Position.Left : Position.Top,
-            sourcePosition: config.rankdir === 'LR' ? Position.Right : Position.Bottom,
+            targetPosition: config.rankdir === 'LR' ? Position.Bottom : Position.Top,
+            sourcePosition: config.rankdir === 'LR' ? Position.Top : Position.Bottom,
         };
     });
 
@@ -120,10 +120,10 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
                 position: {
                     // Position to the left of the process
                     x: processNode.position.x - sideProductWidth - horizontalSpacing - (index * (sideProductWidth + horizontalSpacing)),
-                    y: processNode.position.y, // Same Y as process node
+                    y: processNode.position.y + 500, // Same Y as process node
                 },
-                targetPosition: config.rankdir === 'LR' ? Position.Left : Position.Top,
-                sourcePosition: config.rankdir === 'LR' ? Position.Right : Position.Bottom,
+                targetPosition: config.rankdir === 'LR' ? Position.Right : Position.Left,
+                sourcePosition: config.rankdir === 'LR' ? Position.Left : Position.Right,
             });
         });
     });

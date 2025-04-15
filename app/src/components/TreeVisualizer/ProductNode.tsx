@@ -155,7 +155,18 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
 
   return (
     <div className="product-node bg-mako-900 border overflow-hidden rounded-lg shadow-lg w-72">
-      <Handle type="target" position={Position.Top} className="bg-blue-500" />
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="bg-blue-500"
+        id={`target-${id}`}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="bg-green-500"
+        id={`source-${id}`}
+      />
       <div id="productNodeCard" className="flex flex-col items-center">
         <div id="titleSection" className="p-2 bg-mako-900 w-full flex justify-between items-center gap-2.5 grid grid-cols-[auto,1fr,auto]">
           <div className="p-2">
@@ -166,15 +177,15 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
           </div>
           {hasInflows && (
             <div className="flex items-center justify-center">
-                {saveStatus === 'pending' && pendingSaveNodeId === id && (
-                  <span className="text-yellow-500 text-xs">Saving...</span>
-                )}
-                {saveStatus === 'complete' && lastSavedNodeId === id && (
-                  <span className="text-green-500 text-xs">Saved!</span>
-                )}
-                {saveStatus === 'error' && lastSavedNodeId === id && (
-                  <span className="text-red-500 text-xs">Error!</span>
-                )}
+              {saveStatus === 'pending' && pendingSaveNodeId === id && (
+                <span className="text-yellow-500 text-xs">Saving...</span>
+              )}
+              {saveStatus === 'complete' && lastSavedNodeId === id && (
+                <span className="text-green-500 text-xs">Saved!</span>
+              )}
+              {saveStatus === 'error' && lastSavedNodeId === id && (
+                <span className="text-red-500 text-xs">Error!</span>
+              )}
               <Save
                 size={20}
                 onClick={handleSaveProductionChain}
@@ -225,7 +236,6 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
           />
         </div>
       </div>
-      <Handle type="source" position={Position.Bottom} className="bg-green-500" />
     </div>
   );
 };
