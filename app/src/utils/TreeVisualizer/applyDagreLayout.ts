@@ -1,6 +1,12 @@
 import { DagreConfig } from '@/hooks/useDagreConfig';
 import Dagre from '@dagrejs/dagre';
-import { Node, Edge } from '@xyflow/react';
+import { Node, Edge, Position } from '@xyflow/react';
+
+// Define a type for the side product node data
+interface SideProductNodeData {
+  ancestorIds?: string[];
+  [key: string]: any;
+}
 
 function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     const nodeFallbackWidth = 200;
@@ -9,14 +15,6 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     // Separate side product nodes from main nodes
     const sideProductNodes = nodes.filter(node => node.type === 'sideProductNode');
     const mainNodes = nodes.filter(node => node.type !== 'sideProductNode');
-
-    // Find process nodes that are parents of side products for later use
-    const processNodesWithSideProducts = new Set(
-        sideProductNodes
-            .map(node => nodes.find(n => Array.isArray(n.data?.outflowIds) && n.data.outflowIds.includes(node.id)))
-            .filter(Boolean)
-            .map(node => node?.id)
-    );
 
     // Create a new dagre graph for main layout
     const dagreGraph = new Dagre.graphlib.Graph();
@@ -56,7 +54,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     Dagre.layout(dagreGraph);
 
     // Apply positions to main nodes
-    let layoutedNodes = mainNodes.map((node) => {
+    const layoutedMainNodes = mainNodes.map((node) => {
         const nodeWithPosition = dagreGraph.node(node.id);
         const width = node.measured?.width || nodeFallbackWidth;
         const height = node.measured?.height || nodeFallbackHeight;
@@ -80,89 +78,58 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
             position: {
                 x: relativeX,
                 y: relativeY,
-            }
+            },
+            targetPosition: config.rankdir === 'LR' ? Position.Left : Position.Top,
+            sourcePosition: config.rankdir === 'LR' ? Position.Right : Position.Bottom,
         };
     });
 
-    // After Dagre layout, adjust side product positions
-    layoutedNodes = layoutedNodes.map(node => {
-        if (node.type === 'sideProductNode') {
-            // Find connected process node (which should be the source now)
-            const processEdge = edges.find(edge => edge.target === node.id);
-            if (processEdge) {
-                const processNode = layoutedNodes.find(n => n.id === processEdge.source);
-                if (processNode) {
-                    // Position side product at same horizontal level as process
-                    return {
-                        ...node,
-                        position: {
-                            x: node.position.x,
-                            y: processNode.position.y  // Align with process Y-position
-                        }
-                    };
-                }
+    // Build a map of process nodes to their side products using ancestorIds
+    const processSideProductsMap = new Map<string, Node[]>();
+    
+    sideProductNodes.forEach(sideProduct => {
+        // Type-safe access to ancestorIds
+        const sideProductData = sideProduct.data as SideProductNodeData;
+        const ancestorIds = sideProductData.ancestorIds || [];
+        
+        if (ancestorIds.length > 0) {
+            const ancestorId = ancestorIds[0];
+            if (!processSideProductsMap.has(ancestorId)) {
+                processSideProductsMap.set(ancestorId, []);
             }
+            processSideProductsMap.get(ancestorId)?.push(sideProduct);
         }
-        return node;
     });
 
-    // Process side product nodes and position them next to their process nodes
-    const positionedSideProducts = sideProductNodes.map(sideProductNode => {
-        // Find the process node that produces this side product
-        const processNode = nodes.find(node =>
-            node.type === 'processNode' &&
-            Array.isArray(node.data?.outflowIds) && (node.data.outflowIds as string[]).includes(sideProductNode.id)
-        );
-
-        if (!processNode) {
-            // If no process node found, place at origin
-            return {
-                ...sideProductNode,
-                position: { x: 0, y: 0 }
-            };
-        }
-
-        // Get the positioned process node
-        const positionedProcess = layoutedNodes.find(node => node.id === processNode.id);
-        if (!positionedProcess) {
-            return {
-                ...sideProductNode,
-                position: { x: 0, y: 0 }
-            };
-        }
-
-        // Find all side products for this process node
-        const processSideProducts = sideProductNodes.filter(node =>
-            (Array.isArray(processNode.data.outflowIds) && processNode.data.outflowIds.includes(node.id))
-        );
-
-        // Get index of this side product among all side products of this process
-        const sideProductIndex = processSideProducts.findIndex(node => node.id === sideProductNode.id);
-
-        // Calculate horizontal offset for each side product
-        const sideProductWidth = sideProductNode.measured?.width || nodeFallbackWidth;
-        const processWidth = positionedProcess.measured?.width || nodeFallbackWidth;
-        const horizontalSpacing = 30; // Space between side products
-
-        // Calculate total width of all side products + spacing
-        const totalSideProductsWidth = processSideProducts.length * sideProductWidth +
-            (processSideProducts.length - 1) * horizontalSpacing;
-
-        // Starting X position
-        const startX = positionedProcess.position.x + (processWidth - totalSideProductsWidth) / 2;
-
-        // Position side product horizontally aligned with process node but to the right
-        return {
-            ...sideProductNode,
-            position: {
-                x: startX + sideProductIndex * (sideProductWidth + horizontalSpacing),
-                y: positionedProcess.position.y, // Same Y as process node
-            }
-        };
+    // Position side product nodes next to their process nodes
+    const layoutedSideProducts: Node[] = [];
+    
+    processSideProductsMap.forEach((sideProducts, processId) => {
+        // Find the positioned process node
+        const processNode = layoutedMainNodes.find(node => node.id === processId);
+        if (!processNode) return;
+        
+        // Calculate positions for all side products of this process
+        const sideProductWidth = 224; // From your example data
+        const horizontalSpacing = 30;
+        
+        sideProducts.forEach((sideProduct, index) => {
+            // Position side product to the left of the process node with horizontal spacing
+            layoutedSideProducts.push({
+                ...sideProduct,
+                position: {
+                    // Position to the left of the process
+                    x: processNode.position.x - sideProductWidth - horizontalSpacing - (index * (sideProductWidth + horizontalSpacing)),
+                    y: processNode.position.y, // Same Y as process node
+                },
+                targetPosition: config.rankdir === 'LR' ? Position.Left : Position.Top,
+                sourcePosition: config.rankdir === 'LR' ? Position.Right : Position.Bottom,
+            });
+        });
     });
 
     // Combine the main and side product nodes
-    const allLayoutedNodes = [...layoutedNodes, ...positionedSideProducts];
+    const allLayoutedNodes = [...layoutedMainNodes, ...layoutedSideProducts];
 
     // Update edges for the layouted graph
     const layoutedEdges = edges.map((edge) => ({
