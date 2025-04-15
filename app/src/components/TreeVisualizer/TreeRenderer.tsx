@@ -45,6 +45,7 @@ const TreeRenderer: React.FC = () => {
 
     useEffect(() => {
         if (needsLayout && layoutTrigger) {
+            // console.log('Applying layout with trigger:', layoutTrigger);
             dispatch({
                 type: 'APPLY_LAYOUT',
                 payload: {
