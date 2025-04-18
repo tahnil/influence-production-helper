@@ -23,9 +23,9 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     });
 
     nodes.forEach((node) => {
-        dagreGraph.setNode(node.id, { 
-            width: node.measured?.width || nodeFallbackWidth, 
-            height: node.measured?.height || nodeFallbackHeight 
+        dagreGraph.setNode(node.id, {
+            width: node.measured?.width || nodeFallbackWidth,
+            height: node.measured?.height || nodeFallbackHeight
         });
     });
 
@@ -38,31 +38,36 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     // Map the positions from Dagre back to React Flow nodes
     const layoutedNodes = nodes.map((node) => {
         const nodeWithPosition = dagreGraph.node(node.id);
-        const width = node.measured?.width || nodeFallbackWidth;
-        const height = node.measured?.height || nodeFallbackHeight;
 
-        let relativeX = nodeWithPosition.x - width / 2;
-        let relativeY = nodeWithPosition.y - height / 2;
+        // Skip nodes that dagre couldn't position
+        if (!nodeWithPosition) {
+            console.warn(`No position calculated for node ${node.id}`);
+            return node;
+        }
 
-        if (node.data.logicalParentId) {
-            const parentNode = dagreGraph.node(node.data.logicalParentId);
-            if (parentNode) {
-                const parentWidth = nodes.find(n => n.id === node.data.logicalParentId)?.measured?.width || nodeFallbackWidth;
-                const parentHeight = nodes.find(n => n.id === node.data.logicalParentId)?.measured?.height || nodeFallbackHeight;
-                
-                relativeX = nodeWithPosition.x - parentNode.x + (parentWidth - width) / 2;
-                relativeY = nodeWithPosition.y - parentNode.y + (parentHeight - height) / 2;
-            }
+        // Determine handle positions based on rankdir
+        let sourcePosition = Position.Bottom;
+        let targetPosition = Position.Top;
+
+        if (config.rankdir === 'LR') {
+            sourcePosition = Position.Right;
+            targetPosition = Position.Left;
+        } else if (config.rankdir === 'RL') {
+            sourcePosition = Position.Left;
+            targetPosition = Position.Right;
+        } else if (config.rankdir === 'BT') {
+            sourcePosition = Position.Top;
+            targetPosition = Position.Bottom;
         }
 
         return {
             ...node,
             position: {
-                x: relativeX,
-                y: relativeY,
+                x: nodeWithPosition.x - (nodeWithPosition.width / 2),
+                y: nodeWithPosition.y - (nodeWithPosition.height / 2),
             },
-            targetPosition: config.rankdir === 'LR' ? Position.Left : Position.Top,
-            sourcePosition: config.rankdir === 'LR' ? Position.Right : Position.Bottom,
+            sourcePosition,
+            targetPosition
         };
     });
 
