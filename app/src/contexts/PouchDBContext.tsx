@@ -37,172 +37,199 @@ async function migrateDocuments(db: PouchDB.Database) {
         // Process each document
         const updates = result.rows
             .filter(row => row.doc &&
-                (row.doc as any).parentId && // Has old parentId
-                !(row.doc as PouchDBNodeDocument).data.logicalParentId) // Doesn't have new logicalParentId
+                ((row.doc as any).parentId || // Has old parentId
+                    (row.doc as any).position)) // Or has position data that needs resetting
             .map(row => {
                 const doc = row.doc as PouchDBNodeDocument;
 
-                // Transfer parentId to logicalParentId
-                doc.data = {
-                    ...doc.data,
-                    logicalParentId: (doc as any).parentId
-                };
+                // Transfer parentId to logicalParentId if needed
+                if ((doc as any).parentId && !doc.data.logicalParentId) {
+                    doc.data = {
+                        ...doc.data,
+                        logicalParentId: (doc as any).parentId
+                    };
 
-                // Optionally clear the original parentId to avoid confusion
-                // This depends on your strategy - you might want to keep it for backward compatibility
-                if ((doc as any).parentId) {
+                    // Clear the original parentId
                     (doc as any).parentId = undefined;
                 }
+
+                // Reset position to default (will be recalculated by layout algorithm)
+                doc.position = { x: 0, y: 0 };
 
                 // Return the updated document
                 return doc;
             });
 
-        // Also find nodes that have inflowIds/outflowIds that need to be preserved
-        const flowUpdates = result.rows
-            .filter(row => row.doc &&
-                (row.doc as any).data &&
-                ((row.doc as any).data.inflowIds || (row.doc as any).data.outflowIds))
-            .map(row => {
-                const doc = row.doc as PouchDBNodeDocument;
-                // Make sure flow relationships are preserved
-                return doc;
-            });
+        // Also update any document that has attachments with node data
+        const docIdsWithAttachments = result.rows
+            .filter(row => row.doc && row.doc._attachments && row.doc._attachments.nodes)
+            .map(row => row.doc?._id);
 
-        // Combine all updates
-        const allUpdates = [...updates, ...flowUpdates.filter(doc =>
-            !updates.some(update => update._id === doc._id))];
+        console.log(`Found ${docIdsWithAttachments.length} documents with node attachments`);
 
-        // Bulk update if there are documents to update
-        if (allUpdates.length > 0) {
-            await db.bulkDocs(allUpdates);
-            console.log(`Migrated ${updates.length} documents with parentId conversion`);
-            console.log(`Preserved ${flowUpdates.length} documents with flow relationships`);
-        } else {
-            console.log("No documents needed migration");
+        // Update attachments
+        for (const docId of docIdsWithAttachments) {
+            if (docId) {
+                try {
+                    // Get the document and its attachment
+                    const doc = await db.get(docId);
+                    const attachment = await db.getAttachment(docId, 'nodes');
+
+                    if (attachment instanceof Blob) {
+                        // Parse the attachment
+                        const savedNodes = JSON.parse(await attachment.text());
+
+                        // Reset positions in the saved nodes
+                        const updatedNodes = savedNodes.map((node: any) => ({
+                            ...node,
+                            position: { x: 0, y: 0 } // Reset position
+                        }));
+
+                        // Save the updated attachment
+                        const updatedAttachment = new Blob([JSON.stringify(updatedNodes)],
+                            { type: 'application/json' });
+
+                        // Update the attachment
+                        await db.putAttachment(docId, 'nodes', doc._rev, updatedAttachment,
+                            'application/json');
+
+                        console.log(`Updated attachment for document ${docId}`);
+                    }
+                } catch (error) {
+                    console.error(`Error updating attachment for document ${docId}:`, error);
+                }
+            }
         }
-    } catch (error) {
-        console.error('Migration failed:', error);
+
+            // Bulk update documents
+            if (updates.length > 0) {
+                await db.bulkDocs(updates);
+                console.log(`Migrated ${updates.length} documents`);
+            } else {
+                console.log("No documents needed migration");
+            }
+        } catch (error) {
+            console.error('Migration failed:', error);
+        }
     }
-}
 
 export const usePouchDB = () => useContext(PouchDBContext);
 
-export const PouchDBProvider: React.FC<PouchDBProviderProps> = ({ children }) => {
-    const [memoryDb, setMemoryDb] = useState<PouchDB.Database | null>(null);
-    const [localDb, setLocalDb] = useState<PouchDB.Database | null>(null);
-    const [syncStatus, setSyncStatus] = useState<'pending' | 'active' | 'error' | 'complete'>('pending');
+    export const PouchDBProvider: React.FC<PouchDBProviderProps> = ({ children }) => {
+        const [memoryDb, setMemoryDb] = useState<PouchDB.Database | null>(null);
+        const [localDb, setLocalDb] = useState<PouchDB.Database | null>(null);
+        const [syncStatus, setSyncStatus] = useState<'pending' | 'active' | 'error' | 'complete'>('pending');
 
-    useEffect(() => {
-        console.log("Initializing PouchDB instances...");
+        useEffect(() => {
+            console.log("Initializing PouchDB instances...");
 
-        // Create the memory and local PouchDB instances
-        const memoryDBInstance = new PouchDB('memory-db', { adapter: 'memory' });
-        const localDBInstance = new PouchDB('local-db');
+            // Create the memory and local PouchDB instances
+            const memoryDBInstance = new PouchDB('memory-db', { adapter: 'memory' });
+            const localDBInstance = new PouchDB('local-db');
 
-        console.log("PouchDB instances created.");
+            console.log("PouchDB instances created.");
 
-        localDBInstance.info()
-            .then(info => {
-                console.log("Local DB info:", info);
+            localDBInstance.info()
+                .then(info => {
+                    console.log("Local DB info:", info);
 
-                if (info.doc_count > 0) {
-                    console.log(`Local DB has ${info.doc_count} documents, replicating to memory....`);
-                    return new Promise<void>((resolve, reject) => {
-                        localDBInstance.replicate.to(memoryDBInstance)
-                            .on('complete', () => {
-                                console.log("Initial replication from local to memory complete");
-                                resolve();
-                            })
-                            .on('error', (err) => {
-                                console.error("Error during initial replication:", err);
-                                reject(err);
-                            });
-                    });
-                } else {
-                    console.log("Local DB is empty, no replication needed.");
-                    return Promise.resolve();
-                }
-            })
-            .then(() => {
-                return migrateDocuments(localDBInstance).then(() => migrateDocuments(memoryDBInstance));
-            })
-            .then(() => {
-                console.log("Setting up bi-directional sync...");
-
-                // Set up bi-directional sync
-                const sync = PouchDB.sync(memoryDBInstance, localDBInstance, {
-                    live: true,
-                    retry: true,
-                    batch_size: 50
-                });
-
-                sync.on('change', function (info) {
-                    console.log('PouchDB sync change:', info);
-                    if (info.direction === 'push') {
-                        console.log(`Pushed ${info.change.docs_written} documents from memory to local DB`);
+                    if (info.doc_count > 0) {
+                        console.log(`Local DB has ${info.doc_count} documents, replicating to memory....`);
+                        return new Promise<void>((resolve, reject) => {
+                            localDBInstance.replicate.to(memoryDBInstance)
+                                .on('complete', () => {
+                                    console.log("Initial replication from local to memory complete");
+                                    resolve();
+                                })
+                                .on('error', (err) => {
+                                    console.error("Error during initial replication:", err);
+                                    reject(err);
+                                });
+                        });
                     } else {
-                        console.log(`Pulled ${info.change.docs_written} documents from local DB to memory`);
+                        console.log("Local DB is empty, no replication needed.");
+                        return Promise.resolve();
                     }
-                });
+                })
+                .then(() => {
+                    return migrateDocuments(localDBInstance).then(() => migrateDocuments(memoryDBInstance));
+                })
+                .then(() => {
+                    console.log("Setting up bi-directional sync...");
 
-                sync.on('active', function () {
-                    console.log('PouchDB sync is active');
-                    setSyncStatus('active');
-                });
+                    // Set up bi-directional sync
+                    const sync = PouchDB.sync(memoryDBInstance, localDBInstance, {
+                        live: true,
+                        retry: true,
+                        batch_size: 50
+                    });
 
-                sync.on('paused', function () {
-                    console.log('PouchDB sync is paused - all changes synced');
-                });
+                    sync.on('change', function (info) {
+                        console.log('PouchDB sync change:', info);
+                        if (info.direction === 'push') {
+                            console.log(`Pushed ${info.change.docs_written} documents from memory to local DB`);
+                        } else {
+                            console.log(`Pulled ${info.change.docs_written} documents from local DB to memory`);
+                        }
+                    });
 
-                sync.on('denied', function (err) {
-                    console.error('PouchDB sync denied:', err);
+                    sync.on('active', function () {
+                        console.log('PouchDB sync is active');
+                        setSyncStatus('active');
+                    });
+
+                    sync.on('paused', function () {
+                        console.log('PouchDB sync is paused - all changes synced');
+                    });
+
+                    sync.on('denied', function (err) {
+                        console.error('PouchDB sync denied:', err);
+                        setSyncStatus('error');
+                    });
+
+                    sync.on('error', function (err) {
+                        console.error('PouchDB sync error:', err);
+                        setSyncStatus('error');
+                    });
+
+                    setMemoryDb(memoryDBInstance);
+                    setLocalDb(localDBInstance);
+
+                    return () => {
+                        console.log("Cleaning up PouchDB instances and sync...");
+                        sync.cancel(); // Stop sync
+                        memoryDBInstance.close().catch(err => console.error('Error closing memory DB:', err));
+                        localDBInstance.close().catch(err => console.error('Error closing local DB:', err));
+                    };
+                })
+                .catch(err => {
+                    console.error("Error initializing PouchDB:", err);
                     setSyncStatus('error');
                 });
+        }, []);
 
-                sync.on('error', function (err) {
-                    console.error('PouchDB sync error:', err);
-                    setSyncStatus('error');
-                });
-
-                setMemoryDb(memoryDBInstance);
-                setLocalDb(localDBInstance);
-
-                return () => {
-                    console.log("Cleaning up PouchDB instances and sync...");
-                    sync.cancel(); // Stop sync
-                    memoryDBInstance.close().catch(err => console.error('Error closing memory DB:', err));
-                    localDBInstance.close().catch(err => console.error('Error closing local DB:', err));
-                };
-            })
-            .catch(err => {
-                console.error("Error initializing PouchDB:", err);
-                setSyncStatus('error');
-            });
-    }, []);
-
-    // Add a utility to force an immediate sync if needed
-    const forceSyncMemoryToLocal = async () => {
-        if (memoryDb && localDb) {
-            console.log("Forcing sync from memory to local...");
-            try {
-                const result = await memoryDb.replicate.to(localDb);
-                console.log("Forced sync complete:", result);
-                return result;
-            } catch (error) {
-                console.error("Force sync failed:", error);
-                throw error;
+        // Add a utility to force an immediate sync if needed
+        const forceSyncMemoryToLocal = async () => {
+            if (memoryDb && localDb) {
+                console.log("Forcing sync from memory to local...");
+                try {
+                    const result = await memoryDb.replicate.to(localDb);
+                    console.log("Forced sync complete:", result);
+                    return result;
+                } catch (error) {
+                    console.error("Force sync failed:", error);
+                    throw error;
+                }
             }
-        }
-    };
+        };
 
-    return (
-        <PouchDBContext.Provider value={{
-            memoryDb,
-            localDb,
-            syncStatus
-        }}>
-            {children}
-        </PouchDBContext.Provider>
-    );
-};
+        return (
+            <PouchDBContext.Provider value={{
+                memoryDb,
+                localDb,
+                syncStatus
+            }}>
+                {children}
+            </PouchDBContext.Provider>
+        );
+    };

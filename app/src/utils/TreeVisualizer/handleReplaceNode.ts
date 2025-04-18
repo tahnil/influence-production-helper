@@ -1,10 +1,10 @@
 // utils/TreeVisualizer/handleReplaceNode.ts
 
 import React from 'react';
-import { 
-    findNodeById, 
-    getAllInflows, 
-    sortNodesByHierarchy,  
+import {
+    findNodeById,
+    getAllInflows,
+    sortNodesByHierarchy,
     updateInfluenceNode
 } from '@/utils/TreeVisualizer/nodeHelpers';
 import { generateUniqueId } from '@/utils/generateUniqueId';
@@ -17,34 +17,34 @@ import { FlowAction } from '@/contexts/FlowContext';
 
 const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] => {
     const idMap = new Map<string, string>();
-    
+
     // First pass: generate new IDs
     nodes.forEach(node => {
-      const newId = generateUniqueId();
-      idMap.set(node.id, newId);
+        const newId = generateUniqueId();
+        idMap.set(node.id, newId);
     });
-  
+
     // Second pass: update all references
     return nodes.map(node => {
-      const newNode = { ...node, id: idMap.get(node.id) || node.id };
-      
-      if (newNode.data.logicalParentId && idMap.has(newNode.data.logicalParentId)) {
-        newNode.data.logicalParentId = idMap.get(newNode.data.logicalParentId);
-      }
-  
-      if (newNode.data.inflowIds) {
-        newNode.data.inflowIds = newNode.data.inflowIds.map((id: string) => idMap.get(id) || id);
-      }
-  
-      if (newNode.data.outflowIds) {
-        newNode.data.outflowIds = newNode.data.outflowIds.map((id: string) => idMap.get(id) || id);
-      }
-  
-      return newNode;
-    });
-  };
+        const newNode = { ...node, id: idMap.get(node.id) || node.id };
 
-  export const handleReplaceNode = async (
+        if (newNode.data.logicalParentId && idMap.has(newNode.data.logicalParentId)) {
+            newNode.data.logicalParentId = idMap.get(newNode.data.logicalParentId);
+        }
+
+        if (newNode.data.inflowIds) {
+            newNode.data.inflowIds = newNode.data.inflowIds.map((id: string) => idMap.get(id) || id);
+        }
+
+        if (newNode.data.outflowIds) {
+            newNode.data.outflowIds = newNode.data.outflowIds.map((id: string) => idMap.get(id) || id);
+        }
+
+        return newNode;
+    });
+};
+
+export const handleReplaceNode = async (
     currentNodeId: string,
     configId: string,
     db: PouchDB.Database,
@@ -178,13 +178,15 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
             payload: {
                 nodes: recalculatedNodes,
                 edges: updatedEdges,
-                rootNodeId: treeRootNode.id
+                rootNodeId: treeRootNode.id,
+                needsLayout: true,
+                layoutTrigger: 'FORCE'
             }
         });
 
-        console.log('Final updated nodes:', recalculatedNodes.map(n => ({ 
-            id: n.id, 
-            type: n.type, 
+        console.log('Final updated nodes:', recalculatedNodes.map(n => ({
+            id: n.id,
+            type: n.type,
             productId: (n.data as ProductNodeData).productDetails?.id,
             logicalParentId: n.data.logicalParentId,
             inflowIds: n.data.inflowIds,
