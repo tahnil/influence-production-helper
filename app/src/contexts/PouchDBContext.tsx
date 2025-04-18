@@ -33,85 +33,102 @@ async function migrateDocuments(db: PouchDB.Database) {
         console.log("Starting document migration...");
         // Get all documents
         const result = await db.allDocs({ include_docs: true });
-
-        // Process each document
+        
+        // First, handle attachments which contain node positions
+        const docsWithAttachments = result.rows
+            .filter(row => row.doc && 
+                   row.doc._attachments && 
+                   row.doc._attachments.nodes);
+        
+        console.log(`Found ${docsWithAttachments.length} documents with node attachments to migrate`);
+        
+        // Process each attachment
+        for (const row of docsWithAttachments) {
+            try {
+                const doc = row.doc;
+                // Get the attachment
+                if (!doc) {
+                    console.warn(`Skipping row with undefined document: ${row.id}`);
+                    continue;
+                }
+                const attachment = await db.getAttachment(doc._id, 'nodes');
+                
+                if (attachment instanceof Blob) {
+                    // Parse the attachment content
+                    const text = await attachment.text();
+                    const savedNodes = JSON.parse(text);
+                    
+                    // Reset positions and update logicalParentId
+                    const updatedNodes = savedNodes.map((node: any) => {
+                        // Create a new node with position reset
+                        return {
+                            ...node,
+                            position: { x: 0, y: 0 }, // Reset position
+                            // If node has a parentId but no logicalParentId, copy it over
+                            data: {
+                                ...node.data,
+                                logicalParentId: node.data.logicalParentId || node.parentId,
+                                // Clear any old position data if it exists
+                                measured: undefined
+                            },
+                            // Clear parentId to avoid confusion
+                            parentId: undefined
+                        };
+                    });
+                    
+                    // Save the updated attachment
+                    const updatedAttachment = new Blob([JSON.stringify(updatedNodes)], 
+                                                      { type: 'application/json' });
+                    
+                    // Put the updated attachment
+                    await db.putAttachment(doc._id, 'nodes', doc._rev, updatedAttachment, 'application/json');
+                    console.log(`Updated attachment for document ${doc._id}`);
+                }
+            } catch (error) {
+                console.error(`Error processing attachment for document ${row.doc?._id || 'unknown'}:`, error);
+            }
+        }
+        
+        // Process the documents themselves
         const updates = result.rows
-            .filter(row => row.doc &&
-                ((row.doc as any).parentId || // Has old parentId
-                    (row.doc as any).position)) // Or has position data that needs resetting
+            .filter(row => row.doc && 
+                  ((row.doc as any).parentId || // Has old parentId
+                   !(row.doc as PouchDBNodeDocument).data?.logicalParentId)) // Needs logicalParentId
             .map(row => {
-                const doc = row.doc as PouchDBNodeDocument;
-
-                // Transfer parentId to logicalParentId if needed
-                if ((doc as any).parentId && !doc.data.logicalParentId) {
-                    doc.data = {
-                        ...doc.data,
-                        logicalParentId: (doc as any).parentId
+                const doc = row.doc;
+                
+                // Update the document
+                if (doc && (doc as any).parentId && !(doc as PouchDBNodeDocument).data?.logicalParentId) {
+                    (doc as PouchDBNodeDocument).data = {
+                        ...(doc as PouchDBNodeDocument).data,
+                        logicalParentId: (doc as PouchDBNodeDocument).parentId
                     };
-
-                    // Clear the original parentId
+                }
+                
+                // Reset positions
+                if (doc) {
+                    (doc as PouchDBNodeDocument).position = { x: 0, y: 0 };
+                }
+                
+                // Clear parentId to avoid confusion
+                if (doc) {
                     (doc as any).parentId = undefined;
                 }
-
-                // Reset position to default (will be recalculated by layout algorithm)
-                doc.position = { x: 0, y: 0 };
-
-                // Return the updated document
+                
                 return doc;
             });
-
-        // Also update any document that has attachments with node data
-        const docIdsWithAttachments = result.rows
-            .filter(row => row.doc && row.doc._attachments && row.doc._attachments.nodes)
-            .map(row => row.doc?._id);
-
-        console.log(`Found ${docIdsWithAttachments.length} documents with node attachments`);
-
-        // Update attachments
-        for (const docId of docIdsWithAttachments) {
-            if (docId) {
-                try {
-                    // Get the document and its attachment
-                    const doc = await db.get(docId);
-                    const attachment = await db.getAttachment(docId, 'nodes');
-
-                    if (attachment instanceof Blob) {
-                        // Parse the attachment
-                        const savedNodes = JSON.parse(await attachment.text());
-
-                        // Reset positions in the saved nodes
-                        const updatedNodes = savedNodes.map((node: any) => ({
-                            ...node,
-                            position: { x: 0, y: 0 } // Reset position
-                        }));
-
-                        // Save the updated attachment
-                        const updatedAttachment = new Blob([JSON.stringify(updatedNodes)],
-                            { type: 'application/json' });
-
-                        // Update the attachment
-                        await db.putAttachment(docId, 'nodes', doc._rev, updatedAttachment,
-                            'application/json');
-
-                        console.log(`Updated attachment for document ${docId}`);
-                    }
-                } catch (error) {
-                    console.error(`Error updating attachment for document ${docId}:`, error);
-                }
-            }
+        
+        // Bulk update if there are documents to update
+        if (updates.length > 0) {
+            await db.bulkDocs(updates.filter((doc): doc is PouchDB.Core.PutDocument<any> => doc !== undefined));
+            console.log(`Migrated ${updates.length} documents`);
         }
-
-            // Bulk update documents
-            if (updates.length > 0) {
-                await db.bulkDocs(updates);
-                console.log(`Migrated ${updates.length} documents`);
-            } else {
-                console.log("No documents needed migration");
-            }
-        } catch (error) {
-            console.error('Migration failed:', error);
-        }
+        
+        console.log("Document migration completed");
+    } catch (error) {
+        console.error('Migration failed:', error);
     }
+}
 
 export const usePouchDB = () => useContext(PouchDBContext);
 

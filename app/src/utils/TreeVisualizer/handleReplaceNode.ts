@@ -82,6 +82,12 @@ export const handleReplaceNode = async (
         const savedNodes: PouchDBNodeDocument[] = JSON.parse(await attachment.text());
         console.log('Parsed saved nodes:', savedNodes);
 
+        // Reset positions of saved nodes before processing them
+        const savedNodesWithResetPositions = savedNodes.map(node => ({
+            ...node,
+            position: { x: 0, y: 0 }
+        }));
+
         const inflowNodes = getAllInflows(currentNodes, currentNodeId);
         const nodesToRemove = [currentNodeId, ...inflowNodes.map(n => n.id)];
 
@@ -91,7 +97,7 @@ export const handleReplaceNode = async (
         let updatedNodes: InfluenceNode[] = currentNodes.filter(node => !nodesToRemove.includes(node.id));
         let updatedEdges = edges.filter(edge => !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target));
 
-        const regeneratedNodes = regenerateNodeIds(savedNodes);
+        const regeneratedNodes = regenerateNodeIds(savedNodesWithResetPositions);
         console.log('Regenerated nodes:', regeneratedNodes);
 
         // Convert saved nodes to React Flow nodes
