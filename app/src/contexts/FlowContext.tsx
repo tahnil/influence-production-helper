@@ -22,11 +22,12 @@ import { useProcessNodeCreation } from '@/hooks/useProcessNodeCreation';
 
 interface NodeCreationRequest {
   type: 'product' | 'process';
-  productId?: string;
   processId?: string;
   logicalParentId?: string;
   amount?: number;
+  productId?: string;
   isRoot?: boolean;
+  includeSideProducts?: boolean;
 }
 
 // Define the state interface
@@ -52,7 +53,6 @@ interface FlowState {
     nodeId: string;
     configId: string;
   } | null;
-  // Add this property:
   matchingConfigs: Array<{
     _id: string;
     focalProductId: string;
@@ -111,7 +111,7 @@ export type FlowAction =
     }>
   }
   | { type: 'REQUEST_PRODUCT_NODE_CREATION'; payload: { productId: string, amount: number, isRoot?: boolean } }
-  | { type: 'REQUEST_PROCESS_NODE_CREATION'; payload: { processId: string, logicalParentId: string, includeSideProducts: boolean } }
+  | { type: 'REQUEST_PROCESS_NODE_CREATION'; payload: { processId: string, logicalParentId: string, includeSideProducts?: boolean } }
   | { type: 'CLEAR_PENDING_NODE_CREATION' }
   | { type: 'NODE_CREATION_COMPLETED' }
   | { type: 'NODE_CREATION_FAILED'; payload: { error: string } }
@@ -131,8 +131,8 @@ const initialState: FlowState = {
     allNodesMeasured: false
   },
   layoutTrigger: null,
-  selectedProductId: null, // check if this is correct
-  processSelections: [], // check if this is correct
+  selectedProductId: null,
+  processSelections: [],
   focalNodeId: null,
   pendingSaveNodeId: null,
   lastSavedNodeId: null,
@@ -301,8 +301,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
 
       if ('focalNodeId' in action.payload) {
         const { focalNodeId } = action.payload;
-        // Call serializeProductionChain or handle async in an effect
-        // For now, just mark that saving is needed
         return {
           ...state,
           pendingSaveNodeId: focalNodeId,
@@ -310,7 +308,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
           saveStatus: 'pending',
         };
       }
-      // Handle the case where focalNodeId is not in action.payload
+      
       console.error('Invalid payload for SAVE_PRODUCTION_CHAIN action');
       return state;
     };
@@ -319,6 +317,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         ...state,
         saveStatus: undefined,
         saveError: undefined,
+        lastSavedNodeId: null,
       };
     };
     case 'SAVE_COMPLETE': {
@@ -334,14 +333,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         pendingSaveNodeId: null,
         saveStatus: 'error',
         saveError: action.payload.error,
-      };
-    };
-    case 'RESET_SAVE_STATUS': {
-      return {
-        ...state,
-        saveStatus: undefined,
-        saveError: undefined,
-        lastSavedNodeId: null,
       };
     };
     case 'LOAD_SAVED_CONFIG': {
@@ -432,7 +423,7 @@ interface FlowContextType {
   layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | null;
   nodesRef: React.MutableRefObject<Node[]>;
   selectedProductId: string | null;
-  processSelections: Array<{ nodeId: string, processId: string }>; // Check if this is correct
+  processSelections: Array<{ nodeId: string, processId: string }>;
   focalNodeId: string | null;
   pendingSaveNodeId: string | null;
   lastSavedNodeId: string | null;
@@ -477,92 +468,90 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { productId, amount = 1, isRoot = false } = state.pendingNodeCreation;
 
     const handleProductNodeCreation = async () => {
-      if (!productId) {
-        throw new Error('Product ID is undefined');
-      }
-      const enhancedNode = await createProductNode(productId, amount, isRoot);
-
-      if (!enhancedNode) return; // Creation failed or was cancelled
-
-      if (isRoot) {
-        dispatch({
-          type: 'BATCH_UPDATE',
-          payload: {
-            nodes: [enhancedNode],
-            rootNodeId: enhancedNode.id,
-            nodesReady: true
-          }
-        });
-      } else {
-        dispatch({
-          type: 'BATCH_UPDATE',
-          payload: {
-            nodes: [...state.nodes, enhancedNode]
-          }
-        });
-      }
-
-            dispatch({ type: 'NODE_CREATION_COMPLETED' });
-          }
+      try {
+        if (!productId) {
+          throw new Error('Product ID is undefined');
         }
-        else if (state.pendingNodeCreation && state.pendingNodeCreation.type === 'process') {
-          const { processId, logicalParentId } = state.pendingNodeCreation;
+        
+        const enhancedNode = await createProductNode(productId, amount, isRoot);
 
-          // Find parent node
-          const parentNode = state.nodes.find(node => node.id === logicalParentId);
-          if (!parentNode) {
-            throw new Error(`Parent node with ID ${logicalParentId} not found`);
-          }
+        if (!enhancedNode) return; // Creation failed or was cancelled
 
-        const parentNodeAmount = Number(parentNode.data.amount) || 1;
-        const parentNodeProductId = (parentNode.data.productDetails as { id: string })?.id || '';
-
-          // Use buildProcessNode from hook
-          if (!processId) {
-            throw new Error('Process ID is undefined');
-          }
-
-          if (!logicalParentId) {
-            throw new Error('Parent Node ID is undefined');
-          }
-
-          const result = await buildProcessNode(
-            processId,
-            logicalParentId,
-            parentNodeAmount,
-            parentNodeProductId,
-            (processId, nodeId) =>
-              dispatch({ type: 'SELECT_PROCESS', payload: { nodeId, processId } }),
-            (focalNodeId) =>
-              dispatch({ type: 'SAVE_PRODUCTION_CHAIN', payload: { focalNodeId } })
-          );
-
-          if (!result) {
-            throw new Error('Failed to build process node');
-          }
-
+        if (isRoot) {
           dispatch({
-            type: 'PROCESS_SELECTED',
+            type: 'BATCH_UPDATE',
             payload: {
-              processNode: result.processNode,
-              productNodes: result.productNodes,
-              logicalParentId,
-              edges: state.edges
+              nodes: [enhancedNode],
+              rootNodeId: enhancedNode.id,
+              nodesReady: true
             }
           });
+        } else {
+          dispatch({
+            type: 'BATCH_UPDATE',
+            payload: {
+              nodes: [...state.nodes, enhancedNode]
+            }
+          });
+        }
 
-          dispatch({ type: 'NODE_CREATION_COMPLETED' });
+        dispatch({ type: 'NODE_CREATION_COMPLETED' });
+      } catch (error) {
+        console.error('Error in product node creation:', error);
+        dispatch({
+          type: 'NODE_CREATION_FAILED',
+          payload: { error: String(error) }
+        });
+      }
+    };
 
-          if (result) {
-            dispatch({
-              type: 'PROCESS_SELECTED',
-              payload: {
-                processNode: result.processNode,
-                productNodes: result.productNodes,
-                logicalParentId,
-                edges: state.edges
-              }
-            });
+    handleProductNodeCreation();
+  }, [
+    state.pendingNodeCreation?.type,
+    state.pendingNodeCreation?.productId,
+    state.pendingNodeCreation?.amount,
+    state.pendingNodeCreation?.isRoot,
+    createProductNode,
+    state.nodes
+  ]);
+
+  // Handle building of process nodes
+  useEffect(() => {
+    if (!state.pendingNodeCreation || state.pendingNodeCreation.type !== 'process') return;
+
+    const { processId, logicalParentId, includeSideProducts = false } = state.pendingNodeCreation;
+
+    const handleProcessNodeCreation = async () => {
+      try {
+        if (!processId) {
+          throw new Error('Process ID is undefined');
+        }
+
+        if (!logicalParentId) {
+          throw new Error('Parent Node ID is undefined');
+        }
+
+        // Find parent node
+        const parentNode = state.nodes.find(node => node.id === logicalParentId);
+        if (!parentNode) {
+          throw new Error(`Parent node with ID ${logicalParentId} not found`);
+        }
+
+        const result = await createProcessNode(processId, logicalParentId, 0, '0');
+
+        if (!result) {
+          throw new Error('Failed to build process node');
+        }
+
+        dispatch({
+          type: 'PROCESS_SELECTED',
+          payload: {
+            processNode: result.processNode,
+            productNodes: result.productNodes,
+            logicalParentId,
+            edges: state.edges
+          }
+        });
 
         dispatch({ type: 'NODE_CREATION_COMPLETED' });
       } catch (error) {
@@ -578,11 +567,11 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [
     state.pendingNodeCreation?.type,
     state.pendingNodeCreation?.processId,
-    state.pendingNodeCreation?.parentNodeId,
+    state.pendingNodeCreation?.logicalParentId,
+    state.pendingNodeCreation?.includeSideProducts,
     createProcessNode,
     state.nodes,
-    state.edges,
-    getOutflowIds
+    state.edges
   ]);
 
   // Handle pending save operation
@@ -609,7 +598,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       saveNode();
     }
-  }, [state.pendingSaveNodeId, state.saveStatus, memoryDb]); // Reduced dependencies
+  }, [state.pendingSaveNodeId, state.saveStatus, memoryDb]);
 
   // Handle load operations
   useEffect(() => {

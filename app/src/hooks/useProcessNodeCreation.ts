@@ -16,24 +16,24 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
 
   return useCallback(async (
     processId: string,
-    parentNodeId: string,
-    parentNodeAmount: number,
-    parentNodeProductId: string
+    logicalParentId: string,
+    logicalParentIdAmount: number,
+    logicalParentIdProductId: string
   ): Promise<ProcessNodeCreationResult | null> => {
     try {
       if (!processId) {
         throw new Error('Process ID is undefined');
       }
-      if (!parentNodeId) {
+      if (!logicalParentId) {
         throw new Error('Parent Node ID is undefined');
       }
 
       // Use the existing buildProcessNode utility
       const result = await buildProcessNode(
         processId,
-        parentNodeId,
-        parentNodeAmount,
-        parentNodeProductId,
+        logicalParentId,
+        logicalParentIdAmount,
+        logicalParentIdProductId,
         // Callback for process selection
         (processId: string, nodeId: string) => {
           dispatch({ 
@@ -85,8 +85,8 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
 
       // Create edge between parent product node and process node
       newEdges.push({
-        id: `edge-${parentNodeId}-${result.processNode.id}`,
-        source: parentNodeId,
+        id: `edge-${logicalParentId}-${result.processNode.id}`,
+        source: logicalParentId,
         target: result.processNode.id,
         type: 'custom',
       });

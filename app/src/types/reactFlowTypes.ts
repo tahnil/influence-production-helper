@@ -14,8 +14,6 @@ export interface ProductNodeData extends Record<string, unknown> {
     selectedProcessId: string | null;
     handleSelectProcess: (processId: string, nodeId: string) => void;
     handleSerialize: (focalProductId: string) => void;
-    inflowIds?: string[];
-    outflowIds?: string[];
     isRoot?: boolean;
 }
 
@@ -28,9 +26,11 @@ export interface ProcessNodeData extends Record<string, unknown> {
     inputProducts: ProcessInput[];
     inflowIds?: string[];
     outflowIds?: string[];
+    [key: string]: any;
 }
 
 export interface SideProductNodeData extends Record<string, unknown> {
+    logicalParentId: string | undefined;
     amount: number;
     totalWeight: number;
     totalVolume: number;

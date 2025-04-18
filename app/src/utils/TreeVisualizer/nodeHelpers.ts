@@ -50,7 +50,7 @@ export const getDirectParentNodes = (
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return [];
 
-    return nodes.filter(n => node.data.outflowIds?.includes(n.id));
+    return nodes.filter(n => Array.isArray(node.data.outflowIds) && node.data.outflowIds.includes(n.id));
 };
 
 // Get direct child nodes (inflows)
@@ -61,7 +61,7 @@ export const getDirectChildNodes = (
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return [];
 
-    return nodes.filter(n => node.data.inflowIds?.includes(n.id));
+    return nodes.filter(n => Array.isArray(node.data.inflowIds) && node.data.inflowIds.includes(n.id));
 };
 
 // Add a node id to outflows
@@ -72,7 +72,7 @@ export const addOutflow = (
     if (!node.data.outflowIds) {
         node.data.outflowIds = [];
     }
-    if (!node.data.outflowIds.includes(outflowId)) {
+    if (Array.isArray(node.data.outflowIds) && !node.data.outflowIds.includes(outflowId)) {
         node.data.outflowIds.push(outflowId);
     }
     return { ...node };
@@ -84,7 +84,9 @@ export const removeOutflow = (
     outflowId: string
 ): InfluenceNode => {
     if (node.data.outflowIds) {
-        node.data.outflowIds = node.data.outflowIds.filter(id => id !== outflowId);
+        node.data.outflowIds = Array.isArray(node.data.outflowIds) 
+            ? node.data.outflowIds.filter(id => id !== outflowId) 
+            : [];
     }
     return { ...node };
 };
@@ -97,7 +99,7 @@ export const addInflow = (
     if (!node.data.inflowIds) {
         node.data.inflowIds = [];
     }
-    if (!node.data.inflowIds.includes(inflowId)) {
+    if (Array.isArray(node.data.inflowIds) && !node.data.inflowIds.includes(inflowId)) {
         node.data.inflowIds.push(inflowId);
     }
     return { ...node };
@@ -109,7 +111,9 @@ export const removeInflow = (
     inflowId: string
 ): InfluenceNode => {
     if (node.data.inflowIds) {
-        node.data.inflowIds = node.data.inflowIds.filter(id => id !== inflowId);
+        node.data.inflowIds = Array.isArray(node.data.inflowIds) 
+            ? node.data.inflowIds.filter(id => id !== inflowId) 
+            : [];
     }
     return { ...node };
 };
@@ -132,7 +136,9 @@ export const traverseNodes = (
 
         result.push(node);
 
-        const idsToTraverse = direction === 'inflows' ? node.data.inflowIds : node.data.outflowIds;
+        const idsToTraverse: string[] = direction === 'inflows' 
+            ? (Array.isArray(node.data.inflowIds) ? node.data.inflowIds : []) 
+            : (Array.isArray(node.data.outflowIds) ? node.data.outflowIds : []);
         if (idsToTraverse) {
             idsToTraverse.forEach(id => traverse(id));
         }
