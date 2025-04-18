@@ -4,6 +4,7 @@ import React, { createContext, ReactNode, useContext, useEffect, useState } from
 import PouchDB from 'pouchdb';
 import memoryAdapter from 'pouchdb-adapter-memory';
 import PouchDBFind from 'pouchdb-find';
+import { PouchDBNodeDocument } from '@/types/pouchSchemes';
 
 // Register the memory adapter
 PouchDB.plugin(memoryAdapter);
@@ -26,6 +27,42 @@ const PouchDBContext = createContext<PouchDBContextType>({
     localDb: null,
     syncStatus: 'pending'
 });
+
+async function migrateDocuments(db: PouchDB.Database) {
+    try {
+        console.log("Starting document migration...");
+        // Get all documents
+        const result = await db.allDocs({ include_docs: true });
+
+        // Process each document
+        const updates = result.rows
+            .filter(row => row.doc && (row.doc as PouchDBNodeDocument).data.logicalParentId)
+            .map(row => {
+                const doc = row.doc as PouchDBNodeDocument;
+
+                // Add logicalParentId to data if it doesn't already exist
+                if (doc.data.logicalParentId && !doc.data.logicalParentId) {
+                    doc.data = {
+                        ...doc.data,
+                        logicalParentId: doc.data.logicalParentId
+                    };
+                }
+
+                // Return the updated document
+                return doc;
+            });
+
+        // Bulk update if there are documents to update
+        if (updates.length > 0) {
+            await db.bulkDocs(updates);
+            console.log(`Migrated ${updates.length} documents`);
+        } else {
+            console.log("No documents needed migration");
+        }
+    } catch (error) {
+        console.error('Migration failed:', error);
+    }
+}
 
 export const usePouchDB = () => useContext(PouchDBContext);
 
@@ -64,6 +101,9 @@ export const PouchDBProvider: React.FC<PouchDBProviderProps> = ({ children }) =>
                     console.log("Local DB is empty, no replication needed.");
                     return Promise.resolve();
                 }
+            })
+            .then(() => {
+                return migrateDocuments(localDBInstance).then(() => migrateDocuments(memoryDBInstance));
             })
             .then(() => {
                 console.log("Setting up bi-directional sync...");

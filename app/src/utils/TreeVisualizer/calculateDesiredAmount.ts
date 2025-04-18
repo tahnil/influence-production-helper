@@ -59,7 +59,7 @@ export default function calculateDesiredAmount(nodes: Node[], desiredAmount: num
 
         // Process child nodes
         nodes.forEach(childNode => {
-            if (childNode.parentId === nodeId) {
+            if (childNode.data.logicalParentId === nodeId) {
                 updateNodeRecursively(childNode.id, node);
             }
         });

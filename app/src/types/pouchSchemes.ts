@@ -4,7 +4,10 @@ export interface PouchDBNodeDocument {
     _rev: string;
     id: string;
     type: string;
-    data: any;
+    data: {
+        logicalParentId?: string; // New field for logical parent relationship
+        [key: string]: any;
+    };
     position?: { x: number; y: number }; // Optional position
     parentId?: string;
 }

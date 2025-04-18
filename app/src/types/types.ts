@@ -85,11 +85,11 @@ export interface Input {
 
 // used by
 // components/ProcessConfigurator.tsx
-export interface ProcessConfiguratorProps {
-  product: Product;
-  amount: number;
-  selectedProcesses: { [key: string]: string };
-  onProcessSelect: (uniqueId: string, processId: string) => void;
-  level?: number;
-  parentId?: string | null;
-}
+// export interface ProcessConfiguratorProps {
+//   product: Product;
+//   amount: number;
+//   selectedProcesses: { [key: string]: string };
+//   onProcessSelect: (uniqueId: string, processId: string) => void;
+//   level?: number;
+//   parentId?: string | null;
+// }

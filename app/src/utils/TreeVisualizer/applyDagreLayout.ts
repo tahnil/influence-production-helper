@@ -44,11 +44,11 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         let relativeX = nodeWithPosition.x - width / 2;
         let relativeY = nodeWithPosition.y - height / 2;
 
-        if (node.parentId) {
-            const parentNode = dagreGraph.node(node.parentId);
+        if (node.data.logicalParentId) {
+            const parentNode = dagreGraph.node(node.data.logicalParentId);
             if (parentNode) {
-                const parentWidth = nodes.find(n => n.id === node.parentId)?.measured?.width || nodeFallbackWidth;
-                const parentHeight = nodes.find(n => n.id === node.parentId)?.measured?.height || nodeFallbackHeight;
+                const parentWidth = nodes.find(n => n.id === node.data.logicalParentId)?.measured?.width || nodeFallbackWidth;
+                const parentHeight = nodes.find(n => n.id === node.data.logicalParentId)?.measured?.height || nodeFallbackHeight;
                 
                 relativeX = nodeWithPosition.x - parentNode.x + (parentWidth - width) / 2;
                 relativeY = nodeWithPosition.y - parentNode.y + (parentHeight - height) / 2;

@@ -28,8 +28,8 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
     return nodes.map(node => {
       const newNode = { ...node, id: idMap.get(node.id) || node.id };
       
-      if (newNode.parentId && idMap.has(newNode.parentId)) {
-        newNode.parentId = idMap.get(newNode.parentId);
+      if (newNode.data.logicalParentId && idMap.has(newNode.data.logicalParentId)) {
+        newNode.data.logicalParentId = idMap.get(newNode.data.logicalParentId);
       }
   
       if (newNode.data.inflowIds) {
@@ -61,13 +61,13 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
         const currentNodes = nodesRef.current as InfluenceNode[];
         console.log('Current nodes:', currentNodes.map(n => ({ id: n.id, type: n.type, productId: (n.data as ProductNodeData).productDetails?.id })));
 
-        // Find the current node and store its parentId
+        // Find the current node and store its logicalParentId
         const currentNode = findNodeById(currentNodes, currentNodeId) as InfluenceNode;
         if (!currentNode) {
             throw new Error(`Current node not found. ID: ${currentNodeId}`);
         }
-        const parentId = currentNode.parentId;
-        console.log(`Current node: ${currentNodeId}, Parent node: ${parentId}`);
+        const logicalParentId = currentNode.data.logicalParentId;
+        console.log(`Current node: ${currentNodeId}, Parent node: ${logicalParentId}`);
 
         // Fetch the selected configuration from PouchDB
         const config = await db.get(configId);
@@ -108,21 +108,21 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
         }
         console.log(`Root saved node: ${rootSavedNode.id}, productId: ${(rootSavedNode.data as ProductNodeData).productDetails?.id}`);
 
-        // Set the parentId for the root saved node
-        rootSavedNode.parentId = parentId;
-        console.log(`Set parentId of root saved node to: ${parentId}`);
+        // Set the logicalParentId for the root saved node
+        rootSavedNode.data.logicalParentId = logicalParentId;
+        console.log(`Set logicalParentId of root saved node to: ${logicalParentId}`);
 
         // Set the outflowIds for the root saved node
-        if (parentId) {
-            rootSavedNode.data.outflowIds = [parentId];
-            console.log(`Set outflowIds of root saved node to: [${parentId}]`);
+        if (logicalParentId) {
+            rootSavedNode.data.outflowIds = [logicalParentId];
+            console.log(`Set outflowIds of root saved node to: [${logicalParentId}]`);
         }
 
         // Update the parent node's inflowIds
-        if (parentId) {
-            const parentNode = findNodeById(updatedNodes, parentId) as InfluenceNode;
+        if (logicalParentId) {
+            const parentNode = findNodeById(updatedNodes, logicalParentId) as InfluenceNode;
             if (parentNode) {
-                console.log(`Before update - Parent node ${parentId} inflowIds:`, parentNode.data.inflowIds);
+                console.log(`Before update - Parent node ${logicalParentId} inflowIds:`, parentNode.data.inflowIds);
                 parentNode.data.inflowIds = parentNode.data.inflowIds || [];
                 const index = parentNode.data.inflowIds.indexOf(currentNodeId);
                 if (index !== -1) {
@@ -130,7 +130,7 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
                 } else {
                     parentNode.data.inflowIds.push(rootSavedNode.id);
                 }
-                console.log(`After update - Parent node ${parentId} inflowIds:`, parentNode.data.inflowIds);
+                console.log(`After update - Parent node ${logicalParentId} inflowIds:`, parentNode.data.inflowIds);
                 updatedNodes = updateInfluenceNode(updatedNodes, parentNode);
             }
         }
@@ -157,7 +157,7 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
         const sortedNodes = sortNodesByHierarchy([...updatedNodes, ...newNodes]);
 
         // Find the root node of the entire tree
-        const treeRootNode = updatedNodes.find(node => !node.parentId) as InfluenceNode;
+        const treeRootNode = updatedNodes.find(node => !node.data.logicalParentId) as InfluenceNode;
         if (!treeRootNode) {
             throw new Error('Tree root node not found');
         }
@@ -186,7 +186,7 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
             id: n.id, 
             type: n.type, 
             productId: (n.data as ProductNodeData).productDetails?.id,
-            parentId: n.parentId,
+            logicalParentId: n.data.logicalParentId,
             inflowIds: n.data.inflowIds,
             outflowIds: n.data.outflowIds
         })));

@@ -22,7 +22,7 @@ function useIngredientsList(nodes: Node[], mode: IngredientsListMode = 'rawMater
         // Function to check if a node is a leaf node (product with no inflows)
         const isLeafNode = (node: Node): boolean => {
             if (node.type === 'productNode') {
-                const childNodes = nodes.filter(n => n.parentId === node.id);
+                const childNodes = nodes.filter(n => n.data.logicalParentId === node.id);
                 if (childNodes.length === 0) {
                     return true;
                 }

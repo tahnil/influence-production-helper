@@ -4,6 +4,7 @@ import { Node as ReactFlowNode } from '@xyflow/react';
 import { InfluenceProduct, InfluenceProcess, ProcessInput, ProcessOutput } from '@/types/influenceTypes';
 
 export interface ProductNodeData extends Record<string, unknown> {
+    logicalParentId: string | undefined;
     amount: number;
     totalWeight: number;
     totalVolume: number;
@@ -19,6 +20,7 @@ export interface ProductNodeData extends Record<string, unknown> {
 }
 
 export interface ProcessNodeData extends Record<string, unknown> {
+    logicalParentId: string | null;
     totalDuration: number;
     totalRuns: number;
     image: string;

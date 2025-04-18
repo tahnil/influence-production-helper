@@ -24,7 +24,7 @@ interface NodeCreationRequest {
   type: 'product' | 'process';
   productId?: string;
   processId?: string;
-  parentNodeId?: string;
+  logicalParentId?: string;
   amount?: number;
   isRoot?: boolean;
 }
@@ -75,7 +75,7 @@ export type FlowAction =
     type: 'PROCESS_SELECTED'; payload: {
       processNode: Node,
       productNodes: Node[],
-      parentNodeId: string,
+      logicalParentId: string,
       edges: Edge[]
     }
   }
@@ -111,7 +111,7 @@ export type FlowAction =
     }>
   }
   | { type: 'REQUEST_PRODUCT_NODE_CREATION'; payload: { productId: string, amount: number, isRoot?: boolean } }
-  | { type: 'REQUEST_PROCESS_NODE_CREATION'; payload: { processId: string, parentNodeId: string } }
+  | { type: 'REQUEST_PROCESS_NODE_CREATION'; payload: { processId: string, logicalParentId: string } }
   | { type: 'NODE_CREATION_COMPLETED' }
   | { type: 'NODE_CREATION_FAILED'; payload: { error: string } }
   ;
@@ -224,11 +224,11 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
     case 'BATCH_UPDATE':
       return { ...state, ...action.payload };
     case 'PROCESS_SELECTED': {
-      const { processNode, productNodes, parentNodeId, edges } = action.payload;
+      const { processNode, productNodes, logicalParentId, edges } = action.payload;
 
-      // Find the existing ProcessNode with the same parentId
+      // Find the existing ProcessNode with the same data.logicalParentId
       const existingProcessNode = state.nodes.find(
-        (node) => node.parentId === parentNodeId && node.type === 'processNode'
+        (node) => node.data.logicalParentId === logicalParentId && node.type === 'processNode'
       );
 
       let updatedNodes = [...state.nodes];
@@ -264,15 +264,15 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
 
       // Add edge between parent ProductNode and ProcessNode
       updatedEdges.push({
-        id: `edge-${parentNodeId}-${processNode.id}`,
-        source: parentNodeId,
+        id: `edge-${logicalParentId}-${processNode.id}`,
+        source: logicalParentId,
         target: processNode.id,
         type: 'custom',
       });
 
       // Update inflowIds in parent ProductNode
       const parentProductNode = updatedNodes.find(
-        (node) => node.id === parentNodeId && node.type === 'productNode'
+        (node) => node.id === logicalParentId && node.type === 'productNode'
       );
 
       if (parentProductNode) {
@@ -520,12 +520,12 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         else if (state.pendingNodeCreation && state.pendingNodeCreation.type === 'process') {
-          const { processId, parentNodeId } = state.pendingNodeCreation;
+          const { processId, logicalParentId } = state.pendingNodeCreation;
 
           // Find parent node
-          const parentNode = state.nodes.find(node => node.id === parentNodeId);
+          const parentNode = state.nodes.find(node => node.id === logicalParentId);
           if (!parentNode) {
-            throw new Error(`Parent node with ID ${parentNodeId} not found`);
+            throw new Error(`Parent node with ID ${logicalParentId} not found`);
           }
 
           const parentNodeAmount = Number(parentNode.data.amount) || 1;
@@ -536,13 +536,13 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
             throw new Error('Process ID is undefined');
           }
 
-          if (!parentNodeId) {
+          if (!logicalParentId) {
             throw new Error('Parent Node ID is undefined');
           }
 
           const result = await buildProcessNode(
             processId,
-            parentNodeId,
+            logicalParentId,
             parentNodeAmount,
             parentNodeProductId,
             (processId, nodeId) =>
@@ -560,7 +560,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
             payload: {
               processNode: result.processNode,
               productNodes: result.productNodes,
-              parentNodeId,
+              logicalParentId,
               edges: state.edges
             }
           });
@@ -573,7 +573,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
               payload: {
                 processNode: result.processNode,
                 productNodes: result.productNodes,
-                parentNodeId,
+                logicalParentId,
                 edges: state.edges
               }
             });

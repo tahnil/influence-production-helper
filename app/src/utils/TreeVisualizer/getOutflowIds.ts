@@ -10,7 +10,7 @@ import { Node } from '@xyflow/react';
 // Utility function to get all outflow ids of a given node id
 export const getOutflowIds = (nodeId: string, nodes: Node[]): string[] => {
     // Find all direct children (ProductNodes)
-    const directChildren = nodes.filter((node) => node.parentId === nodeId);
+    const directChildren = nodes.filter((node) => node.data.logicalParentId === nodeId);
 
     // Recursively find all outflows for each direct child
     const allOutflows = directChildren.reduce<string[]>((acc, child) => {

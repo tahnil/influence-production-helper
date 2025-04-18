@@ -167,8 +167,8 @@ export const sortNodesByHierarchy = (nodes: InfluenceNode[]): InfluenceNode[] =>
         const node = nodeMap.get(nodeId);
         if (!node) return;
 
-        if (node.parentId && !visited.has(node.parentId)) {
-            visit(node.parentId);
+        if (node.data.logicalParentId && !visited.has(node.data.logicalParentId)) {
+            visit(node.data.logicalParentId);
         }
 
         sorted.push(node);
