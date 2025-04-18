@@ -36,26 +36,48 @@ async function migrateDocuments(db: PouchDB.Database) {
 
         // Process each document
         const updates = result.rows
-            .filter(row => row.doc && (row.doc as PouchDBNodeDocument).data.logicalParentId)
+            .filter(row => row.doc &&
+                (row.doc as any).parentId && // Has old parentId
+                !(row.doc as PouchDBNodeDocument).data.logicalParentId) // Doesn't have new logicalParentId
             .map(row => {
                 const doc = row.doc as PouchDBNodeDocument;
 
-                // Add logicalParentId to data if it doesn't already exist
-                if (doc.data.logicalParentId && !doc.data.logicalParentId) {
-                    doc.data = {
-                        ...doc.data,
-                        logicalParentId: doc.data.logicalParentId
-                    };
+                // Transfer parentId to logicalParentId
+                doc.data = {
+                    ...doc.data,
+                    logicalParentId: (doc as any).parentId
+                };
+
+                // Optionally clear the original parentId to avoid confusion
+                // This depends on your strategy - you might want to keep it for backward compatibility
+                if ((doc as any).parentId) {
+                    (doc as any).parentId = undefined;
                 }
 
                 // Return the updated document
                 return doc;
             });
 
+        // Also find nodes that have inflowIds/outflowIds that need to be preserved
+        const flowUpdates = result.rows
+            .filter(row => row.doc &&
+                (row.doc as any).data &&
+                ((row.doc as any).data.inflowIds || (row.doc as any).data.outflowIds))
+            .map(row => {
+                const doc = row.doc as PouchDBNodeDocument;
+                // Make sure flow relationships are preserved
+                return doc;
+            });
+
+        // Combine all updates
+        const allUpdates = [...updates, ...flowUpdates.filter(doc =>
+            !updates.some(update => update._id === doc._id))];
+
         // Bulk update if there are documents to update
-        if (updates.length > 0) {
-            await db.bulkDocs(updates);
-            console.log(`Migrated ${updates.length} documents`);
+        if (allUpdates.length > 0) {
+            await db.bulkDocs(allUpdates);
+            console.log(`Migrated ${updates.length} documents with parentId conversion`);
+            console.log(`Preserved ${flowUpdates.length} documents with flow relationships`);
         } else {
             console.log("No documents needed migration");
         }
