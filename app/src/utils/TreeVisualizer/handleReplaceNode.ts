@@ -1,10 +1,10 @@
 // utils/TreeVisualizer/handleReplaceNode.ts
 
 import React from 'react';
-import { 
-    findNodeById, 
-    getAllInflows, 
-    sortNodesByHierarchy,  
+import {
+    findNodeById,
+    getAllInflows,
+    sortNodesByHierarchy,
     updateInfluenceNode
 } from '@/utils/TreeVisualizer/nodeHelpers';
 import { generateUniqueId } from '@/utils/generateUniqueId';
@@ -17,38 +17,34 @@ import { FlowAction } from '@/contexts/FlowContext';
 
 const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] => {
     const idMap = new Map<string, string>();
-    
+
     // First pass: generate new IDs
     nodes.forEach(node => {
-      const newId = generateUniqueId();
-      idMap.set(node.id, newId);
+        const newId = generateUniqueId();
+        idMap.set(node.id, newId);
     });
-  
+
     // Second pass: update all references
     return nodes.map(node => {
-      const newNode = { ...node, id: idMap.get(node.id) || node.id };
-      
-      if (newNode.parentId && idMap.has(newNode.parentId)) {
-        newNode.parentId = idMap.get(newNode.parentId);
-      }
-  
-      if (newNode.data.inflowIds) {
-        newNode.data.inflowIds = newNode.data.inflowIds.map((id: string) => idMap.get(id) || id);
-      }
-  
-      if (newNode.data.outflowIds) {
-        newNode.data.outflowIds = newNode.data.outflowIds.map((id: string) => idMap.get(id) || id);
-      }
+        const newNode = { ...node, id: idMap.get(node.id) || node.id };
 
-      if (newNode.data.ancestorIds) {
-        newNode.data.ancestorIds = newNode.data.ancestorIds.map((id: string) => idMap.get(id) || id);
-      }
-  
-      return newNode;
+        if (newNode.data.logicalParentId && idMap.has(newNode.data.logicalParentId)) {
+            newNode.data.logicalParentId = idMap.get(newNode.data.logicalParentId);
+        }
+
+        if (newNode.data.inflowIds) {
+            newNode.data.inflowIds = newNode.data.inflowIds.map((id: string) => idMap.get(id) || id);
+        }
+
+        if (newNode.data.outflowIds) {
+            newNode.data.outflowIds = newNode.data.outflowIds.map((id: string) => idMap.get(id) || id);
+        }
+
+        return newNode;
     });
-  };
+};
 
-  export const handleReplaceNode = async (
+export const handleReplaceNode = async (
     currentNodeId: string,
     configId: string,
     db: PouchDB.Database,
@@ -65,13 +61,13 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
         const currentNodes = nodesRef.current as InfluenceNode[];
         console.log('Current nodes:', currentNodes.map(n => ({ id: n.id, type: n.type, productId: (n.data as ProductNodeData).productDetails?.id })));
 
-        // Find the current node and store its parentId
+        // Find the current node and store its logicalParentId
         const currentNode = findNodeById(currentNodes, currentNodeId) as InfluenceNode;
         if (!currentNode) {
             throw new Error(`Current node not found. ID: ${currentNodeId}`);
         }
-        const parentId = currentNode.parentId;
-        console.log(`Current node: ${currentNodeId}, Parent node: ${parentId}`);
+        const logicalParentId = currentNode.data.logicalParentId;
+        console.log(`Current node: ${currentNodeId}, Parent node: ${logicalParentId}`);
 
         // Fetch the selected configuration from PouchDB
         const config = await db.get(configId);
@@ -86,6 +82,12 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
         const savedNodes: PouchDBNodeDocument[] = JSON.parse(await attachment.text());
         console.log('Parsed saved nodes:', savedNodes);
 
+        // Reset positions of saved nodes before processing them
+        const savedNodesWithResetPositions = savedNodes.map(node => ({
+            ...node,
+            position: { x: 0, y: 0 }
+        }));
+
         const inflowNodes = getAllInflows(currentNodes, currentNodeId);
         const nodesToRemove = [currentNodeId, ...inflowNodes.map(n => n.id)];
 
@@ -95,7 +97,7 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
         let updatedNodes: InfluenceNode[] = currentNodes.filter(node => !nodesToRemove.includes(node.id));
         let updatedEdges = edges.filter(edge => !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target));
 
-        const regeneratedNodes = regenerateNodeIds(savedNodes);
+        const regeneratedNodes = regenerateNodeIds(savedNodesWithResetPositions);
         console.log('Regenerated nodes:', regeneratedNodes);
 
         // Convert saved nodes to React Flow nodes
@@ -112,21 +114,21 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
         }
         console.log(`Root saved node: ${rootSavedNode.id}, productId: ${(rootSavedNode.data as ProductNodeData).productDetails?.id}`);
 
-        // Set the parentId for the root saved node
-        rootSavedNode.parentId = parentId;
-        console.log(`Set parentId of root saved node to: ${parentId}`);
+        // Set the logicalParentId for the root saved node
+        rootSavedNode.data.logicalParentId = logicalParentId;
+        console.log(`Set logicalParentId of root saved node to: ${logicalParentId}`);
 
         // Set the outflowIds for the root saved node
-        if (parentId) {
-            rootSavedNode.data.outflowIds = [parentId];
-            console.log(`Set outflowIds of root saved node to: [${parentId}]`);
+        if (logicalParentId) {
+            rootSavedNode.data.outflowIds = [logicalParentId];
+            console.log(`Set outflowIds of root saved node to: [${logicalParentId}]`);
         }
 
         // Update the parent node's inflowIds
-        if (parentId) {
-            const parentNode = findNodeById(updatedNodes, parentId) as InfluenceNode;
+        if (logicalParentId) {
+            const parentNode = logicalParentId ? findNodeById(updatedNodes, logicalParentId as string) as InfluenceNode : null;
             if (parentNode) {
-                console.log(`Before update - Parent node ${parentId} inflowIds:`, parentNode.data.inflowIds);
+                console.log(`Before update - Parent node ${logicalParentId} inflowIds:`, parentNode.data.inflowIds);
                 parentNode.data.inflowIds = parentNode.data.inflowIds || [];
                 const inflowIds = parentNode.data.inflowIds as string[]; // Explicitly cast to string[]
                 const index = inflowIds.indexOf(currentNodeId);
@@ -135,7 +137,7 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
                 } else {
                     (parentNode.data.inflowIds as string[]).push(rootSavedNode.id);
                 }
-                console.log(`After update - Parent node ${parentId} inflowIds:`, parentNode.data.inflowIds);
+                console.log(`After update - Parent node ${logicalParentId} inflowIds:`, parentNode.data.inflowIds);
                 updatedNodes = updateInfluenceNode(updatedNodes, parentNode);
             }
         }
@@ -162,7 +164,7 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
         const sortedNodes = sortNodesByHierarchy([...updatedNodes, ...newNodes]);
 
         // Find the root node of the entire tree
-        const treeRootNode = updatedNodes.find(node => !node.parentId) as InfluenceNode;
+        const treeRootNode = updatedNodes.find(node => !node.data.logicalParentId) as InfluenceNode;
         if (!treeRootNode) {
             throw new Error('Tree root node not found');
         }
@@ -183,15 +185,17 @@ const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] 
             payload: {
                 nodes: recalculatedNodes,
                 edges: updatedEdges,
-                rootNodeId: treeRootNode.id
+                rootNodeId: treeRootNode.id,
+                needsLayout: true,
+                layoutTrigger: 'FORCE'
             }
         });
 
-        console.log('Final updated nodes:', recalculatedNodes.map(n => ({ 
-            id: n.id, 
-            type: n.type, 
+        console.log('Final updated nodes:', recalculatedNodes.map(n => ({
+            id: n.id,
+            type: n.type,
             productId: (n.data as ProductNodeData).productDetails?.id,
-            parentId: n.parentId,
+            logicalParentId: n.data.logicalParentId,
             inflowIds: n.data.inflowIds,
             outflowIds: n.data.outflowIds
         })));

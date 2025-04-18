@@ -82,14 +82,14 @@ const TreeRenderer: React.FC = () => {
     useEffect(() => {
         const lastProcessedSelection = processSelections[processSelections.length - 1];
         if (lastProcessedSelection) {
-          const { nodeId: parentNodeId, processId } = lastProcessedSelection;
+          const { nodeId: logicalParentId, processId } = lastProcessedSelection;
           
-          if (processId && parentNodeId) {
+          if (processId && logicalParentId) {
             dispatch({
               type: 'REQUEST_PROCESS_NODE_CREATION',
               payload: {
                 processId,
-                parentNodeId,
+                logicalParentId,
                 includeSideProducts: true,
               }
             });

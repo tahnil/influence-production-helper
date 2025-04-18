@@ -24,7 +24,7 @@ interface NodeCreationRequest {
   type: 'product' | 'process';
   productId?: string;
   processId?: string;
-  parentNodeId?: string;
+  logicalParentId?: string;
   amount?: number;
   isRoot?: boolean;
 }
@@ -71,6 +71,14 @@ interface FlowState {
 export type FlowAction =
   | { type: 'SET_DESIRED_AMOUNT'; payload: number }
   | { type: 'BATCH_UPDATE'; payload: Partial<FlowState> }
+  | {
+    type: 'PROCESS_SELECTED'; payload: {
+      processNode: Node,
+      productNodes: Node[],
+      logicalParentId: string,
+      edges: Edge[]
+    }
+  }
   // dedicated action types for React Flow operations
   | { type: 'APPLY_NODE_CHANGES'; payload: NodeChange[] }
   | { type: 'APPLY_EDGE_CHANGES'; payload: EdgeChange[] }
@@ -103,7 +111,7 @@ export type FlowAction =
     }>
   }
   | { type: 'REQUEST_PRODUCT_NODE_CREATION'; payload: { productId: string, amount: number, isRoot?: boolean } }
-  | { type: 'REQUEST_PROCESS_NODE_CREATION'; payload: { processId: string, parentNodeId: string, includeSideProducts: boolean } }
+  | { type: 'REQUEST_PROCESS_NODE_CREATION'; payload: { processId: string, logicalParentId: string, includeSideProducts: boolean } }
   | { type: 'CLEAR_PENDING_NODE_CREATION' }
   | { type: 'NODE_CREATION_COMPLETED' }
   | { type: 'NODE_CREATION_FAILED'; payload: { error: string } }
@@ -217,6 +225,70 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       };
     case 'BATCH_UPDATE':
       return { ...state, ...action.payload };
+    case 'PROCESS_SELECTED': {
+      const { processNode, productNodes, logicalParentId, edges } = action.payload;
+
+      // Find the existing ProcessNode with the same data.logicalParentId
+      const existingProcessNode = state.nodes.find(
+        (node) => node.data.logicalParentId === logicalParentId && node.type === 'processNode'
+      );
+
+      let updatedNodes = [...state.nodes];
+      let updatedEdges = [...edges];
+
+      if (existingProcessNode) {
+        // Get all outflow IDs
+        const outflowIds = getOutflowIds(existingProcessNode.id, updatedNodes);
+
+        // Remove existing ProcessNode and its outflows
+        updatedNodes = updatedNodes.filter(
+          (node) => ![existingProcessNode.id, ...outflowIds].includes(node.id)
+        );
+
+        // Remove connected edges
+        updatedEdges = updatedEdges.filter(
+          (edge) => ![existingProcessNode.id, ...outflowIds].includes(edge.source)
+        );
+      }
+
+      // Add the new ProcessNode and its child ProductNodes
+      updatedNodes = [...updatedNodes, processNode, ...productNodes];
+
+      // Create edges between the ProcessNode and each ProductNode
+      const newEdges = productNodes.map((productNode) => ({
+        id: `edge-${processNode.id}-${productNode.id}`,
+        source: processNode.id,
+        target: productNode.id,
+        type: 'custom',
+      }));
+
+      updatedEdges = [...updatedEdges, ...newEdges];
+
+      // Add edge between parent ProductNode and ProcessNode
+      updatedEdges.push({
+        id: `edge-${logicalParentId}-${processNode.id}`,
+        source: logicalParentId,
+        target: processNode.id,
+        type: 'custom',
+      });
+
+      // Update inflowIds in parent ProductNode
+      const parentProductNode = updatedNodes.find(
+        (node) => node.id === logicalParentId && node.type === 'productNode'
+      );
+
+      if (parentProductNode) {
+        parentProductNode.data.inflowIds = [processNode.id];
+      }
+
+      return {
+        ...state,
+        nodes: updatedNodes,
+        edges: updatedEdges,
+        needsLayout: true,
+        layoutTrigger: 'STRUCTURE_CHANGE',
+      };
+    };
     case 'SELECT_PRODUCT':
       return { ...state, selectedProductId: action.payload };
     case 'SELECT_PROCESS':
@@ -430,96 +502,67 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
-      dispatch({ type: 'NODE_CREATION_COMPLETED' });
-    };
-
-    handleProductNodeCreation();
-  }, [
-    state.pendingNodeCreation?.type,
-    state.pendingNodeCreation?.productId,
-    state.pendingNodeCreation?.amount,
-    state.pendingNodeCreation?.isRoot,
-    createProductNode,
-    state.nodes
-  ]);
-
-  // Handle building of process nodes
-  useEffect(() => {
-    if (!state.pendingNodeCreation || state.pendingNodeCreation.type !== 'process') return;
-
-    const { processId, parentNodeId } = state.pendingNodeCreation;
-
-    const handleProcessNodeCreation = async () => {
-      try {
-        // Find parent node
-        const parentNode = state.nodes.find(node => node.id === parentNodeId);
-        if (!parentNode) {
-          throw new Error(`Parent node with ID ${parentNodeId} not found`);
+            dispatch({ type: 'NODE_CREATION_COMPLETED' });
+          }
         }
+        else if (state.pendingNodeCreation && state.pendingNodeCreation.type === 'process') {
+          const { processId, logicalParentId } = state.pendingNodeCreation;
+
+          // Find parent node
+          const parentNode = state.nodes.find(node => node.id === logicalParentId);
+          if (!parentNode) {
+            throw new Error(`Parent node with ID ${logicalParentId} not found`);
+          }
 
         const parentNodeAmount = Number(parentNode.data.amount) || 1;
         const parentNodeProductId = (parentNode.data.productDetails as { id: string })?.id || '';
 
-        const result = await createProcessNode(
-          processId ?? (() => { throw new Error('Process ID is undefined'); })(),
-          parentNodeId ?? (() => { throw new Error('Parent Node ID is undefined'); })(),
-          parentNodeAmount,
-          parentNodeProductId
-        );
-
-        if (!result) return; // Creation failed or was cancelled
-
-        // Handle the existing process node removal and new node addition
-        const { processNode, productNodes, sideProductNodes, edges: newEdges } = result;
-
-        // Find the existing ProcessNode with the same parentId
-        const existingProcessNode = state.nodes.find(
-          (node) => node.parentId === parentNodeId && node.type === 'processNode'
-        );
-
-        let updatedNodes = [...state.nodes];
-        let updatedEdges = [...state.edges];
-
-        if (existingProcessNode) {
-          // Get all outflow IDs
-          const outflowIds = getOutflowIds(existingProcessNode.id, updatedNodes);
-
-          // Remove existing ProcessNode and its outflows
-          updatedNodes = updatedNodes.filter(
-            (node) => ![existingProcessNode.id, ...outflowIds].includes(node.id)
-          );
-
-          // Remove connected edges
-          updatedEdges = updatedEdges.filter(
-            (edge) => ![existingProcessNode.id, ...outflowIds].includes(edge.source) &&
-              ![existingProcessNode.id, ...outflowIds].includes(edge.target)
-          );
-        }
-
-        // Add the new ProcessNode and its child ProductNodes
-        updatedNodes = [...updatedNodes, processNode, ...(productNodes || []), ...(sideProductNodes || [])];
-
-        updatedEdges = [...updatedEdges, ...newEdges];
-
-        // Update inflowIds in parent ProductNode
-        const parentProductNode = updatedNodes.find(
-          (node) => node.id === parentNodeId && node.type === 'productNode'
-        );
-
-        if (parentProductNode) {
-          parentProductNode.data.inflowIds = [processNode.id];
-        }
-
-        // Update the state
-        dispatch({
-          type: 'BATCH_UPDATE',
-          payload: {
-            nodes: updatedNodes,
-            edges: updatedEdges,
-            needsLayout: true,
-            layoutTrigger: 'STRUCTURE_CHANGE'
+          // Use buildProcessNode from hook
+          if (!processId) {
+            throw new Error('Process ID is undefined');
           }
-        });
+
+          if (!logicalParentId) {
+            throw new Error('Parent Node ID is undefined');
+          }
+
+          const result = await buildProcessNode(
+            processId,
+            logicalParentId,
+            parentNodeAmount,
+            parentNodeProductId,
+            (processId, nodeId) =>
+              dispatch({ type: 'SELECT_PROCESS', payload: { nodeId, processId } }),
+            (focalNodeId) =>
+              dispatch({ type: 'SAVE_PRODUCTION_CHAIN', payload: { focalNodeId } })
+          );
+
+          if (!result) {
+            throw new Error('Failed to build process node');
+          }
+
+          dispatch({
+            type: 'PROCESS_SELECTED',
+            payload: {
+              processNode: result.processNode,
+              productNodes: result.productNodes,
+              logicalParentId,
+              edges: state.edges
+            }
+          });
+
+          dispatch({ type: 'NODE_CREATION_COMPLETED' });
+
+          if (result) {
+            dispatch({
+              type: 'PROCESS_SELECTED',
+              payload: {
+                processNode: result.processNode,
+                productNodes: result.productNodes,
+                logicalParentId,
+                edges: state.edges
+              }
+            });
 
         dispatch({ type: 'NODE_CREATION_COMPLETED' });
       } catch (error) {

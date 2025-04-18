@@ -176,7 +176,7 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
         }
 
         // Modify the root node
-        rootNode.parentId = undefined;
+        rootNode.data.logicalParentId = undefined;
         rootNode.data.outflowIds = [];
 
         // Reattach the function properties to each node
@@ -188,7 +188,7 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
               handleSelectProcess,
               handleSerialize,
             },
-            parentId: node.id === rootNode.id ? undefined : node.parentId,
+            logicalParentId: node.id === rootNode.id ? undefined : node.data.logicalParentId,
           };
 
           if (node.type === 'productNode') {

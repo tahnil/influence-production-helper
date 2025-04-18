@@ -16,7 +16,7 @@ const useProcessNodeBuilder = () => {
 
     const buildProcessNode = useCallback(async (
         selectedProcessId: string,
-        parentId: string,
+        logicalParentId: string,
         parentNodeAmount: number,
         parentNodeProductId: string,
         handleSelectProcess: (processId: string, nodeId: string) => void,
@@ -64,13 +64,13 @@ const useProcessNodeBuilder = () => {
                 if (productNode) {
                     const newProductNode = {
                         ...productNode,
-                        parentId: processNodeId,
                         data: {
                             ...productNode.data,
                             handleSelectProcess,
                             handleSerialize,
                             inflowIds: [], // Input products have no inflows initially
                             outflowIds: [processNodeId], // The process node is a outflow
+                            logicalParentId: processNodeId,
                         }
                     };
 
@@ -121,14 +121,14 @@ const useProcessNodeBuilder = () => {
                 id: processNodeId,
                 type: 'processNode',
                 position: { x: 0, y: 0 },
-                parentId: parentId,
                 data: {
                     processDetails,
                     inputProducts,
                     image: buildingIcon,
                     totalRuns,
                     inflowIds: productNodes.map(node => node.id), // Input products are inflows of the process
-                    outflowIds: [parentId, ...sideProductNodes.map(node => node.id)], // The parent product node is the outflow
+                    outflowIds: [logicalParentId, ...sideProductNodes.map(node => node.id)], // The parent product node is the outflow
+                    logicalParentId: logicalParentId,
                 },
             };
 

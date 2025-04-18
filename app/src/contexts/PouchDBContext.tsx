@@ -4,6 +4,7 @@ import React, { createContext, ReactNode, useContext, useEffect, useState } from
 import PouchDB from 'pouchdb';
 import memoryAdapter from 'pouchdb-adapter-memory';
 import PouchDBFind from 'pouchdb-find';
+import { PouchDBNodeDocument } from '@/types/pouchSchemes';
 
 // Register the memory adapter
 PouchDB.plugin(memoryAdapter);
@@ -27,6 +28,150 @@ const PouchDBContext = createContext<PouchDBContextType>({
     syncStatus: 'pending'
 });
 
+async function migrateDocuments(db: PouchDB.Database) {
+    try {
+        // Use a valid document ID without underscore prefix
+        const MIGRATION_DOC_ID = 'migration_status';
+
+        // First, check if migration has already been performed
+        try {
+            const migrationDoc = await db.get(MIGRATION_DOC_ID);
+            if (migrationDoc && (migrationDoc as any).version === '1.0' && (migrationDoc as any).completed) {
+                console.log("Migration already completed, skipping...");
+                return;
+            }
+        } catch (error) {
+            // Document doesn't exist, which means migration hasn't run yet - proceed with migration
+            console.log("No migration status found, proceeding with migration...");
+        }
+
+        console.log("Starting document migration...");
+        // Get all documents
+        const result = await db.allDocs({ include_docs: true });
+
+        // First, handle attachments which contain node positions
+        const docsWithAttachments = result.rows
+            .filter(row => row.doc &&
+                row.doc._id !== MIGRATION_DOC_ID && // Skip the migration doc itself
+                row.doc._attachments &&
+                row.doc._attachments.nodes);
+
+        console.log(`Found ${docsWithAttachments.length} documents with node attachments to migrate`);
+
+        // Process each attachment
+        for (const row of docsWithAttachments) {
+            try {
+                const doc = row.doc;
+                // Get the attachment
+                if (!doc) {
+                    console.warn(`Skipping row with undefined document: ${row.id}`);
+                    continue;
+                }
+                const attachment = await db.getAttachment(doc._id, 'nodes');
+
+                if (attachment instanceof Blob) {
+                    // Parse the attachment content
+                    const text = await attachment.text();
+                    const savedNodes = JSON.parse(text);
+
+                    // Reset positions and update logicalParentId
+                    const updatedNodes = savedNodes.map((node: any) => {
+                        // Create a new node with position reset
+                        return {
+                            ...node,
+                            position: { x: 0, y: 0 }, // Reset position
+                            // If node has a parentId but no logicalParentId, copy it over
+                            data: {
+                                ...node.data,
+                                logicalParentId: node.data.logicalParentId || node.parentId,
+                                // Clear any old position data if it exists
+                                measured: undefined
+                            },
+                            // Clear parentId to avoid confusion
+                            parentId: undefined
+                        };
+                    });
+
+                    // Save the updated attachment
+                    const updatedAttachment = new Blob([JSON.stringify(updatedNodes)],
+                        { type: 'application/json' });
+
+                    // Put the updated attachment
+                    await db.putAttachment(doc._id, 'nodes', doc._rev, updatedAttachment, 'application/json');
+                    console.log(`Updated attachment for document ${doc._id}`);
+                }
+            } catch (error) {
+                console.error(`Error processing attachment for document ${row.doc?._id || 'unknown'}:`, error);
+            }
+        }
+
+        // Process the documents themselves
+        const updates = result.rows
+            .filter(row => row.doc &&
+                row.doc._id !== MIGRATION_DOC_ID && // Skip the migration doc itself
+                ((row.doc as any).parentId || // Has old parentId
+                    !(row.doc as PouchDBNodeDocument).data?.logicalParentId)) // Needs logicalParentId
+            .map(row => {
+                const doc = row.doc;
+
+                // Update the document
+                if (doc && (doc as any).parentId && !(doc as PouchDBNodeDocument).data?.logicalParentId) {
+                    (doc as PouchDBNodeDocument).data = {
+                        ...(doc as PouchDBNodeDocument).data,
+                        logicalParentId: (doc as PouchDBNodeDocument).parentId
+                    };
+                }
+
+                // Reset positions
+                if (doc) {
+                    (doc as PouchDBNodeDocument).position = { x: 0, y: 0 };
+                }
+
+                // Clear parentId to avoid confusion
+                if (doc) {
+                    (doc as any).parentId = undefined;
+                }
+
+                return doc;
+            });
+
+        // Bulk update if there are documents to update
+        if (updates.length > 0) {
+            await db.bulkDocs(updates.filter((doc): doc is PouchDB.Core.PutDocument<any> => doc !== undefined));
+            console.log(`Migrated ${updates.length} documents`);
+        }
+
+        // Create or update migration status document
+        try {
+            // Try to get existing document first to get the _rev
+            let migrationDoc;
+            try {
+                migrationDoc = await db.get(MIGRATION_DOC_ID);
+            } catch (error) {
+                // Document doesn't exist, create new one
+                migrationDoc = { _id: MIGRATION_DOC_ID };
+            }
+
+            // Update migration document
+            await db.put({
+                ...migrationDoc,
+                version: '1.0',
+                completed: true,
+                timestamp: new Date().toISOString(),
+                migratedDocuments: updates.length,
+                migratedAttachments: docsWithAttachments.length
+            });
+
+            console.log("Migration status recorded successfully");
+        } catch (error) {
+            console.error("Failed to record migration status:", error);
+        }
+
+        console.log("Document migration completed");
+    } catch (error) {
+        console.error('Migration failed:', error);
+    }
+}
 export const usePouchDB = () => useContext(PouchDBContext);
 
 export const PouchDBProvider: React.FC<PouchDBProviderProps> = ({ children }) => {
@@ -64,6 +209,9 @@ export const PouchDBProvider: React.FC<PouchDBProviderProps> = ({ children }) =>
                     console.log("Local DB is empty, no replication needed.");
                     return Promise.resolve();
                 }
+            })
+            .then(() => {
+                return migrateDocuments(localDBInstance).then(() => migrateDocuments(memoryDBInstance));
             })
             .then(() => {
                 console.log("Setting up bi-directional sync...");

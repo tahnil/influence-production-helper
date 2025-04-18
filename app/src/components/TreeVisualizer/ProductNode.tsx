@@ -83,7 +83,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
       type: 'REQUEST_PROCESS_NODE_CREATION',
       payload: {
         processId,
-        parentNodeId: id,
+        logicalParentId: id,
         includeSideProducts: true, // Set to true or false as per your requirement
       }
     });
