@@ -28,7 +28,8 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     // Transform our node structure to include compound nodes
     const processesWithSideProducts = new Map<string, Node[]>();
     const transformedNodes: Node[] = [];
-    const transformedEdges: Edge[] = [];
+    const transformedEdges: Edge[] = [...edges];
+
 
     // Identify processes with side products
     nodes.filter(node => node.type === 'sideProductNode').forEach(sideProduct => {
