@@ -87,7 +87,7 @@ export interface ApiError {
 // components/ProcessConfigurator.tsx
 // components/ProcessInputs.tsx
 // lib/processUtils.ts
-export interface Input {
+export interface InfluenceProcessInput {
   product: InfluenceProduct;
   unitsPerSR: string;
 }

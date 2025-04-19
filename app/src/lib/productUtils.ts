@@ -1,4 +1,5 @@
 // lib/productUtils.ts
+
 import { loadProductionChains } from './dataLoader';
 import { InfluenceProduct, InfluenceProcess, SpectralType, ProductWithSpectralTypes } from '@/types/influenceTypes';
 

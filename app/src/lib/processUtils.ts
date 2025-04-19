@@ -2,7 +2,7 @@
 
 import { loadProductionChains } from './dataLoader';
 import { fetchProductById } from './productUtils';
-import { Input, InfluenceProcessInputOutput, InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
+import { InfluenceProcessInput, InfluenceProcessInputOutput, InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 
 // Load the production chains data
 const productionChains = loadProductionChains();
@@ -35,7 +35,7 @@ const getProcessesByProductIdAsOutput = (productId: string): InfluenceProcess[] 
   );
 };
 
-const getInputsByProcessId = async (processId: string): Promise<Input[]> => {
+const getInputsByProcessId = async (processId: string): Promise<InfluenceProcessInput[]> => {
   const process = getProcessById(processId);
   if (process) {
     return await mapInputOutputsToInputs(process.inputs);
@@ -43,7 +43,7 @@ const getInputsByProcessId = async (processId: string): Promise<Input[]> => {
   return [];
 };
 
-const mapInputOutputsToInputs = async (inputOutputs: InfluenceProcessInputOutput[]): Promise<Input[]> => {
+const mapInputOutputsToInputs = async (inputOutputs: InfluenceProcessInputOutput[]): Promise<InfluenceProcessInput[]> => {
   // Use map to handle asynchronous fetches
   const inputPromises = inputOutputs.map(async (io) => {
     const product = await fetchProductById(io.productId);
@@ -69,7 +69,7 @@ export const fetchProcessesByProductId = async (productId: string): Promise<Infl
   return getProcessesByProductIdAsOutput(productId);
 };
 
-export const fetchInputsByProcessId = async (processId: string): Promise<Input[]> => {
+export const fetchInputsByProcessId = async (processId: string): Promise<InfluenceProcessInput[]> => {
   return await getInputsByProcessId(processId);
 };
 
