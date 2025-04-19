@@ -1,83 +1,130 @@
+# Docker Configuration for Influence Production Helper
 
-# Production Chain Configurator
+This document explains how to build and run the Influence Production Helper application using Docker.
 
-The Production Chain Configurator is a web application designed to help users configure and manage production chains for items in the Influence game. The application allows users to select an end product and specify the desired amount, then visualizes all necessary processes to produce that product, including all intermediate products.
+## Prerequisites
 
-## Features
+Before proceeding, ensure you have the following installed on your system:
 
-1. **Product Selection**:
-   - Users can select an end product from a list of available products.
-   - The selected product becomes the focal point for visualizing the production chain.
+- [Docker](https://www.docker.com/get-started)
+- Git (to clone the repository)
 
-2. **Amount Specification**:
-   - Users can specify the amount of the end product they wish to produce.
+## Building the Docker Image
 
-3. **Process Visualization**:
-   - The application automatically generates a visual representation of the entire production chain.
-   - The visualization includes all intermediate products and processes required to produce the specified amount of the end product.
-   - Users can interact with the visualization, expanding and collapsing nodes as needed.
+The provided Dockerfile handles all necessary steps to build the application, including:
+- Setting up a Node.js environment
+- Installing dependencies for both the app and SDK
+- Building the SDK
+- Generating the production chains data
+- Building the Next.js application
 
-## Technologies Used
+To build the Docker image, follow these steps:
 
-- **Next.js**: A React framework for server-side rendering and generating static websites.
-- **TypeScript**: A statically typed superset of JavaScript.
-- **Tailwind CSS**: A utility-first CSS framework.
-- **React Flow**: A library for building node-based editors and interactive diagrams.
-- **Dagre**: A graph layout engine used in conjunction with React Flow.
-- **ShadcnUI**: A collection of re-usable components built with Radix UI and Tailwind CSS.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/influence-production-helper.git
+   cd influence-production-helper
+   ```
 
-## Project Structure
+2. Build the Docker image:
+   ```bash
+   docker build -t influence-production-helper .
+   ```
+   This command builds a Docker image tagged as `influence-production-helper` based on the Dockerfile in the current directory.
 
-- **`components/`**: Contains all the reusable React components.
-  - **`TreeVisualizer/`**: Components related to visualizing the production tree.
-    - **`AmountInput.tsx`**: Component for inputting the desired amount of product.
-    - **`ProductSelector.tsx`**: Component for selecting the main product.
-    - **`ProductionInputs.tsx`**: Component for displaying production inputs.
-    - **`TreeRenderer.tsx`**: Main component for rendering the React Flow tree.
-  - **`ui/`**: Common UI components from ShadcnUI.
+## Running the Application
 
-- **`hooks/`**: Contains custom React hooks for data fetching and tree building.
-  - **`useInfluenceProductDetails.ts`**: Hook for fetching detailed product information.
-  - **`useInfluenceProducts.ts`**: Hook for fetching the list of products.
-  - **`useInputsByProcessId.ts`**: Hook for fetching inputs by process ID.
-  - **`useProcessDetails.ts`**: Hook for fetching detailed process information.
-  - **`useProcessesByProductId.ts`**: Hook for fetching processes by product ID.
+Once the image is built, you can run the application with:
 
-- **`lib/`**: Contains utility functions and data handling logic.
-  - **`dataLoader.ts`**: Functions for loading data.
-  - **`processUtils.ts`**: Functions for handling processes.
-  - **`productUtils.ts`**: Functions for handling product data.
-  - **`utils.ts`**: General utility functions.
+```bash
+docker run -p 3000:3000 influence-production-helper
+```
 
-- **`pages/`**: Contains Next.js page components and API routes.
-  - **`_app.tsx`**: Custom App component for initializing pages.
-  - **`api/`**: API route handlers for various data fetching operations.
-  - **`index.tsx`**: The main page of the application.
+This command:
+- Runs a container from the `influence-production-helper` image
+- Maps port 3000 from the container to port 3000 on your host machine
+- Starts the Next.js application inside the container
 
-- **`types/`**: Contains TypeScript type definitions.
-  - **`influenceTypes.ts`**: Types related to Influence game data.
-  - **`reactFlowTypes.ts`**: Types related to React Flow nodes and edges.
+You can then access the application by opening a web browser and navigating to:
+```
+http://localhost:3000
+```
 
-- **`utils/`**: Contains utility functions for the TreeVisualizer.
-  - **`TreeVisualizer/`**: Utility functions for building nodes and fetching icons/images.
-  - **`formatDuration.ts`**: Utility for formatting time durations.
-  - **`formatNumber.ts`**: Utility for formatting numbers with units.
+## Docker Image Details
 
-## Installation
+The Docker image is built using the following process:
 
-1. **Clone the repository**:
-   ```sh
-   git clone https://github.com/tahnil/influence-production-helper.git
+1. **Base Image**: Uses `node:18-alpine` as the lightweight base image
+2. **Working Directory**: Sets `/app` as the working directory
+3. **Dependencies**: 
+   - Installs app dependencies from package.json
+   - Installs SDK dependencies and rollup globally
+4. **SDK Building**:
+   - Builds the SDK using rollup
+   - Generates the production chains data JSON file
+5. **App Building**:
+   - Builds the Next.js application
+6. **Execution**:
+   - Exposes port 3000
+   - Runs the Next.js application with `npm start`
 
-2. **Install dependencies**:
+## Environment Variables
 
-    ```sh
-    cd influence-production-helper/app
-    npm install
+You can configure the container by passing environment variables when running it:
 
-3. **Run the development server**:
+```bash
+docker run -p 3000:3000 -e NODE_ENV=production influence-production-helper
+```
 
-    ```sh
-    npm run dev
+## Data Persistence
 
-Open http://localhost:3000 with your browser to see the result.
+If you need to persist configurations between container restarts, you can mount a volume:
+
+```bash
+docker run -p 3000:3000 -v influence-data:/app/.data influence-production-helper
+```
+
+This will store the application's PouchDB data in a Docker volume named `influence-data`.
+
+## Running in Development Mode
+
+For development purposes, you can run the container with hot reloading:
+
+```bash
+docker run -p 3000:3000 -v $(pwd)/app:/app influence-production-helper npm run dev
+```
+
+This mounts your local `app` directory into the container and runs the application in development mode.
+
+## Troubleshooting
+
+If you encounter issues:
+
+1. **Build Errors**: Ensure your Docker daemon has enough resources allocated
+2. **Runtime Errors**: Check the container logs with `docker logs CONTAINER_ID`
+3. **Permission Issues**: The container runs as the node user, which might cause permission issues when mounting volumes
+
+## Advanced Configuration
+
+For production deployments, consider using Docker Compose to manage the container alongside other services:
+
+```yaml
+# docker-compose.yml
+version: '3'
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - influence-data:/app/.data
+volumes:
+  influence-data:
+```
+
+Run with:
+```bash
+docker-compose up -d
+```
