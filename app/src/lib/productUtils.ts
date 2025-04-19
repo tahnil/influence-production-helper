@@ -12,37 +12,6 @@ const getProductById = (id: string): Product | undefined => {
   return productionChains.products.find(product => product.id === id);
 };
 
-// Utility function to convert Product to InfluenceProduct
-const convertProductToInfluenceProduct = (product: Product): InfluenceProduct => {
-  return {
-    id: product.id,
-    name: product.name,
-    type: product.type,
-    category: product.category,
-    quantized: product.quantized,
-    massKilogramsPerUnit: product.massKilogramsPerUnit,
-    volumeLitersPerUnit: product.volumeLitersPerUnit,
-  };
-};
-
-// Utility function to convert InfluenceProduct to Product
-const convertInfluenceProductToProduct = (influenceProduct: InfluenceProduct): Product => {
-  return {
-    id: influenceProduct.id,
-    name: influenceProduct.name,
-    type: influenceProduct.type,
-    category: influenceProduct.category,
-    quantized: influenceProduct.quantized,
-    massKilogramsPerUnit: influenceProduct.massKilogramsPerUnit?.toString(),
-    volumeLitersPerUnit: influenceProduct.volumeLitersPerUnit?.toString(),
-  };
-};
-
-const getInfluenceProductById = (id: string): InfluenceProduct | undefined => {
-  const product = productionChains.products.find(product => product.id === id);
-  return product ? convertProductToInfluenceProduct(product) : undefined;
-};
-
 const getProcessesByProductId = (productId: string): Process[] => {
   return productionChains.processes.filter(process =>
     process.outputs.some(output => output.productId === productId)
@@ -78,9 +47,4 @@ export const fetchProductById = async (id: string): Promise<ProductWithSpectralT
 
 export const fetchAllProducts = async () => {
   return productionChains.products;
-};
-
-export const fetchInfluenceProductById = async (id: string): Promise<InfluenceProduct | undefined> => {
-  const product = getProductById(id);
-  return product ? convertProductToInfluenceProduct(product) : undefined;
 };
