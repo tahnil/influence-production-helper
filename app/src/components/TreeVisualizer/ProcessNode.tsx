@@ -49,7 +49,7 @@ const ProcessNode: React.FC<NodeProps<ProcessNode>> = ({ id, data }) => {
       />
       <Handle
         type="target"
-        position={Position.Left}
+        position={Position.Right}
         className="process-outflow-side-product-handle bg-purple-500"
         id={`target-side-product-${id}`}
       />

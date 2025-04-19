@@ -43,7 +43,7 @@ const SideProductNode: React.FC<NodeProps<SideProductNode>> = ({ id, data }) => 
     <div className="side-product-node bg-lunarGreen-700 border overflow-hidden rounded-lg shadow-lg w-56">
       <Handle
         type="source"
-        position={Position.Right}
+        position={Position.Left}
         className="side-product-handle bg-yellow-500"
         id={`source-${id}`}
       />
