@@ -68,15 +68,28 @@ export default function calculateDesiredAmount(nodes: Node[], desiredAmount: num
             } else if (parentNode.type === 'processNode') {
                 updateProductNode(productNode as ProductNode, parentNode as ProcessNode);
             }
-        } else if (node.type === 'sideProductNode') {
-            // Handle side product nodes separately
-            const sideProductNode = node as SideProductNode;
-            if (parentNode && parentNode.type === 'processNode') {
-                updateSideProductNode(sideProductNode, parentNode as ProcessNode);
-            }
         } else if (node.type === 'processNode') {
             if (parentNode && parentNode.type === 'productNode') {
                 updateProcessNode(node as ProcessNode, parentNode as ProductNode);
+
+                // After updating a process node, find and update all its side product nodes
+                nodes.forEach(potentialSideProduct => {
+                    if (potentialSideProduct.type === 'sideProductNode') {
+                        // Check if this side product has the current process node as an ancestor
+                        if (Array.isArray(potentialSideProduct.data.ancestorIds) && 
+                            potentialSideProduct.data.ancestorIds.includes(node.id)) {
+                            
+                            // Update the side product based on the process
+                            const updatedSideProduct = updateSideProductNode(
+                                potentialSideProduct as SideProductNode, 
+                                node as ProcessNode
+                            );
+                            
+                            // Save the updated side product in our node map
+                            nodeMap.set(potentialSideProduct.id, updatedSideProduct);
+                        }
+                    }
+                });
             }
         }
 
