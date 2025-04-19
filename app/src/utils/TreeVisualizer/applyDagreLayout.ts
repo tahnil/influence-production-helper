@@ -10,7 +10,22 @@ interface SideProductNodeData {
 }
 
 function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
-    // First, transform our node structure to include compound nodes
+
+    // Check if a node is already a compound node
+    const existingCompoundIds = new Set(
+        nodes
+            .filter(node => node.type === 'compoundNode')
+            .map(node => node.id)
+    );
+
+    // Keep track of which processes are already in compounds
+    const processesAlreadyInCompounds = new Set(
+        nodes
+            .filter(node => node.parentId && node.parentId.startsWith('compound-'))
+            .map(node => node.id)
+    );
+
+    // Transform our node structure to include compound nodes
     const processesWithSideProducts = new Map<string, Node[]>();
     const transformedNodes: Node[] = [];
     const transformedEdges: Edge[] = [];
@@ -20,6 +35,10 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         const data = sideProduct.data as SideProductNodeData;
         if (data.ancestorIds && data.ancestorIds.length > 0) {
             const processId = data.ancestorIds[0];
+            // Skip if this process is already in a compound node
+            if (processesAlreadyInCompounds.has(processId)) {
+                return;
+            }
             if (!processesWithSideProducts.has(processId)) {
                 processesWithSideProducts.set(processId, []);
             }
@@ -27,9 +46,23 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         }
     });
 
-    // Create compound nodes and set their child nodes
+    // Now process nodes, skipping those already in compound nodes
     nodes.forEach(node => {
-        if (node.type === 'processNode' && processesWithSideProducts.has(node.id)) {
+        // If this is already a compound node, keep it as is
+        if (node.type === 'compoundNode') {
+            transformedNodes.push(node);
+            return;
+        }
+
+        // If node already has a parent, keep it as is 
+        if (node.parentId) {
+            transformedNodes.push(node);
+            return;
+        }
+        if (node.type === 'processNode' &&
+            processesWithSideProducts.has(node.id) &&
+            !processesAlreadyInCompounds.has(node.id)) {
+
             // This process has side products - create a compound node
             const sideProducts = processesWithSideProducts.get(node.id) || [];
             const compoundId = `compound-${node.id}`;
