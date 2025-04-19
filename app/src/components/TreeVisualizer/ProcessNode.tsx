@@ -1,12 +1,12 @@
 // components/TreeVisualizer/ProcessNode.tsx
 
 import React from 'react';
+import Image from 'next/image';
 import { Node, Handle, Position, NodeProps } from '@xyflow/react';
+import { BaseNodeData } from '@/types/reactFlowTypes';
 import { InfluenceProcess, ProcessInput } from '@/types/influenceTypes';
 import { formatDuration } from '@/utils/formatDuration';
 import { formatNumber } from '@/utils/formatNumber';
-import Image from 'next/image';
-import { BaseNodeData } from '@/types/reactFlowTypes';
 
 export interface ProcessNodeData extends BaseNodeData {
   totalDuration: number;
