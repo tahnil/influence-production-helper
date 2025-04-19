@@ -8,6 +8,7 @@ import { InfluenceProduct } from '@/types/influenceTypes';
 import { ArrowUpRight } from 'lucide-react';
 
 export type SideProductNode = Node<{
+  logicalParentId: string | undefined;
   amount: number;
   totalWeight: number;
   totalVolume: number;

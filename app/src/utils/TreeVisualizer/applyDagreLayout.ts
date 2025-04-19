@@ -1,6 +1,7 @@
 import { DagreConfig } from '@/hooks/useDagreConfig';
 import Dagre from '@dagrejs/dagre';
 import { Node, Edge, Position } from '@xyflow/react';
+import { generateUniqueId } from '../generateUniqueId';
 
 // Define a type for the side product node data
 interface SideProductNodeData {
@@ -9,10 +10,12 @@ interface SideProductNodeData {
 }
 
 function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
-    // Step 1: Identify processes with side products
+    // First, transform our node structure to include compound nodes
     const processesWithSideProducts = new Map<string, Node[]>();
+    const transformedNodes: Node[] = [];
+    const transformedEdges: Edge[] = [];
 
-    // Find all processes that have side products
+    // Identify processes with side products
     nodes.filter(node => node.type === 'sideProductNode').forEach(sideProduct => {
         const data = sideProduct.data as SideProductNodeData;
         if (data.ancestorIds && data.ancestorIds.length > 0) {
@@ -24,157 +27,143 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         }
     });
 
-    // Step 2: Create a modified graph for Dagre where each process+sideProducts is a compound node
-    const dagreGraph = new Dagre.graphlib.Graph({ compound: true });
-    dagreGraph.setDefaultEdgeLabel(() => ({}));
-    dagreGraph.setGraph({ ...config });
-
-    // Track the original node IDs to compound node mappings
-    const nodeToCompoundMap = new Map<string, string>();
-    const compoundDimensions = new Map<string, { width: number, height: number }>();
-
-    // Add all nodes to the graph
+    // Create compound nodes and set their child nodes
     nodes.forEach(node => {
-        // Regular nodes (not side products and not processes with side products)
-        if (node.type !== 'sideProductNode' && !processesWithSideProducts.has(node.id)) {
-            dagreGraph.setNode(node.id, {
-                width: node.measured?.width || 200,
-                height: node.measured?.height || 100
-            });
-        }
-        // For processes with side products, create a compound node
-        else if (processesWithSideProducts.has(node.id)) {
+        if (node.type === 'processNode' && processesWithSideProducts.has(node.id)) {
+            // This process has side products - create a compound node
             const sideProducts = processesWithSideProducts.get(node.id) || [];
             const compoundId = `compound-${node.id}`;
 
-            // Calculate compound node dimensions based on the process and its side products
+            // Calculate compound dimensions
             const processWidth = node.measured?.width || 200;
             const processHeight = node.measured?.height || 100;
 
-            // Calculate width needed for side products (assuming horizontal arrangement)
-            const sideProductsTotalWidth = sideProducts.reduce((total, sp) =>
+            // Space for side products
+            const totalSideProductWidth = sideProducts.reduce((total, sp) =>
                 total + (sp.measured?.width || 200) + 10, 0);
 
-            // Calculate height needed (max of process height or all side products stacked)
-            const sideProductsTotalHeight = sideProducts.reduce((max, sp) =>
-                Math.max(max, sp.measured?.height || 100), 0);
-
-            // Set compound node dimensions
-            const compoundWidth = processWidth + sideProductsTotalWidth + 60; // Extra padding
-            const compoundHeight = Math.max(processHeight, sideProductsTotalHeight) + 40; // Extra padding
-
-            // Add the compound node to Dagre
-            dagreGraph.setNode(compoundId, {
-                width: compoundWidth,
-                height: compoundHeight
-            });
-
-            // Store compound dimensions for later
-            compoundDimensions.set(compoundId, { width: compoundWidth, height: compoundHeight });
-
-            // Mark the process node as part of this compound
-            nodeToCompoundMap.set(node.id, compoundId);
-
-            // Mark all side products as part of this compound
-            sideProducts.forEach(sp => {
-                nodeToCompoundMap.set(sp.id, compoundId);
-            });
-        }
-    });
-
-    // Add edges to Dagre (only between non-side-product nodes)
-    edges.forEach(edge => {
-        const sourceCompound = nodeToCompoundMap.get(edge.source);
-        const targetCompound = nodeToCompoundMap.get(edge.target);
-
-        // If either node is part of a compound, adjust the edge
-        if (sourceCompound || targetCompound) {
-            // Case 1: Both nodes are in compounds
-            if (sourceCompound && targetCompound) {
-                // If they're in the same compound, skip this edge for Dagre layout
-                if (sourceCompound === targetCompound) {
-                    return;
+            // Create the compound node
+            transformedNodes.push({
+                id: compoundId,
+                type: 'compoundNode',
+                position: { x: 0, y: 0 }, // Will be positioned by Dagre
+                data: {
+                    id: compoundId,
+                    processId: node.id,
+                    width: processWidth + totalSideProductWidth + 60, // Total width needed
+                    height: Math.max(processHeight, 120) + 20, // Height needed
+                    label: `${(node.data as { processDetails?: { name?: string } }).processDetails?.name || 'Process'} Group`
                 }
-                // Connect between compounds
-                dagreGraph.setEdge(sourceCompound, targetCompound);
-            }
-            // Case 2: Only source is in a compound
-            else if (sourceCompound) {
-                dagreGraph.setEdge(sourceCompound, edge.target);
-            }
-            // Case 3: Only target is in a compound
-            else if (targetCompound) {
-                dagreGraph.setEdge(edge.source, targetCompound);
-            }
+            });
+
+            // Adjust the process node to have a parent
+            transformedNodes.push({
+                ...node,
+                parentId: compoundId,
+                // Position relative to compound node (top-left corner is 0,0)
+                position: { x: 10, y: 10 }
+            });
+
+            // Add side products as children of the compound node
+            sideProducts.forEach((sideProduct, index) => {
+                transformedNodes.push({
+                    ...sideProduct,
+                    parentId: compoundId,
+                    // Position to the right of the process
+                    position: {
+                        x: processWidth + 30 + (index * ((sideProduct.measured?.width || 200) + 10)),
+                        y: 10
+                    }
+                });
+            });
+
+            // Transform edges connected to this process
+            edges.forEach(edge => {
+                if (edge.source === node.id || edge.target === node.id) {
+                    // For main flow edges, connect to compound node instead
+                    if (!edge.data?.isSideProductConnection) {
+                        if (edge.source === node.id) {
+                            transformedEdges.push({
+                                ...edge,
+                                source: compoundId,
+                                sourceHandle: `compound-source-${compoundId}`
+                            });
+                        } else if (edge.target === node.id) {
+                            transformedEdges.push({
+                                ...edge,
+                                target: compoundId,
+                                targetHandle: `compound-target-${compoundId}`
+                            });
+                        }
+                    } else {
+                        // For side product connections, keep as is
+                        transformedEdges.push(edge);
+                    }
+                } else {
+                    // Edge not connected to this process, keep as is
+                    transformedEdges.push(edge);
+                }
+            });
         }
-        // Case 4: Regular edge between non-compound nodes
-        else {
-            dagreGraph.setEdge(edge.source, edge.target);
+        else if (node.type !== 'sideProductNode' || !node.data.ancestorIds) {
+            // Regular product node or process without side products
+            transformedNodes.push(node);
         }
+        // Skip side products - they're added as children of compound nodes
     });
+
+    // Layout with Dagre - only the main nodes and compound nodes
+    const dagreGraph = new Dagre.graphlib.Graph();
+    dagreGraph.setDefaultEdgeLabel(() => ({}));
+    dagreGraph.setGraph({ ...config });
+
+    // Add nodes to dagre, but only those without parents
+    transformedNodes
+        .filter(node => !node.parentId)
+        .forEach(node => {
+            dagreGraph.setNode(node.id, {
+                width: node.type === 'compoundNode' ? (node.data as { width: number }).width : (node.measured?.width || 200),
+                height: node.type === 'compoundNode' ? (node.data as { height: number }).height : (node.measured?.height || 100)
+            });
+        });
+
+    // Add the transformed edges to Dagre
+    transformedEdges
+        .filter(edge => {
+            // Only include edges between nodes that Dagre knows about
+            const sourceExists = dagreGraph.hasNode(edge.source);
+            const targetExists = dagreGraph.hasNode(edge.target);
+            return sourceExists && targetExists;
+        })
+        .forEach(edge => {
+            dagreGraph.setEdge(edge.source, edge.target);
+        });
 
     // Run Dagre layout
     Dagre.layout(dagreGraph);
 
-    // Step 3: Position nodes based on Dagre layout
-    const layoutedNodes = [...nodes].map(node => {
-        const compoundId = nodeToCompoundMap.get(node.id);
-
-        // If node is part of a compound
-        if (compoundId) {
-            const compoundPos = dagreGraph.node(compoundId);
-            const compoundDims = compoundDimensions.get(compoundId) || { width: 0, height: 0 };
-
-            // Get all nodes in this compound
-            const processNode = nodes.find(n => n.id === compoundId.replace('compound-', ''));
-            const sideProducts = processesWithSideProducts.get(compoundId.replace('compound-', '')) || [];
-
-            // Position nodes within the compound
-            if (node.type === 'processNode') {
-                // Center the process node in the compound
+    // Apply positions from Dagre to our nodes
+    const layoutedNodes = transformedNodes.map(node => {
+        if (!node.parentId) {
+            // Position top-level nodes according to Dagre
+            const dagNode = dagreGraph.node(node.id);
+            if (dagNode) {
                 return {
                     ...node,
                     position: {
-                        x: compoundPos.x - (compoundDims.width / 2) + 30, // Left side with padding
-                        y: compoundPos.y - (node.measured?.height || 100) / 2 // Centered vertically
-                    }
-                };
-            } else if (node.type === 'sideProductNode') {
-                // Find index of this side product in the list
-                const index = sideProducts.findIndex(sp => sp.id === node.id);
-                const processWidth = processNode?.measured?.width || 200;
-
-                // Position side products in a horizontal line to the right of the process
-                return {
-                    ...node,
-                    position: {
-                        x: compoundPos.x - (compoundDims.width / 2) + processWidth + 60 + (index * ((node.measured?.width || 200) + 10)),
-                        y: compoundPos.y - (node.measured?.height || 100) / 2 // Centered vertically
+                        x: dagNode.x - (node.type === 'compoundNode' ? (node.data as { width: number }).width / 2 : (node.measured?.width || 200) / 2),
+                        y: dagNode.y - (node.type === 'compoundNode' ? (node.data as { height: number }).height / 2 : (node.measured?.height || 100) / 2)
                     }
                 };
             }
         }
-
-        // Regular node not in a compound
-        const nodeWithPosition = dagreGraph.node(node.id);
-        if (nodeWithPosition) {
-            return {
-                ...node,
-                position: {
-                    x: nodeWithPosition.x - (node.measured?.width || 200) / 2,
-                    y: nodeWithPosition.y - (node.measured?.height || 100) / 2
-                }
-            };
-        }
-
-        // Fallback: return original node
+        // Child nodes keep their relative positions
         return node;
     });
 
     return {
         layoutedNodes,
-        layoutedEdges: edges
+        layoutedEdges: transformedEdges
     };
 }
-
 export default applyDagreLayout;

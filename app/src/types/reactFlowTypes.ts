@@ -41,8 +41,16 @@ export interface SideProductNodeData extends Record<string, unknown> {
     ancestorIds: string[]; // Array of process IDs that produce this side product
 }
 
+export interface CompoundNodeData extends Record<string, unknown> {
+    id: string;
+    width: string | number;
+    height: string | number;
+    children: React.ReactNode;
+}
+
 export type ProcessNode = ReactFlowNode<ProcessNodeData>;
 export type ProductNode = ReactFlowNode<ProductNodeData>;
 export type SideProductNode = ReactFlowNode<SideProductNodeData>;
+export type CompoundNode = ReactFlowNode<CompoundNodeData>;
 
-export type InfluenceNode = ProductNode | ProcessNode | SideProductNode;
+export type InfluenceNode = ProductNode | ProcessNode | SideProductNode | CompoundNode;
