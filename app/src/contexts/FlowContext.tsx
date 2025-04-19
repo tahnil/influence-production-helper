@@ -75,6 +75,7 @@ export type FlowAction =
     type: 'PROCESS_SELECTED'; payload: {
       processNode: Node,
       productNodes: Node[],
+      sideProductNodes?: Node[],
       logicalParentId: string,
       edges: Edge[]
     }
@@ -227,6 +228,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       return { ...state, ...action.payload };
     case 'PROCESS_SELECTED': {
       const { processNode, productNodes, logicalParentId, edges } = action.payload;
+      const sideProductNodes = action.payload.sideProductNodes || [];
 
       // Find the existing ProcessNode with the same data.logicalParentId
       const existingProcessNode = state.nodes.find(
@@ -252,17 +254,30 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       }
 
       // Add the new ProcessNode and its child ProductNodes
-      updatedNodes = [...updatedNodes, processNode, ...productNodes];
+      updatedNodes = [...updatedNodes, processNode, ...productNodes, ...sideProductNodes];
 
       // Create edges between the ProcessNode and each ProductNode
-      const newEdges = productNodes.map((productNode) => ({
+      const newProductEdges = productNodes.map((productNode) => ({
         id: `edge-${processNode.id}-${productNode.id}`,
         source: processNode.id,
         target: productNode.id,
         type: 'custom',
       }));
 
-      updatedEdges = [...updatedEdges, ...newEdges];
+      // Create edges between the ProcessNode and each SideProductNode
+      const sideProductEdges = sideProductNodes.map((sideProductNode) => ({
+        id: `edge-${sideProductNode.id}-${processNode.id}`,
+        source: sideProductNode.id,
+        sourceHandle: `source-${sideProductNode.id}`,
+        target: processNode.id,
+        targetHandle: `target-side-product-${processNode.id}`,
+        type: 'custom',
+        data: {
+          isSideProductConnection: true
+        }
+      }));
+
+      updatedEdges = [...updatedEdges, ...newProductEdges, ...sideProductEdges];
 
       // Add edge between parent ProductNode and ProcessNode
       updatedEdges.push({
@@ -556,12 +571,16 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
           payload: {
             processNode: result.processNode,
             productNodes: result.productNodes,
+            sideProductNodes: result.sideProductNodes,
             logicalParentId,
             edges: state.edges
           }
         });
 
         dispatch({ type: 'NODE_CREATION_COMPLETED' });
+
+        // log content of the whole nodes array
+        console.log('Nodes after process node creation:', state.nodes);
       } catch (error) {
         console.error('Error in process node creation:', error);
         dispatch({
