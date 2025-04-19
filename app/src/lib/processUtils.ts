@@ -1,20 +1,19 @@
 // lib/processUtils.ts
 
-import { Input, InputOutput, Process, Product } from '../types/types';
 import { loadProductionChains } from './dataLoader';
 import { fetchProductById } from './productUtils';
-import { InfluenceProcess } from '@/types/influenceTypes';
+import { Input, InfluenceProcessInputOutput, InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 
 // Load the production chains data
 const productionChains = loadProductionChains();
 
 // Helper functions
-export const getProcessById = (id: string): Process | undefined => {
+export const getProcessById = (id: string): InfluenceProcess | undefined => {
   return productionChains.processes.find(process => process.id === id);
 };
 
 // Utility function to convert Process to InfluenceProcess
-const convertProcessToInfluenceProcess = (process: Process): InfluenceProcess => {
+const convertProcessToInfluenceProcess = (process: InfluenceProcess): InfluenceProcess => {
   return {
     ...process,
     bAdalianHoursPerAction: process.bAdalianHoursPerAction ? parseFloat(process.bAdalianHoursPerAction).toString() : '0',
@@ -30,7 +29,7 @@ const convertProcessToInfluenceProcess = (process: Process): InfluenceProcess =>
   };
 };
 
-const getProcessesByProductIdAsOutput = (productId: string): Process[] => {
+const getProcessesByProductIdAsOutput = (productId: string): InfluenceProcess[] => {
   return productionChains.processes.filter(process =>
     process.outputs.some(output => output.productId === productId)
   );
@@ -44,12 +43,12 @@ const getInputsByProcessId = async (processId: string): Promise<Input[]> => {
   return [];
 };
 
-const mapInputOutputsToInputs = async (inputOutputs: InputOutput[]): Promise<Input[]> => {
+const mapInputOutputsToInputs = async (inputOutputs: InfluenceProcessInputOutput[]): Promise<Input[]> => {
   // Use map to handle asynchronous fetches
   const inputPromises = inputOutputs.map(async (io) => {
     const product = await fetchProductById(io.productId);
     return {
-      product: product || { id: io.productId, name: 'Unknown Product' } as Product,
+      product: product || { id: io.productId, name: 'Unknown Product' } as InfluenceProduct,
       unitsPerSR: io.unitsPerSR,
     };
   });
@@ -58,7 +57,7 @@ const mapInputOutputsToInputs = async (inputOutputs: InputOutput[]): Promise<Inp
   return Promise.all(inputPromises);
 };
 // Public API functions
-export const fetchProcessById = async (id: string): Promise<Process | undefined> => {
+export const fetchProcessById = async (id: string): Promise<InfluenceProcess | undefined> => {
   return getProcessById(id);
 };
 
@@ -66,7 +65,7 @@ export const fetchAllProcesses = async () => {
   return productionChains.processes;
 };
 
-export const fetchProcessesByProductId = async (productId: string): Promise<Process[]> => {
+export const fetchProcessesByProductId = async (productId: string): Promise<InfluenceProcess[]> => {
   return getProcessesByProductIdAsOutput(productId);
 };
 

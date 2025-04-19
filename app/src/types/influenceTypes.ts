@@ -81,4 +81,13 @@ export interface ApiError {
     message: string;
     status?: number;
     code?: string;
-}  
+}
+
+// used by
+// components/ProcessConfigurator.tsx
+// components/ProcessInputs.tsx
+// lib/processUtils.ts
+export interface Input {
+  product: InfluenceProduct;
+  unitsPerSR: string;
+}
