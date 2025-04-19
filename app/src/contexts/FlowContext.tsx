@@ -537,7 +537,15 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error(`Parent node with ID ${logicalParentId} not found`);
         }
 
-        const result = await createProcessNode(processId, logicalParentId, 0, '0');
+        const parentNodeAmount = parentNode.data.amount as number || 0;
+        const parentNodeProductId = (parentNode.data.productDetails as { id: string } | undefined)?.id || '';
+
+        const result = await createProcessNode(
+          processId, 
+          logicalParentId, 
+          parentNodeAmount, 
+          parentNodeProductId,
+        );
 
         if (!result) {
           throw new Error('Failed to build process node');
