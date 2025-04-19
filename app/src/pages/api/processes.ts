@@ -2,7 +2,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { fetchProcessById, fetchAllProcesses, fetchProcessesByProductId, fetchInputsByProcessId } from '../../lib/processUtils';
-import { ApiError } from '../../types/types';
+import { ApiError } from '@/types/influenceTypes';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
