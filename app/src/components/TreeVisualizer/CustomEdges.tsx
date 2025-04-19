@@ -18,14 +18,13 @@ const CustomEdge: React.FC<EdgeProps> = ({
   
   // Use bezier path for side product connections
   if (isSideProductConnection) {
-    const [edgePath] = getBezierPath({
+    const [edgePath] = getSmoothStepPath({
       sourceX,
       sourceY,
       sourcePosition,
       targetX,
       targetY,
       targetPosition,
-      curvature: 0.5, // Adjust curvature as needed
     });
 
     return (
@@ -36,7 +35,7 @@ const CustomEdge: React.FC<EdgeProps> = ({
         style={{
           stroke: '#AAA', // Different color for side product connections
           strokeWidth: 1.5,
-          strokeDasharray: '5, 5', // Dashed line for side products
+          // strokeDasharray: '5, 5', // Dashed line for side products
           ...style,
         }}
       />
