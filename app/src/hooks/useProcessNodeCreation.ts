@@ -2,7 +2,8 @@ import React, { useCallback } from 'react';
 import useProcessNodeBuilder from '@/utils/TreeVisualizer/useProcessNodeBuilder';
 import { Edge } from '@xyflow/react';
 import { FlowAction } from '@/contexts/FlowContext';
-import { ProcessNode, ProductNode } from '@/types/reactFlowTypes';
+import { ProductNode } from '@/components/TreeVisualizer/ProductNode';
+import { ProcessNode } from '@/components/TreeVisualizer/ProcessNode';
 
 interface ProcessNodeCreationResult {
   processNode: ProcessNode;

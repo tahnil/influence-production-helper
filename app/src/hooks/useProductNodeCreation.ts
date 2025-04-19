@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import useProductNodeBuilder from "@/utils/TreeVisualizer/useProductNodeBuilder";
 import { FlowAction } from '@/contexts/FlowContext';
-import { ProductNode } from "@/types/reactFlowTypes";
+import { ProductNode } from "@/components/TreeVisualizer/ProductNode";
 
 export function useProductNodeCreation(dispatch: React.Dispatch<FlowAction>) {
     const { buildProductNode } = useProductNodeBuilder();

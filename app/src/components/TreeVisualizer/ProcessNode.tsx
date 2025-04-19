@@ -6,18 +6,17 @@ import { InfluenceProcess, ProcessInput } from '@/types/influenceTypes';
 import { formatDuration } from '@/utils/formatDuration';
 import { formatNumber } from '@/utils/formatNumber';
 import Image from 'next/image';
+import { BaseNodeData } from '@/types/reactFlowTypes';
 
-export type ProcessNode = Node<
-  {
-    totalDuration: number;
-    totalRuns: number;
-    image: string;
-    processDetails: InfluenceProcess;
-    inputProducts: ProcessInput[];
-    inflowIds?: string[];
-    outflowIds?: string[];
-  }
->;
+export interface ProcessNodeData extends BaseNodeData {
+  totalDuration: number;
+  totalRuns: number;
+  image: string;
+  processDetails: InfluenceProcess;
+  inputProducts: ProcessInput[];
+}
+
+export type ProcessNode = Node<ProcessNodeData>;
 
 const ProcessNode: React.FC<NodeProps<ProcessNode>> = ({ id, data }) => {
   const { processDetails, inputProducts, totalDuration, totalRuns, image } = data;

@@ -1,48 +1,14 @@
 // types/reactFlowTypes.ts:
-// Updated types to fit React Flow's Node structure
-import { Node as ReactFlowNode } from '@xyflow/react';
-import { InfluenceProduct, InfluenceProcess, ProcessInput, ProcessOutput } from '@/types/influenceTypes';
+import { ProcessNode } from '@/components/TreeVisualizer/ProcessNode';
+import { ProductNode } from '@/components/TreeVisualizer/ProductNode';
+import { SideProductNode } from '@/components/TreeVisualizer/SideProductNode';
 
-export interface ProductNodeData extends Record<string, unknown> {
-    logicalParentId: string | undefined;
-    amount: number;
-    totalWeight: number;
-    totalVolume: number;
-    image: string;
-    productDetails: InfluenceProduct;
-    processesByProductId: InfluenceProcess[];
-    selectedProcessId: string | null;
-    handleSelectProcess: (processId: string, nodeId: string) => void;
-    handleSerialize: (focalProductId: string) => void;
-    isRoot?: boolean;
-}
-
-export interface ProcessNodeData extends Record<string, unknown> {
-    logicalParentId: string | null;
-    totalDuration: number;
-    totalRuns: number;
-    image: string;
-    processDetails: InfluenceProcess;
-    inputProducts: ProcessInput[];
+// Base interface for node data with common properties
+export interface BaseNodeData extends Record<string, unknown> {
+    logicalParentId?: string;
     inflowIds?: string[];
     outflowIds?: string[];
-    [key: string]: any;
 }
 
-export interface SideProductNodeData extends Record<string, unknown> {
-    logicalParentId: string | undefined;
-    amount: number;
-    totalWeight: number;
-    totalVolume: number;
-    image: string;
-    productDetails: InfluenceProduct;
-    handleSelectProcess: (processId: string, nodeId: string) => void;
-    handleSerialize: (focalProductId: string) => void;
-    ancestorIds: string[]; // Array of process IDs that produce this side product
-}
-
-export type ProcessNode = ReactFlowNode<ProcessNodeData>;
-export type ProductNode = ReactFlowNode<ProductNodeData>;
-export type SideProductNode = ReactFlowNode<SideProductNodeData>;
-
+// Union type for all possible node types
 export type InfluenceNode = ProductNode | ProcessNode | SideProductNode;

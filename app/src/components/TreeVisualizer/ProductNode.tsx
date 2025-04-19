@@ -1,7 +1,7 @@
 // components/TreeVisualizer/ProductNode.tsx
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Node, Handle, Position, NodeProps } from '@xyflow/react';
+import { Node, NodeProps, Handle, Position } from '@xyflow/react';
 import { InfluenceProcess, InfluenceProduct } from '@/types/influenceTypes';
 import { formatNumber } from '@/utils/formatNumber';
 import ProcessSelector from './ProcessSelector';
@@ -12,18 +12,22 @@ import { getDirectChildNodes } from '@/utils/TreeVisualizer/nodeHelpers';
 import { InfluenceNode } from '@/types/reactFlowTypes';
 import { useToast } from "@/hooks/use-toast";
 import useMatchingConfigurations from '@/hooks/useMatchingConfigurations';
+import { BaseNodeData } from '@/types/reactFlowTypes';
 
-export type ProductNode = Node<{
-  amount: number;
-  totalWeight: number;
-  totalVolume: number;
-  image: string;
-  productDetails: InfluenceProduct;
-  processesByProductId: InfluenceProcess[];
-  selectedProcessId: string | null;
-  inflowIds?: string[];
-  outflowIds?: string[];
-}>;
+export interface ProductNodeData extends BaseNodeData {
+    amount: number;
+    totalWeight: number;
+    totalVolume: number;
+    image: string;
+    productDetails: InfluenceProduct;
+    processesByProductId: InfluenceProcess[];
+    selectedProcessId?: string | null;
+    handleSelectProcess?: (processId: string, nodeId: string) => void;
+    handleSerialize?: (focalProductId: string) => void;
+    isRoot?: boolean;
+}
+
+export type ProductNode = Node<ProductNodeData>;
 
 const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   const {
@@ -47,7 +51,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   } = data;
 
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = productDetails;
-  const [selectedId, setSelectedId] = useState<string | null>(selectedProcessId);
+  const [selectedId, setSelectedId] = useState<string | null>(selectedProcessId ?? null);
 
   // Setup configurations for this product
   useMatchingConfigurations(productDetails.id);
