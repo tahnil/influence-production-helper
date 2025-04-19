@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Node } from '@xyflow/react';
-import { ProductNodeData, ProcessNodeData } from '@/types/reactFlowTypes';
+import { ProductNodeData } from '@/components/TreeVisualizer/ProductNode';
+import { ProcessNodeData } from '@/components/TreeVisualizer/ProcessNode';
 import { formatNumber } from '@/utils/formatNumber';
 
 export interface Ingredient {

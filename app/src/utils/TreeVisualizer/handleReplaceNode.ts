@@ -10,9 +10,10 @@ import {
 import { generateUniqueId } from '@/utils/generateUniqueId';
 import { createProductNodeWithCallbacks } from '@/utils/TreeVisualizer/createProductNodeWithCallbacks';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
-import { InfluenceNode, ProductNodeData } from '@/types/reactFlowTypes';
+import { InfluenceNode} from '@/types/reactFlowTypes';
+import { ProductNodeData } from '@/components/TreeVisualizer/ProductNode';
 import { PouchDBNodeDocument } from '@/types/pouchSchemes';
-import { Node, Edge, Position } from '@xyflow/react';
+import { Node, Edge } from '@xyflow/react';
 import { FlowAction } from '@/contexts/FlowContext';
 
 const regenerateNodeIds = (nodes: PouchDBNodeDocument[]): PouchDBNodeDocument[] => {

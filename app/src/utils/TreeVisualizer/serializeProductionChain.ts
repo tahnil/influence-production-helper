@@ -1,7 +1,8 @@
 // utils/TreeVisualizer/serializeProductionChain.ts
 
 import { v4 as uuidv4 } from 'uuid';
-import { InfluenceNode, ProductNode } from '@/types/reactFlowTypes';
+import { InfluenceNode } from '@/types/reactFlowTypes';
+import { ProductNode } from '@/components/TreeVisualizer/ProductNode';
 import { getAllInflows } from '@/utils/TreeVisualizer/nodeHelpers';
 
 type SerializableNode = Omit<InfluenceNode, 'position' | 'width' | 'height' | 'data'> & {

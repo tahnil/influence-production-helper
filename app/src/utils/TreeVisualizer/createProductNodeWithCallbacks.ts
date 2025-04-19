@@ -1,7 +1,7 @@
 // utils/TreeVisualizer/createProductNodeWithCallbacks.ts
 
 import { Node } from '@xyflow/react';
-import { ProductNodeData } from '@/types/reactFlowTypes';
+import { ProductNodeData } from '@/components/TreeVisualizer/ProductNode';
 import { PouchDBNodeDocument } from '@/types/pouchSchemes';
 
 type CallbackFunction = (processId: string, nodeId: string) => void;

@@ -1,6 +1,6 @@
 // components/TreeVisualizer/CustomEdges.tsx
 import React from 'react';
-import { EdgeProps, getSmoothStepPath, getBezierPath } from '@xyflow/react';
+import { EdgeProps, getSmoothStepPath } from '@xyflow/react';
 
 const CustomEdge: React.FC<EdgeProps> = ({
   id,
