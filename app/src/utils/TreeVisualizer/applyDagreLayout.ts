@@ -1,16 +1,121 @@
 import { DagreConfig } from '@/hooks/useDagreConfig';
-import { InfluenceNode } from '@/types/reactFlowTypes';
 import dagre from '@dagrejs/dagre';
 import { Node, Edge } from '@xyflow/react';
 
 function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
-    // Create a new dagre graph instance
+    // Group nodes by parent
+    const nodesByParent = new Map<string | null, Node[]>();
+
+    // Initialize with null group for parent nodes
+    nodesByParent.set(null, []);
+
+    // Group nodes by their parent
+    nodes.forEach(node => {
+        const parentId = node.parentId || null;
+        if (!nodesByParent.has(parentId)) {
+            nodesByParent.set(parentId, []);
+        }
+        nodesByParent.get(parentId)?.push(node);
+    });
+
+    // Process parent nodes first (top-level layout)
+    const parentNodes = nodesByParent.get(null) || [];
+    const layoutedNodes = [...layoutNodesWithDagre(parentNodes, edges, config)];
+
+    // Create a map of node positions for quick lookup
+    const nodePositions = new Map(layoutedNodes.map(node => [node.id, node.position]));
+
+    // Now process each compound node's children
+    nodes.forEach(node => {
+        if (node.type === 'compoundNode') {
+            const childNodes = nodesByParent.get(node.id) || [];
+            if (childNodes.length === 0) return;
+
+            // Layout children with Dagre
+            const childLayout = layoutNodesWithDagre(childNodes, edges, {
+                ...config,
+                rankdir: 'TB', // Use consistent direction for children
+                marginx: 20,
+                marginy: 20
+            });
+
+            // Find bounds of the laid out children
+            let minX = Number.POSITIVE_INFINITY;
+            let minY = Number.POSITIVE_INFINITY;
+            let maxX = Number.NEGATIVE_INFINITY;
+            let maxY = Number.NEGATIVE_INFINITY;
+
+            childLayout.forEach(childNode => {
+                const width = childNode.measured?.width ||
+                    (childNode.type === 'processNode' ? 250 :
+                        childNode.type === 'sideProductNode' ? 200 : 150);
+
+                const height = childNode.measured?.height ||
+                    (childNode.type === 'processNode' ? 120 :
+                        childNode.type === 'sideProductNode' ? 100 : 100);
+
+                minX = Math.min(minX, childNode.position.x);
+                minY = Math.min(minY, childNode.position.y);
+                maxX = Math.max(maxX, childNode.position.x + width);
+                maxY = Math.max(maxY, childNode.position.y + height);
+            });
+
+            // Add padding
+            const padding = 30;
+            minX -= padding;
+            minY -= padding;
+            maxX += padding;
+            maxY += padding;
+
+            // Calculate compound node dimensions
+            const compoundWidth = maxX - minX;
+            const compoundHeight = maxY - minY;
+
+            // Update compound node with calculated dimensions
+            const compoundNodeIndex = layoutedNodes.findIndex(n => n.id === node.id);
+            if (compoundNodeIndex !== -1) {
+                layoutedNodes[compoundNodeIndex] = {
+                    ...layoutedNodes[compoundNodeIndex],
+                    data: {
+                        ...layoutedNodes[compoundNodeIndex].data,
+                        width: compoundWidth,
+                        height: compoundHeight
+                    }
+                };
+            }
+
+            // Fix child positions to be relative to compound node
+            childLayout.forEach(childNode => {
+                // Get absolute position (child positions from Dagre are absolute)
+                const absoluteX = childNode.position.x;
+                const absoluteY = childNode.position.y;
+
+                // Calculate relative position within compound node
+                const relativeX = absoluteX - minX - padding;
+                const relativeY = absoluteY - minY - padding;
+
+                // Add to layouted nodes with relative position
+                layoutedNodes.push({
+                    ...childNode,
+                    position: { x: relativeX, y: relativeY }
+                });
+            });
+        }
+    });
+
+    return {
+        layoutedNodes,
+        layoutedEdges: edges
+    };
+}
+
+// Helper function to layout a group of nodes using Dagre
+function layoutNodesWithDagre(nodes: Node[], allEdges: Edge[], config: DagreConfig): Node[] {
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-    // Set graph direction and other configurations
     dagreGraph.setGraph({
-        rankdir: config.rankdir, // 'TB' (top to bottom) for your outflow->inflow hierarchy
+        rankdir: config.rankdir,
         nodesep: config.nodesep,
         ranksep: config.ranksep,
         edgesep: config.edgesep,
@@ -21,85 +126,51 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         ranker: config.ranker,
     });
 
-    // First, we'll only add parent nodes to dagre for layout
-    // Create a map to track parent-child relationships
-    const parentChildMap = new Map<string, Node[]>();
-
-    // Group nodes by their parent
+    // Add nodes to dagre
     nodes.forEach(node => {
-        if (node.parentId) {
-            if (!parentChildMap.has(node.parentId)) {
-                parentChildMap.set(node.parentId, []);
-            }
-            parentChildMap.get(node.parentId)?.push(node);
-        }
-    });
-
-    // Add only parent nodes to dagre
-    const parentNodes = nodes.filter(node => !node.parentId);
-    parentNodes.forEach(node => {
-        // Calculate the width and height, considering child nodes if necessary
-        let width = node.measured?.width ||
+        const width = node.measured?.width ||
             (node.type === 'processNode' ? 250 :
                 node.type === 'sideProductNode' ? 200 :
                     node.type === 'compoundNode' ? 400 : 300);
 
-        let height = node.measured?.height ||
+        const height = node.measured?.height ||
             (node.type === 'processNode' ? 120 :
                 node.type === 'sideProductNode' ? 100 :
                     node.type === 'compoundNode' ? 300 : 150);
 
-        // If this is a compound node, make sure it's large enough to fit children
-        if (node.type === 'compoundNode' && parentChildMap.has(node.id)) {
-            // You may want to adjust this logic based on your specific layout needs
-            width = Math.max(width, typeof node.data.width === 'number' ? node.data.width : 400);
-            height = Math.max(height, typeof node.data.height === 'number' ? node.data.height : 300);
-        }
-
         dagreGraph.setNode(node.id, { width, height });
     });
 
-    // Add edges between parent nodes
-    edges.forEach(edge => {
-        const sourceNode = nodes.find(n => n.id === edge.source);
-        const targetNode = nodes.find(n => n.id === edge.target);
+    // Filter relevant edges for these nodes
+    const nodeIds = new Set(nodes.map(node => node.id));
+    const relevantEdges = allEdges.filter(
+        edge => nodeIds.has(edge.source) && nodeIds.has(edge.target)
+    );
 
-        // Only add edges between parent nodes (not child nodes)
-        if (sourceNode && targetNode && !sourceNode.parentId && !targetNode.parentId) {
-            dagreGraph.setEdge(edge.source, edge.target);
-        }
+    // Add edges to dagre
+    relevantEdges.forEach(edge => {
+        dagreGraph.setEdge(edge.source, edge.target);
     });
 
-    // Run the dagre layout algorithm
+    // Run layout
     dagre.layout(dagreGraph);
 
-    // Apply the calculated layout to the parent nodes and position children within parents
-    const layoutedNodes = nodes.map(node => {
-        // If it's a parent node, apply dagre layout
-        if (!node.parentId) {
-            const nodeWithPosition = dagreGraph.node(node.id);
+    // Apply the calculated layout to the nodes
+    return nodes.map(node => {
+        const dagreNode = dagreGraph.node(node.id);
 
-            if (nodeWithPosition) {
-                return {
-                    ...node,
-                    position: {
-                        x: nodeWithPosition.x - nodeWithPosition.width / 2,
-                        y: nodeWithPosition.y - nodeWithPosition.height / 2
-                    }
-                };
-            }
+        if (dagreNode) {
+            return {
+                ...node,
+                position: {
+                    x: dagreNode.x - dagreNode.width / 2,
+                    y: dagreNode.y - dagreNode.height / 2
+                }
+            };
         }
-        // If it's a child node, keep its position relative to parent
-        // Child node positions should be specified in your node creation
-        // and remain untouched by the layout algorithm
 
         return node;
     });
-
-    return {
-        layoutedNodes,
-        layoutedEdges: edges
-    };
 }
 
 export default applyDagreLayout;
