@@ -21,8 +21,9 @@ const useProcessNodeBuilder = () => {
         parentNodeProductId: string,
         handleSelectProcess: (processId: string, nodeId: string) => void,
         handleSerialize: (focalProductId: string) => void,
-    ): Promise<{ processNode: Node, productNodes: Node[], sideProductNodes: Node[] } | null> => {
+    ): Promise<{ compoundNode: Node, processNode: Node, productNodes: Node[], sideProductNodes: Node[] } | null> => {
         try {
+
             const [processDetails, inputProducts] = await Promise.all([
                 getProcessDetails(selectedProcessId),
                 getInputsByProcessId(selectedProcessId)
@@ -33,28 +34,33 @@ const useProcessNodeBuilder = () => {
             ]);
 
             const processNodeId = generateUniqueId();
+            const compoundNodeId = `compound-${processNodeId}`;
 
             const inflowIds: string[] = [];
             const outflowIds: string[] = [];
 
             const output = processDetails.outputs.find(output => output.productId === parentNodeProductId);
-            // console.log(`### ProcessNode builder Step 1 ###
-            //     \nparentId: ${parentNodeProductId}
-            //     \noutput.productId: ${output?.productId}
-            //     \nprocessDetails: `,processDetails,`
-            //     \noutputs: `,processDetails.outputs,`
-            //     \noutput: `, output );
 
             const outputUnitsPerSR = output ? parseFloat(output.unitsPerSR) : 0;
-            // console.log(`### ProcessNode builder Step 2 ###\noutput.unitsPerSR: ${output?.unitsPerSR}\noutputUnitsPerSR: ${outputUnitsPerSR}`);
 
             const totalRuns = parentNodeAmount / outputUnitsPerSR || 1;
-            // console.log(`### ProcessNode builder Step 3 ###\noutput: ${output}\noutputUnitsPerSR: ${outputUnitsPerSR}\ntotalRuns: ${totalRuns}`);
+
+            // Create compound node
+            const compoundNode: Node = {
+                id: compoundNodeId,
+                type: 'compoundNode',
+                position: { x: 0, y: 0 },
+                data: {
+                    id: compoundNodeId,
+                    width: 400,  // Default width, will be measured/adjusted by layout
+                    height: 300, // Default height, will be measured/adjusted by layout
+                    processId: processNodeId
+                }
+            };
 
             // Build input ProductNodes
             const productNodesPromises = inputProducts.map(async (inputProduct) => {
                 const amount = parseFloat(inputProduct.unitsPerSR) * totalRuns;
-                // console.log(`### ProcessNode builder Step 4 ###\ninputProduct:`, inputProduct ,`\ninputProduct.unitsPerSR: `, inputProduct.unitsPerSR ,`\namount: ${amount}`);
 
                 const productNode = await buildProductNode(
                     inputProduct.product.id,
@@ -97,6 +103,7 @@ const useProcessNodeBuilder = () => {
                         const newSideProductNode = {
                             ...sideProductNode,
                             type: 'sideProductNode',
+                            parentId: compoundNodeId,
                             data: {
                                 ...sideProductNode.data,
                                 ancestorIds: [processNodeId], // The process node is the ancestor
@@ -113,7 +120,7 @@ const useProcessNodeBuilder = () => {
             // After all product nodes are created
             const productNodes = (await Promise.all(productNodesPromises)).filter(Boolean) as Node[];
             const sideProductNodes = (await Promise.all(sideProductNodesPromises)).filter(Boolean) as Node[];
-            console.log(`[SideProducts] Finished creating ${sideProductNodes.length} side product nodes:`, 
+            console.log(`[SideProducts] Finished creating ${sideProductNodes.length} side product nodes:`,
                 sideProductNodes.map(n => ({ id: n.id, productId: (n.data as { productDetails: { id: string } }).productDetails.id })));
 
             // Update the process node
@@ -121,6 +128,7 @@ const useProcessNodeBuilder = () => {
                 id: processNodeId,
                 type: 'processNode',
                 position: { x: 0, y: 0 },
+                parentId: compoundNodeId,
                 data: {
                     processDetails,
                     inputProducts,
@@ -132,7 +140,12 @@ const useProcessNodeBuilder = () => {
                 },
             };
 
-            return { processNode: newProcessNode, productNodes, sideProductNodes };
+            return { 
+                compoundNode,
+                processNode: newProcessNode, 
+                productNodes, 
+                sideProductNodes 
+            };
         } catch (err) {
             console.error('[useProcessNodeBuilder] Error:', err);
             return null;

@@ -6,10 +6,9 @@ import { ProductNode } from '@/components/TreeVisualizer/ProductNode';
 import { ProcessNode } from '@/components/TreeVisualizer/ProcessNode';
 
 interface ProcessNodeCreationResult {
-  processNode: ProcessNode;
-  productNodes: ProductNode[];
-  sideProductNodes?: ProductNode[];
+  nodes: Array<any>; // Use a more general type to include all node types
   edges: Edge[];
+  logicalParentId: string;
 }
 
 export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
@@ -55,78 +54,45 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
         throw new Error('Failed to build process node');
       }
 
+      // Collect all nodes
+      const allNodes = [
+        result.compoundNode,
+        result.processNode,
+        ...result.productNodes,
+        ...result.sideProductNodes
+      ];
+
       // Create edges for connecting the nodes
       const newEdges: Edge[] = [];
 
-      // Create edges between the process node and its input product nodes
+      // Create edge between parent product node and compound node (not directly to process)
+      newEdges.push({
+        id: `edge-${logicalParentId}-${result.compoundNode.id}`,
+        source: logicalParentId,
+        target: result.compoundNode.id,
+        type: 'custom',
+      });
+
+      // Create edges between the compound node and input product nodes
       result.productNodes.forEach(productNode => {
         newEdges.push({
-          id: `edge-${result.processNode.id}-${productNode.id}`,
-          source: result.processNode.id,
+          id: `edge-${result.compoundNode.id}-${productNode.id}`,
+          source: result.compoundNode.id,
+          sourceHandle: `compound-source-${result.compoundNode.id}`,
           target: productNode.id,
           type: 'custom',
         });
       });
 
-      // Create edges between the process node and side product nodes
-      // Mark these edges as side product connections
-      result.sideProductNodes?.forEach(sideProductNode => {
-        newEdges.push({
-          id: `edge-${sideProductNode.id}-${result.processNode.id}`,
-          source: sideProductNode.id,
-          sourceHandle: `source-${sideProductNode.id}`,
-          target: result.processNode.id,
-          targetHandle: `target-side-product-${result.processNode.id}`,
-          type: 'custom',
-          data: {
-            isSideProductConnection: true
-          }
-        });
-      });
-
-      // Create edge between parent product node and process node
-      newEdges.push({
-        id: `edge-${logicalParentId}-${result.processNode.id}`,
-        source: logicalParentId,
-        target: result.processNode.id,
-        type: 'custom',
-      });
-
       return {
-        processNode: {
-          ...result.processNode,
-          data: {
-            ...result.processNode.data,
-            totalDuration: result.processNode.data.totalDuration || 0,
-            totalRuns: result.processNode.data.totalRuns || 0,
-            image: result.processNode.data.image || '',
-            processDetails: result.processNode.data.processDetails || null,
-            inputProducts: result.processNode.data.inputProducts || [],
-          }
-        } as ProcessNode,
-        productNodes: result.productNodes.map(node => ({
-          ...node,
-          data: {
-            ...node.data,
-            amount: node.data.amount || 0,
-            totalWeight: node.data.totalWeight || 0,
-            totalVolume: node.data.totalVolume || 0,
-            image: node.data.image || '',
-            productDetails: node.data.productDetails || null,
-          }
-        })) as ProductNode[],
-        sideProductNodes: result.sideProductNodes.map(node => ({
-          ...node,
-          data: {
-            ...node.data,
-            amount: node.data.amount || 0,
-            totalWeight: node.data.totalWeight || 0,
-            totalVolume: node.data.totalVolume || 0,
-            image: node.data.image || '',
-            productDetails: node.data.productDetails || null,
-          }
-        })) as ProductNode[],
-        edges: newEdges
+        nodes: [
+          result.compoundNode,
+          result.processNode,
+          ...result.productNodes,
+          ...result.sideProductNodes
+        ],
+        edges: newEdges,
+        logicalParentId  // Make sure to include this for node replacement logic
       };
     } catch (error) {
       console.error('Error creating process node:', error);

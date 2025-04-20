@@ -73,11 +73,9 @@ export type FlowAction =
   | { type: 'BATCH_UPDATE'; payload: Partial<FlowState> }
   | {
     type: 'PROCESS_SELECTED'; payload: {
-      processNode: Node,
-      productNodes: Node[],
-      sideProductNodes?: Node[],
+      nodes: Node[],
+      edges: Edge[],
       logicalParentId: string,
-      edges: Edge[]
     }
   }
   // dedicated action types for React Flow operations
@@ -227,74 +225,49 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
     case 'BATCH_UPDATE':
       return { ...state, ...action.payload };
     case 'PROCESS_SELECTED': {
-      const { processNode, productNodes, logicalParentId, edges } = action.payload;
-      const sideProductNodes = action.payload.sideProductNodes || [];
+      const { nodes, edges, logicalParentId } = action.payload;
 
-      // Find the existing ProcessNode with the same data.logicalParentId
-      const existingProcessNode = state.nodes.find(
-        (node) => node.data.logicalParentId === logicalParentId && node.type === 'processNode'
+      const compoundNode = nodes.find(node => node.type === 'compoundNode');
+
+      if (!compoundNode) {
+        console.error('Compound node not found in PROCESS_SELECTED payload');
+        return state;
+      }
+
+      // Find the existing ProcessNode with the same data.logicalParentId if any
+      const existingCompoundNode = state.nodes.find(
+        (node) => node.type === 'compoundNode' && 
+                  node.data.logicalParentId === logicalParentId
       );
 
       let updatedNodes = [...state.nodes];
-      let updatedEdges = [...edges];
+      let updatedEdges = [...state.edges];
 
-      if (existingProcessNode) {
-        // Get all outflow IDs
-        const outflowIds = getOutflowIds(existingProcessNode.id, updatedNodes);
+      if (existingCompoundNode) {
+        // Remove existing compound node, process node, side products and their edges
+        const nodesToRemove = [existingCompoundNode.id];
 
-        // Remove existing ProcessNode and its outflows
+        // Find all child nodes of the compound node
+        state.nodes.forEach(node => {
+          if (node.parentId === existingCompoundNode.id) {
+            nodesToRemove.push(node.id);
+          }
+        });
+
+        // Remove nodes
         updatedNodes = updatedNodes.filter(
-          (node) => ![existingProcessNode.id, ...outflowIds].includes(node.id)
+          (node) => !nodesToRemove.includes(node.id)
         );
 
         // Remove connected edges
         updatedEdges = updatedEdges.filter(
-          (edge) => ![existingProcessNode.id, ...outflowIds].includes(edge.source)
+          (edge) => !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target)
         );
       }
 
-      // Add the new ProcessNode and its child ProductNodes
-      updatedNodes = [...updatedNodes, processNode, ...productNodes, ...sideProductNodes];
-
-      // Create edges between the ProcessNode and each ProductNode
-      const newProductEdges = productNodes.map((productNode) => ({
-        id: `edge-${processNode.id}-${productNode.id}`,
-        source: processNode.id,
-        target: productNode.id,
-        type: 'custom',
-      }));
-
-      // Create edges between the ProcessNode and each SideProductNode
-      const sideProductEdges = sideProductNodes.map((sideProductNode) => ({
-        id: `edge-${sideProductNode.id}-${processNode.id}`,
-        source: sideProductNode.id,
-        sourceHandle: `source-${sideProductNode.id}`,
-        target: processNode.id,
-        targetHandle: `target-side-product-${processNode.id}`,
-        type: 'custom',
-        data: {
-          isSideProductConnection: true
-        }
-      }));
-
-      updatedEdges = [...updatedEdges, ...newProductEdges, ...sideProductEdges];
-
-      // Add edge between parent ProductNode and ProcessNode
-      updatedEdges.push({
-        id: `edge-${logicalParentId}-${processNode.id}`,
-        source: logicalParentId,
-        target: processNode.id,
-        type: 'custom',
-      });
-
-      // Update inflowIds in parent ProductNode
-      const parentProductNode = updatedNodes.find(
-        (node) => node.id === logicalParentId && node.type === 'productNode'
-      );
-
-      if (parentProductNode) {
-        parentProductNode.data.inflowIds = [processNode.id];
-      }
+      // Add all the new nodes and edges
+      updatedNodes = [...updatedNodes, ...nodes];
+      updatedEdges = [...updatedEdges, ...edges];
 
       return {
         ...state,
@@ -323,7 +296,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
           saveStatus: 'pending',
         };
       }
-      
+
       console.error('Invalid payload for SAVE_PRODUCTION_CHAIN action');
       return state;
     };
@@ -487,7 +460,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!productId) {
           throw new Error('Product ID is undefined');
         }
-        
+
         const enhancedNode = await createProductNode(productId, amount, isRoot);
 
         if (!enhancedNode) return; // Creation failed or was cancelled
@@ -556,9 +529,9 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const parentNodeProductId = (parentNode.data.productDetails as { id: string } | undefined)?.id || '';
 
         const result = await createProcessNode(
-          processId, 
-          logicalParentId, 
-          parentNodeAmount, 
+          processId,
+          logicalParentId,
+          parentNodeAmount,
           parentNodeProductId,
         );
 
@@ -569,11 +542,9 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         dispatch({
           type: 'PROCESS_SELECTED',
           payload: {
-            processNode: result.processNode,
-            productNodes: result.productNodes,
-            sideProductNodes: result.sideProductNodes,
-            logicalParentId,
-            edges: state.edges
+            nodes: state.nodes,
+            edges: state.edges,
+            logicalParentId
           }
         });
 

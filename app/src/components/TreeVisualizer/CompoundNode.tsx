@@ -1,18 +1,17 @@
 import React from 'react';
-import { Node, NodeProps } from '@xyflow/react';
-import { Handle, Position } from '@xyflow/react';
+import { Node, NodeProps, Handle, Position } from '@xyflow/react';
 
 export interface CompoundNodeData {
     id: string;
     width: string | number;
     height: string | number;
-    children: React.ReactNode;
+    children: []
     [key: string]: unknown; // Allow for additional properties
 }
 
 export type CompoundNode = Node<CompoundNodeData>;
 
-const CompoundNode: React.FC<NodeProps<CompoundNode>> = ({ data }) => {
+const CompoundNode: React.FC<NodeProps<CompoundNode>> = ({ data, id }) => {
     return (
       <div 
         className="compound-node"
@@ -30,17 +29,14 @@ const CompoundNode: React.FC<NodeProps<CompoundNode>> = ({ data }) => {
           type="target"
           position={Position.Top}
           style={{ background: '#555' }}
-          id={`compound-target-${data.id}`}
+          id={`compound-target-${id}`}
         />
         <Handle
           type="source"
           position={Position.Bottom}
           style={{ background: '#555' }}
-          id={`compound-source-${data.id}`}
+          id={`compound-source-${id}`}
         />
-        
-        {/* Children (process node and its side products) are rendered inside */}
-        {data.children}
       </div>
     );
   };
