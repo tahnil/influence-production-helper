@@ -22,8 +22,8 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     const parentNodes = nodesByParent.get(null) || [];
     const layoutedNodes = [...layoutNodesWithDagre(parentNodes, edges, config)];
 
-    // Create a map of node positions for quick lookup
-    const nodePositions = new Map(layoutedNodes.map(node => [node.id, node.position]));
+    // New edges to be created (including side product edges)
+    const layoutedEdges = [...edges];
 
     // Now process each compound node's children
     nodes.forEach(node => {
@@ -31,73 +31,113 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
             const childNodes = nodesByParent.get(node.id) || [];
             if (childNodes.length === 0) return;
 
-            // Layout children with Dagre
-            const childLayout = layoutNodesWithDagre(childNodes, edges, {
-                ...config,
-                rankdir: 'TB', // Use consistent direction for children
-                marginx: 20,
-                marginy: 20
-            });
+            // Separate process nodes and side product nodes
+            const processNodes = childNodes.filter(child => child.type === 'processNode');
+            const sideProductNodes = childNodes.filter(child => child.type === 'sideProductNode');
+            const otherNodes = childNodes.filter(child =>
+                child.type !== 'processNode' && child.type !== 'sideProductNode'
+            );
 
-            // Find bounds of the laid out children
-            let minX = Number.POSITIVE_INFINITY;
-            let minY = Number.POSITIVE_INFINITY;
-            let maxX = Number.NEGATIVE_INFINITY;
-            let maxY = Number.NEGATIVE_INFINITY;
+            // Position process node in the center-left of the compound
+            if (processNodes.length > 0) {
+                const processNode = processNodes[0]; // Assuming one process node per compound
 
-            childLayout.forEach(childNode => {
-                const width = childNode.measured?.width ||
-                    (childNode.type === 'processNode' ? 250 :
-                        childNode.type === 'sideProductNode' ? 200 : 150);
+                // Get process node dimensions
+                const processWidth = processNode.measured?.width || 250;
+                const processHeight = processNode.measured?.height || 120;
 
-                const height = childNode.measured?.height ||
-                    (childNode.type === 'processNode' ? 120 :
-                        childNode.type === 'sideProductNode' ? 100 : 100);
+                // Position the process node (center-left position)
+                const processPos = { x: 30, y: 30 };
 
-                minX = Math.min(minX, childNode.position.x);
-                minY = Math.min(minY, childNode.position.y);
-                maxX = Math.max(maxX, childNode.position.x + width);
-                maxY = Math.max(maxY, childNode.position.y + height);
-            });
+                // Add the process node to layouted nodes
+                layoutedNodes.push({
+                    ...processNode,
+                    position: processPos
+                });
 
-            // Add padding
-            const padding = 30;
-            minX -= padding;
-            minY -= padding;
-            maxX += padding;
-            maxY += padding;
+                // Layout side products to the right of the process node
+                if (sideProductNodes.length > 0) {
+                    const spacing = 20; // Space between side products
+                    const sideProductWidth = sideProductNodes[0].measured?.width || 200;
+                    const sideProductHeight = sideProductNodes[0].measured?.height || 100;
 
-            // Calculate compound node dimensions
-            const compoundWidth = maxX - minX;
-            const compoundHeight = maxY - minY;
+                    // Calculate compound node width based on process and side products
+                    const compoundWidth = processPos.x + processWidth + 20 +
+                        (sideProductNodes.length * (sideProductWidth + spacing));
 
-            // Update compound node with calculated dimensions
-            const compoundNodeIndex = layoutedNodes.findIndex(n => n.id === node.id);
-            if (compoundNodeIndex !== -1) {
-                layoutedNodes[compoundNodeIndex] = {
-                    ...layoutedNodes[compoundNodeIndex],
-                    data: {
-                        ...layoutedNodes[compoundNodeIndex].data,
-                        width: compoundWidth,
-                        height: compoundHeight
+                    // Calculate compound node height to fit the tallest element plus padding
+                    const compoundHeight = Math.max(
+                        processPos.y + processHeight + 30,
+                        60 + sideProductHeight + 30
+                    );
+
+                    // Position side product nodes horizontally to the right of the process node
+                    sideProductNodes.forEach((sideProductNode, index) => {
+                        const sideProductPos = {
+                            x: processPos.x + processWidth + 20 + (index * (sideProductWidth + spacing)),
+                            y: 60 // Align vertically to look good with the process node
+                        };
+
+                        layoutedNodes.push({
+                            ...sideProductNode,
+                            position: sideProductPos
+                        });
+
+                        // Create an edge from process node to side product node
+                        const edgeId = `edge-${sideProductNode.id}-${processNode.id}`;
+
+                        // Check if edge already exists
+                        const edgeExists = layoutedEdges.some(edge =>
+                            edge.id === edgeId ||
+                            (edge.source === processNode.id && edge.target === sideProductNode.id)
+                        );
+
+                        if (!edgeExists) {
+                            layoutedEdges.push({
+                                id: edgeId,
+                                source: processNode.id,
+                                target: sideProductNode.id,
+                                sourceHandle: `target-side-product-${processNode.id}`, // Right handle of process node
+                                targetHandle: `source-${sideProductNode.id}`, // Left handle of side product node
+                                type: 'custom',
+                                data: { isSideProductConnection: true }
+                            });
+                        }
+                    });
+
+                    // Update compound node dimensions
+                    const compoundNodeIndex = layoutedNodes.findIndex(n => n.id === node.id);
+                    if (compoundNodeIndex !== -1) {
+                        layoutedNodes[compoundNodeIndex] = {
+                            ...layoutedNodes[compoundNodeIndex],
+                            data: {
+                                ...layoutedNodes[compoundNodeIndex].data,
+                                width: compoundWidth,
+                                height: compoundHeight
+                            }
+                        };
                     }
-                };
+                } else {
+                    // If no side products, size the compound to fit just the process node
+                    const compoundNodeIndex = layoutedNodes.findIndex(n => n.id === node.id);
+                    if (compoundNodeIndex !== -1) {
+                        layoutedNodes[compoundNodeIndex] = {
+                            ...layoutedNodes[compoundNodeIndex],
+                            data: {
+                                ...layoutedNodes[compoundNodeIndex].data,
+                                width: processPos.x + processWidth + 30,
+                                height: processPos.y + processHeight + 30
+                            }
+                        };
+                    }
+                }
             }
 
-            // Fix child positions to be relative to compound node
-            childLayout.forEach(childNode => {
-                // Get absolute position (child positions from Dagre are absolute)
-                const absoluteX = childNode.position.x;
-                const absoluteY = childNode.position.y;
-
-                // Calculate relative position within compound node
-                const relativeX = absoluteX - minX - padding;
-                const relativeY = absoluteY - minY - padding;
-
-                // Add to layouted nodes with relative position
+            // Add other child nodes if there are any
+            otherNodes.forEach(otherNode => {
                 layoutedNodes.push({
-                    ...childNode,
-                    position: { x: relativeX, y: relativeY }
+                    ...otherNode,
+                    position: { x: 20, y: 20 } // Default position for other nodes
                 });
             });
         }
@@ -105,7 +145,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
 
     return {
         layoutedNodes,
-        layoutedEdges: edges
+        layoutedEdges
     };
 }
 
