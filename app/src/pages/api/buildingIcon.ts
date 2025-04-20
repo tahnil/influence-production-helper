@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Read the SVG file
         const fileData = fs.readFileSync(filePath);
-        const base64Image = Buffer.from(fileData).toString('base64');
+        const base64Image = fileData.toString('base64');
 
         res.status(200).json({ base64Image: `data:image/svg+xml;base64,${base64Image}` });
     } catch (error) {

@@ -6,18 +6,18 @@ import { formatNumber } from '@/utils/formatNumber';
 import Image from 'next/image';
 import { InfluenceProduct } from '@/types/influenceTypes';
 import { ArrowUpRight } from 'lucide-react';
+import { BaseNodeData } from '@/types/reactFlowTypes';
 
-export type SideProductNode = Node<{
-  logicalParentId: string | undefined;
+export interface SideProductNodeData extends BaseNodeData {
   amount: number;
   totalWeight: number;
   totalVolume: number;
   image: string;
   productDetails: InfluenceProduct;
-  handleSelectProcess: (processId: string, nodeId: string) => void;
-  handleSerialize: (focalProductId: string) => Promise<void>;
   ancestorIds?: string[];
-}>;
+}
+
+export type SideProductNode = Node<SideProductNodeData>;
 
 const SideProductNode: React.FC<NodeProps<SideProductNode>> = ({ id, data }) => {
   const { productDetails, amount, totalWeight, totalVolume, image } = data;

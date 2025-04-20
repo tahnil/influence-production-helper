@@ -1,7 +1,5 @@
 // utils/TreeVisualizer/getMatchingConfigurations.ts
 
-import PouchDB from 'pouchdb';
-
 interface SavedConfig {
   _id: string;
   _rev: string;

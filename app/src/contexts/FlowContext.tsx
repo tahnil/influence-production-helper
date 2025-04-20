@@ -9,7 +9,7 @@ import {
   applyEdgeChanges,
   addEdge
 } from '@xyflow/react';
-import { getOutflowIds } from '@/utils/TreeVisualizer/getOutflowIds';
+import { getOutflowIds } from '@/utils/TreeVisualizer/nodeHelpers';
 import { DagreConfig } from '@/hooks/useDagreConfig';
 import { usePouchDB } from '@/contexts/PouchDBContext';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';

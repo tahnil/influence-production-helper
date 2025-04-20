@@ -1,12 +1,8 @@
 // components/TreeVisualizer/PouchDbViewer.tsx
 
 import React, { useState, useEffect } from 'react';
-import { usePouchDB } from '@/contexts/PouchDBContext';
 import Modal from '@/components/ui/modal';
-import useInfluenceProductDetails from '@/hooks/useInfluenceProductDetails';
-import useProcessDetails from '@/hooks/useProcessDetails';
 import { Node, Edge } from '@xyflow/react';
-import { InfluenceNode, ProcessNode, ProcessNodeData, ProductNode, ProductNodeData } from '@/types/reactFlowTypes';
 import { EyeIcon, Trash2Icon, RefreshCwIcon } from 'lucide-react';
 import {
   AlertDialog,
@@ -20,7 +16,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { InfluenceNode } from '@/types/reactFlowTypes';
+import { ProcessNode, ProcessNodeData } from './ProcessNode';
+import { ProductNode, ProductNodeData } from './ProductNode';
+import { SideProductNode, SideProductNodeData } from './SideProductNode';
 import { useFlow } from '@/contexts/FlowContext';
+import { usePouchDB } from '@/contexts/PouchDBContext';
+import useInfluenceProductDetails from '@/hooks/useInfluenceProductDetails';
+import useProcessDetails from '@/hooks/useProcessDetails';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
 
 interface ConfigNode {

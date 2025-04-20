@@ -1,7 +1,8 @@
 // utils/TreeVisualizer/calculateDesiredAmount.ts
 
 import { Node } from '@xyflow/react';
-import { ProductNode, ProcessNode } from '@/types/reactFlowTypes';
+import { ProductNode } from '@/components/TreeVisualizer/ProductNode';
+import { ProcessNode } from '@/components/TreeVisualizer/ProcessNode';
 import { SideProductNode } from '@/components/TreeVisualizer/SideProductNode';
 
 export default function calculateDesiredAmount(nodes: Node[], desiredAmount: number, rootNodeId: string): Node[] {

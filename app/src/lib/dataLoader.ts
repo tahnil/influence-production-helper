@@ -2,7 +2,7 @@
 
 import path from 'path';
 import fs from 'fs';
-import { ProductionChain } from '../types/types';
+import { ProductionChain } from '../types/influenceTypes';
 
 const productionChainsPath = path.resolve(process.cwd(), 'src/sdk/productionChains.json');
 

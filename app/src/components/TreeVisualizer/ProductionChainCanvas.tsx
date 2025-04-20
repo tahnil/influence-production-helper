@@ -10,10 +10,10 @@ import ControlPanel from './ControlPanel';
 import LayoutConfigPanel from './LayoutConfigPanel';
 import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
 import debounce from '@/utils/TreeVisualizer/debounce';
-import '@xyflow/react/dist/style.css';
 import { useFlow } from '@/contexts/FlowContext';
 import { usePouchDB } from '@/contexts/PouchDBContext';
 import { useDagreConfig } from '@/hooks/useDagreConfig';
+import '@xyflow/react/dist/style.css';
 
 const nodeTypes = {
     productNode: ProductNode,
