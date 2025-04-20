@@ -1,11 +1,15 @@
 import React from 'react';
 import { Node, NodeProps, Handle, Position } from '@xyflow/react';
+import { InfluenceNode } from '@/types/reactFlowTypes';
 
 export interface CompoundNodeData {
     id: string;
-    width: string | number;
-    height: string | number;
-    children: []
+    children: [];
+    childrenLayout?: {
+        children: InfluenceNode[];
+        offsetX: number;
+        offsetY: number;
+    };
     [key: string]: unknown; // Allow for additional properties
 }
 
@@ -17,8 +21,6 @@ const CompoundNode: React.FC<NodeProps<CompoundNode>> = ({ data, id }) => {
         className="compound-node"
         style={{
           position: 'relative',
-          width: data.width,
-          height: data.height,
           background: 'rgba(0, 0, 0, 0.2)', // Very subtle background
           borderRadius: '8px',
           padding: '10px'

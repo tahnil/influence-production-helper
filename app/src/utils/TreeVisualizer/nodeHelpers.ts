@@ -1,7 +1,7 @@
 // utils/nodeManipulationHelpers.ts
 
 import { Node } from '@xyflow/react';
-import { InfluenceNode} from '@/types/reactFlowTypes';
+import { InfluenceNode } from '@/types/reactFlowTypes';
 
 // ### Part 1 ###
 // Generic Node Manipulation Functions
@@ -44,7 +44,7 @@ export const findNodeById = (
 
 // Get direct parent nodes (outflows)
 export const getDirectParentNodes = (
-    nodes: InfluenceNode[], 
+    nodes: InfluenceNode[],
     nodeId: string
 ): InfluenceNode[] => {
     const node = nodes.find(n => n.id === nodeId);
@@ -55,7 +55,7 @@ export const getDirectParentNodes = (
 
 // Get direct child nodes (inflows)
 export const getDirectChildNodes = (
-    nodes: InfluenceNode[], 
+    nodes: InfluenceNode[],
     nodeId: string
 ): InfluenceNode[] => {
     const node = nodes.find(n => n.id === nodeId);
@@ -66,7 +66,7 @@ export const getDirectChildNodes = (
 
 // Add a node id to outflows
 export const addOutflow = (
-    node: InfluenceNode, 
+    node: InfluenceNode,
     outflowId: string
 ): InfluenceNode => {
     if (!node.data.outflowIds) {
@@ -80,12 +80,12 @@ export const addOutflow = (
 
 // Remove a node id from outflows
 export const removeOutflow = (
-    node: InfluenceNode, 
+    node: InfluenceNode,
     outflowId: string
 ): InfluenceNode => {
     if (node.data.outflowIds) {
-        node.data.outflowIds = Array.isArray(node.data.outflowIds) 
-            ? node.data.outflowIds.filter(id => id !== outflowId) 
+        node.data.outflowIds = Array.isArray(node.data.outflowIds)
+            ? node.data.outflowIds.filter(id => id !== outflowId)
             : [];
     }
     return { ...node };
@@ -93,7 +93,7 @@ export const removeOutflow = (
 
 // Add a node id to inflows
 export const addInflow = (
-    node: InfluenceNode, 
+    node: InfluenceNode,
     inflowId: string
 ): InfluenceNode => {
     if (!node.data.inflowIds) {
@@ -107,12 +107,12 @@ export const addInflow = (
 
 // Remove a node id from inflows
 export const removeInflow = (
-    node: InfluenceNode, 
+    node: InfluenceNode,
     inflowId: string
 ): InfluenceNode => {
     if (node.data.inflowIds) {
-        node.data.inflowIds = Array.isArray(node.data.inflowIds) 
-            ? node.data.inflowIds.filter(id => id !== inflowId) 
+        node.data.inflowIds = Array.isArray(node.data.inflowIds)
+            ? node.data.inflowIds.filter(id => id !== inflowId)
             : [];
     }
     return { ...node };
@@ -136,8 +136,8 @@ export const traverseNodes = (
 
         result.push(node);
 
-        const idsToTraverse: string[] = direction === 'inflows' 
-            ? (Array.isArray(node.data.inflowIds) ? node.data.inflowIds : []) 
+        const idsToTraverse: string[] = direction === 'inflows'
+            ? (Array.isArray(node.data.inflowIds) ? node.data.inflowIds : [])
             : (Array.isArray(node.data.outflowIds) ? node.data.outflowIds : []);
         if (idsToTraverse) {
             idsToTraverse.forEach(id => traverse(id));
@@ -173,8 +173,13 @@ export const sortNodesByHierarchy = (nodes: InfluenceNode[]): InfluenceNode[] =>
         const node = nodeMap.get(nodeId);
         if (!node) return;
 
-        if (node.data.logicalParentId && !visited.has(node.data.logicalParentId)) {
+        if (typeof node.data.logicalParentId === 'string'
+            && node.data.logicalParentId
+            && !visited.has(node.data.logicalParentId)) {
             visit(node.data.logicalParentId);
+        } else {
+            console.error(`Node ${nodeId} has no logical parent ID or is not a string.`);
+            throw new Error(`Node ${nodeId} has no logical parent ID or is not a string.`);
         }
 
         sorted.push(node);
