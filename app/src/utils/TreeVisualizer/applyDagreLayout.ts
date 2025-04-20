@@ -1,4 +1,5 @@
 import { DagreConfig } from '@/hooks/useDagreConfig';
+import { InfluenceNode } from '@/types/reactFlowTypes';
 import dagre from '@dagrejs/dagre';
 import { Node, Edge } from '@xyflow/react';
 
@@ -20,44 +21,78 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         ranker: config.ranker,
     });
 
-    // Add nodes to the graph
-    nodes.forEach(node => {
-        // Use node width/height from measurement or provide defaults based on node type
-        const width = node.measured?.width ||
-            (node.type === 'processNode' ? 250 :
-                node.type === 'sideProductNode' ? 200 : 300);
+    // First, we'll only add parent nodes to dagre for layout
+    // Create a map to track parent-child relationships
+    const parentChildMap = new Map<string, Node[]>();
 
-        const height = node.measured?.height ||
+    // Group nodes by their parent
+    nodes.forEach(node => {
+        if (node.parentId) {
+            if (!parentChildMap.has(node.parentId)) {
+                parentChildMap.set(node.parentId, []);
+            }
+            parentChildMap.get(node.parentId)?.push(node);
+        }
+    });
+
+    // Add only parent nodes to dagre
+    const parentNodes = nodes.filter(node => !node.parentId);
+    parentNodes.forEach(node => {
+        // Calculate the width and height, considering child nodes if necessary
+        let width = node.measured?.width ||
+            (node.type === 'processNode' ? 250 :
+                node.type === 'sideProductNode' ? 200 :
+                    node.type === 'compoundNode' ? 400 : 300);
+
+        let height = node.measured?.height ||
             (node.type === 'processNode' ? 120 :
-                node.type === 'sideProductNode' ? 100 : 150);
+                node.type === 'sideProductNode' ? 100 :
+                    node.type === 'compoundNode' ? 300 : 150);
+
+        // If this is a compound node, make sure it's large enough to fit children
+        if (node.type === 'compoundNode' && parentChildMap.has(node.id)) {
+            // You may want to adjust this logic based on your specific layout needs
+            width = Math.max(width, typeof node.data.width === 'number' ? node.data.width : 400);
+            height = Math.max(height, typeof node.data.height === 'number' ? node.data.height : 300);
+        }
 
         dagreGraph.setNode(node.id, { width, height });
     });
 
-    // Add edges to the graph
+    // Add edges between parent nodes
     edges.forEach(edge => {
-        dagreGraph.setEdge(edge.source, edge.target);
+        const sourceNode = nodes.find(n => n.id === edge.source);
+        const targetNode = nodes.find(n => n.id === edge.target);
+
+        // Only add edges between parent nodes (not child nodes)
+        if (sourceNode && targetNode && !sourceNode.parentId && !targetNode.parentId) {
+            dagreGraph.setEdge(edge.source, edge.target);
+        }
     });
 
     // Run the dagre layout algorithm
     dagre.layout(dagreGraph);
 
-    // Apply the calculated layout to the nodes
+    // Apply the calculated layout to the parent nodes and position children within parents
     const layoutedNodes = nodes.map(node => {
-        const nodeWithPosition = dagreGraph.node(node.id);
+        // If it's a parent node, apply dagre layout
+        if (!node.parentId) {
+            const nodeWithPosition = dagreGraph.node(node.id);
 
-        // Apply position if node was found in the dagre graph
-        if (nodeWithPosition) {
-            return {
-                ...node,
-                // Offset the position by half the width/height to center node at position
-                position: {
-                    x: nodeWithPosition.x - nodeWithPosition.width / 2,
-                    y: nodeWithPosition.y - nodeWithPosition.height / 2
-                }
-            };
+            if (nodeWithPosition) {
+                return {
+                    ...node,
+                    position: {
+                        x: nodeWithPosition.x - nodeWithPosition.width / 2,
+                        y: nodeWithPosition.y - nodeWithPosition.height / 2
+                    }
+                };
+            }
         }
-        // Return node with original position if not found
+        // If it's a child node, keep its position relative to parent
+        // Child node positions should be specified in your node creation
+        // and remain untouched by the layout algorithm
+
         return node;
     });
 
