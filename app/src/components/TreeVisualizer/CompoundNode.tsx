@@ -1,15 +1,16 @@
 import React from 'react';
 import { Node, NodeProps } from '@xyflow/react';
 import { Handle, Position } from '@xyflow/react';
-// import { CompoundNode } from '@/types/reactFlowTypes';
 
-
-export type CompoundNode = Node<{
+export interface CompoundNodeData {
     id: string;
     width: string | number;
     height: string | number;
     children: React.ReactNode;
-}>;
+    [key: string]: unknown; // Allow for additional properties
+}
+
+export type CompoundNode = Node<CompoundNodeData>;
 
 const CompoundNode: React.FC<NodeProps<CompoundNode>> = ({ data }) => {
     return (
