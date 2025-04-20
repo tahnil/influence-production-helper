@@ -5,6 +5,8 @@ import { InfluenceNode } from '@/types/reactFlowTypes';
 export interface CompoundNodeData {
     id: string;
     children: [];
+    width: number;
+    height: number;
     childrenLayout?: {
         children: InfluenceNode[];
         offsetX: number;
@@ -21,6 +23,8 @@ const CompoundNode: React.FC<NodeProps<CompoundNode>> = ({ data, id }) => {
         className="compound-node"
         style={{
           position: 'relative',
+          width: data.width,
+          height: data.height,
           background: 'rgba(0, 0, 0, 0.2)', // Very subtle background
           borderRadius: '8px',
           padding: '10px'

@@ -151,16 +151,16 @@ function layoutNodesWithDagre(nodes: Node[], edges: Edge[], config: DagreConfig)
         const width = node.measured?.width ||
             (node.type === 'processNode' ? 250 :
                 node.type === 'sideProductNode' ? 200 :
-                    node.type === 'compoundNode' ? (node.width || 400) :
+                    node.type === 'compoundNode' ? (node.data.width || 400) :
                         node.type === 'productNode' ? 300 : 150);
 
         const height = node.measured?.height ||
             (node.type === 'processNode' ? 120 :
                 node.type === 'sideProductNode' ? 100 :
-                    node.type === 'compoundNode' ? (node.height || 200) :
+                    node.type === 'compoundNode' ? (node.data.height || 200) :
                         node.type === 'productNode' ? 150 : 80);
 
-        dagreGraph.setNode(node.id, { width, height });
+        dagreGraph.setNode(node.id, { label: node.id, width: Number(width), height: Number(height) });
     });
 
     // Add edges to dagre
@@ -222,10 +222,19 @@ function calculateCompoundSize(children: Node[]): { width: number, height: numbe
     });
 
     const PADDING = 40; // Padding around children
+    const width = maxX - minX + PADDING * 2;
+    const height = maxY - minY + PADDING * 2;
+
+    // Ensure minimum size
+    const finalWidth = Math.max(width, 400);
+    const finalHeight = Math.max(height, 200);
+
+    console.log('Calculated compound size:',
+        { minX, minY, maxX, maxY, width, height, finalWidth, finalHeight });
 
     return {
-        width: maxX - minX + PADDING * 2,
-        height: maxY - minY + PADDING * 2,
+        width: finalWidth,
+        height: finalHeight,
         offsetX: minX,
         offsetY: minY
     };
