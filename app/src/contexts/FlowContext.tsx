@@ -507,9 +507,10 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!state.pendingNodeCreation || state.pendingNodeCreation.type !== 'process') return;
 
-    const { processId, logicalParentId, includeSideProducts = false } = state.pendingNodeCreation;
+    const { processId, logicalParentId } = state.pendingNodeCreation;
 
     const handleProcessNodeCreation = async () => {
+      console.log('[FlowContext] Starting process node creation by handleProcessNodeCreation');
       try {
         if (!processId) {
           throw new Error('Process ID is undefined');
@@ -525,25 +526,29 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error(`Parent node with ID ${logicalParentId} not found`);
         }
 
-        const parentNodeAmount = parentNode.data.amount as number || 0;
-        const parentNodeProductId = (parentNode.data.productDetails as { id: string } | undefined)?.id || '';
+        const logicalParentNodeIdAmount = parentNode.data.amount as number || 0;
+        const logicalParentNodeIdProductId = (parentNode.data.productDetails as { id: string } | undefined)?.id || '';
 
         const result = await createProcessNode(
           processId,
           logicalParentId,
-          parentNodeAmount,
-          parentNodeProductId,
+          logicalParentNodeIdAmount,
+          logicalParentNodeIdProductId,
         );
 
         if (!result) {
           throw new Error('Failed to build process node');
         }
 
+        // Add newly created nodes to the state
+        const { compoundNode, processNode, productNodes, sideProductNodes, edges } = result;
+        const newNodes = [compoundNode, processNode, ...productNodes, ...sideProductNodes];
+
         dispatch({
           type: 'PROCESS_SELECTED',
           payload: {
-            nodes: state.nodes,
-            edges: state.edges,
+            nodes: newNodes,
+            edges: edges,
             logicalParentId
           }
         });

@@ -37,6 +37,8 @@ const CompoundNode: React.FC<NodeProps<CompoundNode>> = ({ data, id }) => {
           style={{ background: '#555' }}
           id={`compound-source-${id}`}
         />
+        {/* Render children nodes */}
+        {data.children}
       </div>
     );
   };

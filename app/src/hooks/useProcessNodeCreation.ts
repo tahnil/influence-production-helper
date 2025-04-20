@@ -4,9 +4,15 @@ import { Edge } from '@xyflow/react';
 import { FlowAction } from '@/contexts/FlowContext';
 import { ProductNode } from '@/components/TreeVisualizer/ProductNode';
 import { ProcessNode } from '@/components/TreeVisualizer/ProcessNode';
+import { CompoundNode } from '@/components/TreeVisualizer/CompoundNode';
+import { InfluenceNode } from '@/types/reactFlowTypes';
+import { SideProductNode } from '@/components/TreeVisualizer/SideProductNode';
 
 interface ProcessNodeCreationResult {
-  nodes: Array<any>; // Use a more general type to include all node types
+  compoundNode: CompoundNode;
+  processNode: ProcessNode;
+  productNodes: ProductNode[];
+  sideProductNodes: SideProductNode[];
   edges: Edge[];
   logicalParentId: string;
 }
@@ -27,6 +33,8 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
       if (!logicalParentId) {
         throw new Error('Parent Node ID is undefined');
       }
+
+      console.log('[useProcessNodeCreation] bulding process node');
 
       // Use the existing buildProcessNode utility
       const result = await buildProcessNode(
@@ -54,43 +62,44 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
         throw new Error('Failed to build process node');
       }
 
-      // Collect all nodes
-      const allNodes = [
-        result.compoundNode,
-        result.processNode,
-        ...result.productNodes,
-        ...result.sideProductNodes
-      ];
-
       // Create edges for connecting the nodes
       const newEdges: Edge[] = [];
 
-      // Create edge between parent product node and compound node (not directly to process)
+      // Read from result: create an edge from compoundNode to 
+      // its outflow Product Node which is identified by the logicalParentId
       newEdges.push({
         id: `edge-${logicalParentId}-${result.compoundNode.id}`,
         source: logicalParentId,
         target: result.compoundNode.id,
+        // targetHandle: `compound-source-${result.compoundNode.id}`,
         type: 'custom',
       });
 
-      // Create edges between the compound node and input product nodes
+      // Read from result: create an edge from all product nodes to the compound node
       result.productNodes.forEach(productNode => {
         newEdges.push({
           id: `edge-${result.compoundNode.id}-${productNode.id}`,
           source: result.compoundNode.id,
-          sourceHandle: `compound-source-${result.compoundNode.id}`,
           target: productNode.id,
           type: 'custom',
         });
       });
 
+      // Read from result: create an edge from all side product nodes to the process node
+      result.sideProductNodes.forEach(sideProductNode => {
+        newEdges.push({
+          id: `edge-${result.processNode.id}-${sideProductNode.id}`,
+          source: result.processNode.id,
+          target: sideProductNode.id,
+          type: 'custom',
+        });
+      });
+
       return {
-        nodes: [
-          result.compoundNode,
-          result.processNode,
-          ...result.productNodes,
-          ...result.sideProductNodes
-        ],
+        compoundNode: result.compoundNode as CompoundNode,
+        processNode: result.processNode as ProcessNode,
+        productNodes: result.productNodes as ProductNode[],
+        sideProductNodes: result.sideProductNodes as SideProductNode[],
         edges: newEdges,
         logicalParentId  // Make sure to include this for node replacement logic
       };

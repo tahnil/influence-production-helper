@@ -82,6 +82,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
 
   // Memoize process selection handler
   const handleProcessSelection = useCallback((processId: string) => {
+    console.log('[ProductNode] Process selected:', processId);
     setSelectedId(processId);
     dispatch({
       type: 'REQUEST_PROCESS_NODE_CREATION',

@@ -14,7 +14,6 @@ const TreeRenderer: React.FC = () => {
         nodesRef,
         desiredAmount,
         selectedProductId,
-        processSelections,
         needsLayout,
         layoutTrigger,
         dispatch
@@ -78,24 +77,6 @@ const TreeRenderer: React.FC = () => {
             });
         }
     }, [selectedProductId, dispatch]);
-
-    useEffect(() => {
-        const lastProcessedSelection = processSelections[processSelections.length - 1];
-        if (lastProcessedSelection) {
-          const { nodeId: logicalParentId, processId } = lastProcessedSelection;
-          
-          if (processId && logicalParentId) {
-            dispatch({
-              type: 'REQUEST_PROCESS_NODE_CREATION',
-              payload: {
-                processId,
-                logicalParentId,
-                includeSideProducts: true,
-              }
-            });
-          }
-        }
-      }, [processSelections, dispatch]);
 
     return null;
 };

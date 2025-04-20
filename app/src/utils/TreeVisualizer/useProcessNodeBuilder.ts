@@ -15,18 +15,18 @@ const useProcessNodeBuilder = () => {
     const { buildProductNode } = useProductNodeBuilder();
 
     const buildProcessNode = useCallback(async (
-        selectedProcessId: string,
+        processId: string,
         logicalParentId: string,
-        parentNodeAmount: number,
-        parentNodeProductId: string,
+        logicalParentIdAmount: number,
+        logicalParentIdProductId: string,
         handleSelectProcess: (processId: string, nodeId: string) => void,
         handleSerialize: (focalProductId: string) => void,
     ): Promise<{ compoundNode: Node, processNode: Node, productNodes: Node[], sideProductNodes: Node[] } | null> => {
         try {
 
             const [processDetails, inputProducts] = await Promise.all([
-                getProcessDetails(selectedProcessId),
-                getInputsByProcessId(selectedProcessId)
+                getProcessDetails(processId),
+                getInputsByProcessId(processId)
             ]);
 
             const [buildingIcon] = await Promise.all([
@@ -36,14 +36,11 @@ const useProcessNodeBuilder = () => {
             const processNodeId = generateUniqueId();
             const compoundNodeId = `compound-${processNodeId}`;
 
-            const inflowIds: string[] = [];
-            const outflowIds: string[] = [];
-
-            const output = processDetails.outputs.find(output => output.productId === parentNodeProductId);
+            const output = processDetails.outputs.find(output => output.productId === logicalParentIdProductId);
 
             const outputUnitsPerSR = output ? parseFloat(output.unitsPerSR) : 0;
 
-            const totalRuns = parentNodeAmount / outputUnitsPerSR || 1;
+            const totalRuns = logicalParentIdAmount / outputUnitsPerSR || 1;
 
             // Create compound node
             const compoundNode: Node = {
@@ -58,8 +55,11 @@ const useProcessNodeBuilder = () => {
                 }
             };
 
+            console.log('[useProcessNodeBuilder] Creating compound node:', compoundNode);
+
             // Build input ProductNodes
             const productNodesPromises = inputProducts.map(async (inputProduct) => {
+                console.log(`[useProcessNodeBuilder] Executing productNodesPromises, creating product node for input:`, inputProduct);
                 const amount = parseFloat(inputProduct.unitsPerSR) * totalRuns;
 
                 const productNode = await buildProductNode(
@@ -79,7 +79,7 @@ const useProcessNodeBuilder = () => {
                             logicalParentId: processNodeId,
                         }
                     };
-
+                    console.log(`[useProcessNodeBuilder] Created node for ${inputProduct.product.id} with ID ${newProductNode.id}`, newProductNode);
                     return newProductNode;
                 }
 
@@ -88,7 +88,7 @@ const useProcessNodeBuilder = () => {
 
             // Build SideProductNodes
             const sideProductNodesPromises = processDetails.outputs
-                .filter(output => output.productId !== parentNodeProductId)
+                .filter(output => output.productId !== logicalParentIdProductId)
                 .map(async (output) => {
                     console.log(`[SideProducts] Creating side product for output:`, output);
                     const amount = parseFloat(output.unitsPerSR) * totalRuns;
@@ -99,7 +99,7 @@ const useProcessNodeBuilder = () => {
                     );
 
                     if (sideProductNode) {
-                        console.log(`[SideProducts] Created node for ${output.productId} with ID ${sideProductNode.id}`);
+                        console.log(`[SideProducts] Created node for ${output.productId} with ID ${sideProductNode.id}`, sideProductNode);
                         const newSideProductNode = {
                             ...sideProductNode,
                             type: 'sideProductNode',
@@ -139,6 +139,8 @@ const useProcessNodeBuilder = () => {
                     logicalParentId: logicalParentId,
                 },
             };
+
+            console.log('[useProcessNodeBuilder] Created following nodes:', compoundNode, newProcessNode, productNodes, sideProductNodes);
 
             return { 
                 compoundNode,
