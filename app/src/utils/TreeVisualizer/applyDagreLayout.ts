@@ -22,9 +22,6 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     const parentNodes = nodesByParent.get(null) || [];
     const layoutedNodes = [...layoutNodesWithDagre(parentNodes, edges, config)];
 
-    // New edges to be created (including side product edges)
-    const layoutedEdges = [...edges];
-
     // Now process each compound node's children
     nodes.forEach(node => {
         if (node.type === 'compoundNode') {
@@ -82,27 +79,6 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
                             ...sideProductNode,
                             position: sideProductPos
                         });
-
-                        // Create an edge from process node to side product node
-                        const edgeId = `edge-${sideProductNode.id}-${processNode.id}`;
-
-                        // Check if edge already exists
-                        const edgeExists = layoutedEdges.some(edge =>
-                            edge.id === edgeId ||
-                            (edge.source === processNode.id && edge.target === sideProductNode.id)
-                        );
-
-                        if (!edgeExists) {
-                            layoutedEdges.push({
-                                id: edgeId,
-                                source: processNode.id,
-                                target: sideProductNode.id,
-                                sourceHandle: `target-side-product-${processNode.id}`, // Right handle of process node
-                                targetHandle: `source-${sideProductNode.id}`, // Left handle of side product node
-                                type: 'custom',
-                                data: { isSideProductConnection: true }
-                            });
-                        }
                     });
 
                     // Update compound node dimensions
@@ -145,12 +121,13 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
 
     return {
         layoutedNodes,
-        layoutedEdges
+        layoutedEdges: edges // Return original edges, no modifications
     };
 }
 
 // Helper function to layout a group of nodes using Dagre
 function layoutNodesWithDagre(nodes: Node[], allEdges: Edge[], config: DagreConfig): Node[] {
+    // Implementation remains the same as before
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 

@@ -34,7 +34,7 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
         throw new Error('Parent Node ID is undefined');
       }
 
-      console.log('[useProcessNodeCreation] bulding process node');
+      console.log('[useProcessNodeCreation] building process node');
 
       // Use the existing buildProcessNode utility
       const result = await buildProcessNode(
@@ -44,16 +44,16 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
         logicalParentIdProductId,
         // Callback for process selection
         (processId: string, nodeId: string) => {
-          dispatch({ 
-            type: 'SELECT_PROCESS', 
-            payload: { nodeId, processId } 
+          dispatch({
+            type: 'SELECT_PROCESS',
+            payload: { nodeId, processId }
           });
         },
         // Callback for serialization
         (focalNodeId: string) => {
-          dispatch({ 
-            type: 'SAVE_PRODUCTION_CHAIN', 
-            payload: { focalNodeId } 
+          dispatch({
+            type: 'SAVE_PRODUCTION_CHAIN',
+            payload: { focalNodeId }
           });
         }
       );
@@ -65,17 +65,15 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
       // Create edges for connecting the nodes
       const newEdges: Edge[] = [];
 
-      // Read from result: create an edge from compoundNode to 
-      // its outflow Product Node which is identified by the logicalParentId
+      // Edge from parent product to compound node (main flow)
       newEdges.push({
         id: `edge-${logicalParentId}-${result.compoundNode.id}`,
         source: logicalParentId,
         target: result.compoundNode.id,
-        // targetHandle: `compound-source-${result.compoundNode.id}`,
         type: 'custom',
       });
 
-      // Read from result: create an edge from all product nodes to the compound node
+      // Edges from compound node to input product nodes
       result.productNodes.forEach(productNode => {
         newEdges.push({
           id: `edge-${result.compoundNode.id}-${productNode.id}`,
@@ -85,15 +83,10 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
         });
       });
 
-      // Read from result: create an edge from all side product nodes to the process node
-      result.sideProductNodes.forEach(sideProductNode => {
-        newEdges.push({
-          id: `edge-${result.processNode.id}-${sideProductNode.id}`,
-          source: result.processNode.id,
-          target: sideProductNode.id,
-          type: 'custom',
-        });
-      });
+      // Include the side product edges that were created in buildProcessNode
+      if (result.edges && result.edges.length > 0) {
+        newEdges.push(...result.edges);
+      }
 
       return {
         compoundNode: result.compoundNode as CompoundNode,

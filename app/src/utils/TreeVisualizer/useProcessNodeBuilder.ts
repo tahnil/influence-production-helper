@@ -1,7 +1,7 @@
 // utils/TreeVisualizer/useProcessNodeBuilder.ts
 
 import { useCallback } from 'react';
-import { Node } from '@xyflow/react';
+import { Node, Edge } from '@xyflow/react';
 import { generateUniqueId } from '../generateUniqueId';
 import useProcessDetails from '@/hooks/useProcessDetails';
 import useInputsByProcessId from '@/hooks/useInputsByProcessId';
@@ -21,7 +21,7 @@ const useProcessNodeBuilder = () => {
         logicalParentIdProductId: string,
         handleSelectProcess: (processId: string, nodeId: string) => void,
         handleSerialize: (focalProductId: string) => void,
-    ): Promise<{ compoundNode: Node, processNode: Node, productNodes: Node[], sideProductNodes: Node[] } | null> => {
+    ): Promise<{ compoundNode: Node, processNode: Node, productNodes: Node[], sideProductNodes: Node[], edges: Edge[] } | null> => {
         try {
 
             const [processDetails, inputProducts] = await Promise.all([
@@ -140,19 +140,36 @@ const useProcessNodeBuilder = () => {
                 },
             };
 
-            console.log('[useProcessNodeBuilder] Created following nodes:', compoundNode, newProcessNode, productNodes, sideProductNodes);
+            // Create edges for the nodes
+            const edges: Edge[] = [];
 
-            return { 
+            // Create an edge from the process node to each side product node
+            sideProductNodes.forEach(sideProductNode => {
+                edges.push({
+                    id: `edge-${sideProductNode.id}-${processNodeId}`,
+                    source: sideProductNode.id,
+                    target: processNodeId,
+                    targetHandle: `target-side-product-${processNodeId}`, // Right handle of process node
+                    type: 'custom',
+                    data: { isSideProductConnection: true }
+                });
+            });
+
+            console.log('[useProcessNodeBuilder] Created following nodes:', compoundNode, newProcessNode, productNodes, sideProductNodes);
+            console.log('[useProcessNodeBuilder] Created following edges for side products:', edges);
+
+            return {
                 compoundNode,
-                processNode: newProcessNode, 
-                productNodes, 
-                sideProductNodes 
+                processNode: newProcessNode,
+                productNodes,
+                sideProductNodes,
+                edges // Return the edges to be added by the caller
             };
         } catch (err) {
             console.error('[useProcessNodeBuilder] Error:', err);
             return null;
         }
-    }, [getProcessDetails, getInputsByProcessId, buildProductNode]);
+    }, [getProcessDetails, getInputsByProcessId, buildProductNode, getBuildingIcon]);
 
     return { buildProcessNode };
 };
