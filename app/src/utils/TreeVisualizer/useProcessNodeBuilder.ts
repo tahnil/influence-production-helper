@@ -104,6 +104,7 @@ const useProcessNodeBuilder = () => {
                             ...sideProductNode,
                             type: 'sideProductNode',
                             parentId: compoundNodeId,
+                            extent: 'parent',
                             data: {
                                 ...sideProductNode.data,
                                 ancestorIds: [processNodeId], // The process node is the ancestor
@@ -129,6 +130,7 @@ const useProcessNodeBuilder = () => {
                 type: 'processNode',
                 position: { x: 0, y: 0 },
                 parentId: compoundNodeId,
+                extent: 'parent',
                 data: {
                     processDetails,
                     inputProducts,
@@ -148,8 +150,9 @@ const useProcessNodeBuilder = () => {
                 edges.push({
                     id: `edge-${sideProductNode.id}-${processNodeId}`,
                     source: sideProductNode.id,
+                    sourceHandle: `bottom-${sideProductNode.id}`, // Bottom handle of side product node
                     target: processNodeId,
-                    targetHandle: `target-side-product-${processNodeId}`, // Right handle of process node
+                    targetHandle: `target-${processNodeId}`, // Right handle of process node
                     type: 'custom',
                     data: { isSideProductConnection: true }
                 });
