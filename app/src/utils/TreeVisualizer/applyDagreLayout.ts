@@ -122,7 +122,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
             finalNodes.push(node);
         }
     });
-    
+
     return {
         layoutedNodes: finalNodes,
         layoutedEdges: edges // Return edges unchanged
@@ -193,6 +193,82 @@ function layoutNodesWithDagre(nodes: Node[], edges: Edge[], config: DagreConfig)
 function calculateCompoundSize(children: Node[]): { width: number, height: number, offsetX: number, offsetY: number } {
     if (children.length === 0) {
         return { width: 400, height: 200, offsetX: 0, offsetY: 0 };
+    }
+
+    // First, separate side product nodes from other nodes
+    const sideProductNodes = children.filter(node => node.type === 'sideProductNode');
+    const otherNodes = children.filter(node => node.type !== 'sideProductNode');
+
+    // If there are side product nodes, arrange them in a grid
+    if (sideProductNodes.length > 0) {
+        // Calculate dimensions for side product nodes
+        const sideProductWidth = 220; // Width of each side product node with spacing
+        const sideProductHeight = 120; // Height of each side product node with spacing
+        const horizontalGap = 20; // Gap between columns
+        const verticalGap = 20; // Gap between rows
+
+        // Calculate how many rows we need for a 2-column layout
+        const numColumns = 2;
+        const numRows = Math.ceil(sideProductNodes.length / numColumns);
+
+        // Rearrange side product nodes in a grid
+        sideProductNodes.forEach((node, index) => {
+            const column = index % numColumns;
+            const row = Math.floor(index / numColumns);
+
+            // Calculate new position in the grid
+            const x = 20 + column * (sideProductWidth + horizontalGap);
+            const y = 20 + row * (sideProductHeight + verticalGap);
+
+            // Update node position
+            node.position = { x, y };
+        });
+
+        // Calculate total width and height needed for the grid
+        const gridWidth = numColumns * sideProductWidth + (numColumns - 1) * horizontalGap + 40; // 40px padding
+        const gridHeight = numRows * sideProductHeight + (numRows - 1) * verticalGap + 40; // 40px padding
+
+        // Find bounding box for other nodes
+        let minX = Infinity, minY = Infinity;
+        let maxX = -Infinity, maxY = -Infinity;
+
+        if (otherNodes.length > 0) {
+            otherNodes.forEach(child => {
+                const nodeWidth = child.measured?.width ||
+                    (child.type === 'processNode' ? 250 : 300);
+                const nodeHeight = child.measured?.height ||
+                    (child.type === 'processNode' ? 120 : 150);
+
+                const x1 = child.position.x;
+                const y1 = child.position.y;
+                const x2 = x1 + nodeWidth;
+                const y2 = y1 + nodeHeight;
+
+                minX = Math.min(minX, x1);
+                minY = Math.min(minY, y1);
+                maxX = Math.max(maxX, x2);
+                maxY = Math.max(maxY, y2);
+            });
+
+            // Make sure we account for both other nodes and the side product grid
+            const width = Math.max(maxX - minX, gridWidth) + 40; // 40px padding
+            const height = (maxY - minY) + gridHeight + 40; // Other nodes plus grid height
+
+            return {
+                width: Math.max(width, 400),
+                height: Math.max(height, 200),
+                offsetX: minX,
+                offsetY: minY
+            };
+        } else {
+            // Only side product nodes
+            return {
+                width: Math.max(gridWidth, 400),
+                height: Math.max(gridHeight, 200),
+                offsetX: 20, // Start at padding
+                offsetY: 20  // Start at padding
+            };
+        }
     }
 
     // Find bounding box of all children
