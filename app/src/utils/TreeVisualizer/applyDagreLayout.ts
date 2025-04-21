@@ -207,8 +207,8 @@ function calculateCompoundSize(children: Node[]): { width: number, height: numbe
         const horizontalGap = 20; // Gap between columns
         const verticalGap = 20; // Gap between rows
 
-        // Calculate how many rows we need for a 2-column layout
-        const numColumns = 2;
+        // Determine the number of columns (2 for <= 6 nodes, 3 for > 6 nodes)
+        const numColumns = sideProductNodes.length > 4 ? 3 : 2;
         const numRows = Math.ceil(sideProductNodes.length / numColumns);
 
         // Rearrange side product nodes in a grid
