@@ -22,10 +22,11 @@ const useProcessNodeBuilder = () => {
         handleSelectProcess: (processId: string, nodeId: string) => void,
         handleSerialize: (focalProductId: string) => void,
     ): Promise<{
-        sideProductCompoundNode?: Node,
         processNode: Node,
         productNodes: Node[],
         sideProductNodes: Node[],
+        sideProductCompoundNode?: Node,
+        outflowsCompoundNode?: Node,
         edges: Edge[]
     } | null> => {
         try {
@@ -173,10 +174,11 @@ const useProcessNodeBuilder = () => {
             }
 
             return {
-                sideProductCompoundNode, // This will be undefined if no side products
                 processNode: newProcessNode,
                 productNodes,
                 sideProductNodes,
+                sideProductCompoundNode, // This will be undefined if no side products
+                outflowsCompoundNode: undefined, // Placeholder for future use
                 edges // Return the edges to be added by the caller
             };
         } catch (err) {

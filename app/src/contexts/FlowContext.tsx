@@ -263,88 +263,10 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       return { ...state, ...action.payload };
     case 'PROCESS_SELECTED': {
       const { nodes, edges, logicalParentId } = action.payload;
-
-      // Filter out any undefined nodes from nodes in payload first
-      const validNodes = nodes.filter(node => node && typeof node === 'object' && 'type' in node);
-
-      // Initialize an empty arry of nodes to remove
-      const nodesToRemove: string[] = [];
-
-      // Populate local variables with current nodes and edges
-      let updatedNodes = [...state.nodes];
-      let updatedEdges = [...state.edges];
-
-      if (logicalParentId) {
-        // If there's an existing sideProductCompound node with the same logicalParentId, remove it and its children
-        const existingSideProductCompoundNodes = state.nodes.filter(
-          (node) => node.type === 'sideProductCompoundNode' &&
-            node.data.processId &&
-            state.nodes.find(n => n.id === node.data.processId)?.data?.logicalParentId === logicalParentId
-        );
-
-        if (existingSideProductCompoundNodes.length > 0) {
-
-          // Find sideProductCompound nodes and their children and add them to the nodes to remove
-          existingSideProductCompoundNodes.forEach(existingSideProductCompoundNode => {
-            nodesToRemove.push(existingSideProductCompoundNode.id);
-
-            // Find all child nodes of the sideProductCompound node
-            state.nodes.forEach(node => {
-              if (node.parentId === existingSideProductCompoundNode.id) {
-                nodesToRemove.push(node.id);
-              }
-            });
-          });
-        }
-
-        // THIS LOGIC BELONGS IN useProcessNodeCreation.ts AND useProcessNodeBuilder.ts
-        // We need for example to update parentIds of outflowing product nodes
-        // If there's an existing OutflowsCompoundNode with the same logicalParentId, remove it
-        const existingOutflowsCompoundNodes = state.nodes.filter(
-          (node) => node.type === 'outflowsCompoundNode' &&
-            node.data.processId &&
-            state.nodes.find(n => n.id === node.data.processId)?.data?.logicalParentId === logicalParentId
-        );
-        existingOutflowsCompoundNodes.forEach(existingOutflowsCompoundNode => {
-          nodesToRemove.push(existingOutflowsCompoundNode.id);
-        });
-
-        // Also find existing process nodes with this parent and add them to the nodes to remove
-        const existingProcessNodes = state.nodes.filter(
-          (node) => node.type === 'processNode' &&
-            node.data.logicalParentId === logicalParentId
-        );
-
-        existingProcessNodes.forEach(processNode => {
-          nodesToRemove.push(processNode.id);
-
-          // Find input products of this process and add them to the nodes to remove
-          state.nodes.forEach(node => {
-            if (node.data.logicalParentId === processNode.id) {
-              nodesToRemove.push(node.id);
-            }
-          });
-        });
-
-        // Remove nodes
-        updatedNodes = updatedNodes.filter(
-          (node) => !nodesToRemove.includes(node.id)
-        );
-
-        // Remove connected edges
-        updatedEdges = updatedEdges.filter(
-          (edge) => !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target)
-        );
-      }
-
-      // Add all the new nodes and edges
-      updatedNodes = [...updatedNodes, ...validNodes];
-      updatedEdges = [...updatedEdges, ...edges];
-
       return {
         ...state,
-        nodes: updatedNodes,
-        edges: updatedEdges,
+        nodes: nodes,
+        edges: edges,
         needsLayout: true,
         layoutTrigger: 'STRUCTURE_CHANGE',
       };
@@ -451,6 +373,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         pendingNodeCreation: null
       };
     case 'NODE_CREATION_COMPLETED':
+      console.log('NODE_CREATION_COMPLETED action dispatched. New nodes:', state.nodes);
       return {
         ...state,
         pendingNodeCreation: null,
@@ -606,6 +529,8 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
           logicalParentId,
           logicalParentNodeIdAmount,
           logicalParentNodeIdProductId,
+          state.nodes as InfluenceNode[],
+          state.edges,
         );
 
         if (!result) {
@@ -613,13 +538,25 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // Add newly created nodes to the state
-        const { sideProductCompoundNode, processNode, productNodes, sideProductNodes, edges } = result;
+        const {
+          unchangedNodes,
+          processNode,
+          productNodes,
+          sideProductNodes,
+          sideProductCompoundNode,
+          edges
+        } = result;
+
         const newNodes = [
-          ...(sideProductCompoundNode ? [sideProductCompoundNode] : []), // Only include if not undefined
+          ...unchangedNodes,
           processNode,
           ...productNodes,
-          ...sideProductNodes
+          ...(sideProductCompoundNode ? [sideProductCompoundNode] : []), // Only include if not undefined
+          ...sideProductNodes,
         ];
+
+        // log content of the whole nodes array
+        console.log('[FlowContext] New nodes after process node creation:', newNodes);
 
         dispatch({
           type: 'PROCESS_SELECTED',
@@ -632,8 +569,6 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         dispatch({ type: 'NODE_CREATION_COMPLETED' });
 
-        // log content of the whole nodes array
-        console.log('Nodes after process node creation:', state.nodes);
       } catch (error) {
         console.error('Error in process node creation:', error);
         dispatch({

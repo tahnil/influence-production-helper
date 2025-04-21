@@ -7,12 +7,15 @@ import { ProcessNode } from '@/components/TreeVisualizer/ProcessNode';
 import { SideProductCompoundNode } from '@/components/TreeVisualizer/SideProductCompoundNode';
 import { InfluenceNode } from '@/types/reactFlowTypes';
 import { SideProductNode } from '@/components/TreeVisualizer/SideProductNode';
+import { OutflowsCompoundNode } from '@/components/TreeVisualizer/OutflowsCompoundNode';
 
 interface ProcessNodeCreationResult {
-  sideProductCompoundNode?: SideProductCompoundNode;
+  unchangedNodes: InfluenceNode[];
   processNode: ProcessNode;
   productNodes: ProductNode[];
   sideProductNodes: SideProductNode[];
+  sideProductCompoundNode?: SideProductCompoundNode;
+  outflowsCompoundNode?: OutflowsCompoundNode;
   edges: Edge[];
   logicalParentId: string;
 }
@@ -24,7 +27,9 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
     processId: string,
     logicalParentId: string,
     logicalParentIdAmount: number,
-    logicalParentIdProductId: string
+    logicalParentIdProductId: string,
+    currentNodes: InfluenceNode[],
+    currentEdges: Edge[],
   ): Promise<ProcessNodeCreationResult | null> => {
     try {
       if (!processId) {
@@ -33,9 +38,105 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
       if (!logicalParentId) {
         throw new Error('Parent Node ID is undefined');
       }
+      console.log('[useProcessNodeCreation] initialized with processId:', processId);
 
-      console.log('[useProcessNodeCreation] building process node');
+      // STEP 0: Global initialization of constants
+      // Initialize an empty arry of nodes to remove
+      const nodesToRemove: string[] = [];
 
+      let unchangedNodes: InfluenceNode[] = currentNodes;
+      let unchangedEdges: Edge[] = currentEdges;
+
+      console.log('[useProcessNodeCreation] Current nodes:', unchangedNodes);
+      console.log('[useProcessNodeCreation] Current edges:', unchangedEdges);
+
+      // Filter out any undefined nodes from nodes in payload first
+      unchangedNodes = unchangedNodes.filter(node => node && typeof node === 'object' && 'type' in node);
+      console.log('[useProcessNodeCreation] Valid nodes:', unchangedNodes);
+
+      // STEP 1: Remove existing nodes that are related to the processId
+      // Necessary because a new process has been selected
+
+      // If there's an existing sideProductCompound node with the same logicalParentId, remove it and its children
+      const existingSideProductCompoundNodes = unchangedNodes.filter(
+        (node) => node.type === 'sideProductCompoundNode' &&
+          node.data.processId &&
+          unchangedNodes.find(n => n.id === node.data.processId)?.data?.logicalParentId === logicalParentId
+      );
+
+      if (existingSideProductCompoundNodes.length > 0) {
+        // Find sideProductCompound nodes and their children and add them to the nodes to remove
+        console.log('[useProcessNodeCreation] Nodes to be removed:', nodesToRemove);
+        existingSideProductCompoundNodes.forEach(existingSideProductCompoundNode => {
+          console.log('[useProcessNodeCreation] Removing now existing SideProductCompound node:', existingSideProductCompoundNode);
+          nodesToRemove.push(existingSideProductCompoundNode.id);
+
+          // Find all child nodes of the sideProductCompound node
+          console.log('[useProcessNodeCreation] Nodes to be removed:', nodesToRemove);
+          unchangedNodes.forEach(node => {
+            if (node.parentId === existingSideProductCompoundNode.id) {
+              console.log('[useProcessNodeCreation] Removing now existing SideProductCompound node:', node);
+              nodesToRemove.push(node.id);
+            }
+          });
+        });
+      }
+
+      // Create array of existing compound nodes of outflows of this process
+      const existingOutflowsCompoundNodes = unchangedNodes.filter(
+        (node) => node.type === 'outflowsCompoundNode' &&
+          node.data.processId &&
+          unchangedNodes.find(n => n.id === node.data.processId)?.data?.logicalParentId === logicalParentId
+      );
+
+      // If there's an existing OutflowsCompoundNode with the same logicalParentId, remove it
+      if (existingOutflowsCompoundNodes.length > 0) {
+        console.log('[useProcessNodeCreation] Nodes to be removed:', nodesToRemove);
+        existingOutflowsCompoundNodes.forEach(existingOutflowsCompoundNode => {
+          console.log('[useProcessNodeCreation] Removing now existing OutflowsCompound node:', existingOutflowsCompoundNode);
+          nodesToRemove.push(existingOutflowsCompoundNode.id);
+          // Find all child nodes of the OutflowsCompound node
+          // and delete their parendId
+          unchangedNodes.forEach(node => {
+            if (node.parentId === existingOutflowsCompoundNode.id) {
+              node.parentId = undefined;
+            }
+          });
+        });
+      }
+
+      // STEP 2: Remove the existing process node and its inflows
+      // Find existing process nodes with the logicalParentId and add them to the nodes to remove
+      const existingProcessNodes = unchangedNodes.filter(
+        (node) => node.type === 'processNode' &&
+          node.data.logicalParentId === logicalParentId
+      );
+
+      console.log('[useProcessNodeCreation] Nodes to be removed:', nodesToRemove);
+      existingProcessNodes.forEach(processNode => {
+        console.log('[useProcessNodeCreation] Removing now existing process node:', processNode);
+        nodesToRemove.push(processNode.id);
+        // Find input products of this process and add them to the nodes to remove
+        console.log('[useProcessNodeCreation] Nodes to be removed:', nodesToRemove);
+        unchangedNodes.forEach(node => {
+          if (node.data.logicalParentId === processNode.id) {
+            console.log('[useProcessNodeCreation] Removing now existing inflow node:', node);
+            nodesToRemove.push(node.id);
+          }
+        });
+      });
+
+      // Remove nodes
+      unchangedNodes = unchangedNodes.filter(
+        (node) => !nodesToRemove.includes(node.id)
+      );
+
+      // Remove connected edges
+      unchangedEdges = unchangedEdges.filter(
+        (edge) => !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target)
+      );
+
+      // STEP 3: Create new nodes
       // Use the existing buildProcessNode utility
       const result = await buildProcessNode(
         processId,
@@ -101,11 +202,12 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
       }
 
       return {
-        sideProductCompoundNode: result.sideProductCompoundNode as SideProductCompoundNode | undefined,
+        unchangedNodes,
         processNode: result.processNode as ProcessNode,
         productNodes: result.productNodes as ProductNode[],
         sideProductNodes: result.sideProductNodes as SideProductNode[],
-        edges: newEdges,
+        sideProductCompoundNode: result.sideProductCompoundNode as SideProductCompoundNode | undefined,
+        edges: [...unchangedEdges, ...newEdges],
         logicalParentId  // Make sure to include this for node replacement logic
       };
     } catch (error) {
