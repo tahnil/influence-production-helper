@@ -141,6 +141,43 @@ const initialState: FlowState = {
 };
 
 // Create the reducer function
+/**
+ * Reducer function for managing the state of a flow-based application.
+ *
+ * @param {FlowState} state - The current state of the flow.
+ * @param {FlowAction} action - The action to be applied to the state.
+ * @returns {FlowState} - The updated state after applying the action.
+ *
+ * ### Action Types:
+ * - `'APPLY_NODE_CHANGES'`: Updates the nodes in the state based on the provided changes.
+ * - `'APPLY_EDGE_CHANGES'`: Updates the edges in the state based on the provided changes.
+ * - `'CONNECT_NODES'`: Adds a new edge connecting nodes.
+ * - `'APPLY_LAYOUT'`: Applies a layout to the nodes and edges using the Dagre layout algorithm.
+ * - `'REQUEST_LAYOUT'`: Marks the state as needing a layout update.
+ * - `'SET_DESIRED_AMOUNT'`: Updates the desired amount and recalculates node values.
+ * - `'BATCH_UPDATE'`: Merges the provided payload into the state.
+ * - `'PROCESS_SELECTED'`: Updates the state with selected process nodes and edges, removing conflicting nodes if necessary.
+ * - `'SELECT_PRODUCT'`: Sets the selected product ID in the state.
+ * - `'SELECT_PROCESS'`: Adds a process selection to the state.
+ * - `'SAVE_PRODUCTION_CHAIN'`: Initiates saving the production chain, marking the focal node as pending save.
+ * - `'RESET_SAVE_STATUS'`: Resets the save status and error fields in the state.
+ * - `'SAVE_COMPLETE'`: Marks the save operation as complete.
+ * - `'SAVE_ERROR'`: Marks the save operation as failed and stores the error.
+ * - `'LOAD_SAVED_CONFIG'`: Initiates loading a saved configuration for a specific node.
+ * - `'LOAD_COMPLETE'`: Marks the load operation as complete and triggers a layout update.
+ * - `'LOAD_ERROR'`: Marks the load operation as failed and stores the error.
+ * - `'SET_MATCHING_CONFIGS'`: Updates the state with matching configurations.
+ * - `'REQUEST_PRODUCT_NODE_CREATION'`: Sets up a pending product node creation request.
+ * - `'REQUEST_PROCESS_NODE_CREATION'`: Sets up a pending process node creation request.
+ * - `'CLEAR_PENDING_NODE_CREATION'`: Clears any pending node creation requests.
+ * - `'NODE_CREATION_COMPLETED'`: Marks node creation as completed and triggers a layout update.
+ * - `'NODE_CREATION_FAILED'`: Marks node creation as failed and stores the error.
+ *
+ * ### Notes:
+ * - The reducer handles complex state transitions, including layout recalculations, node and edge updates, and error handling.
+ * - Layout-related actions (`APPLY_LAYOUT`, `REQUEST_LAYOUT`, etc.) ensure that the graph structure remains consistent.
+ * - Node and edge updates are carefully managed to avoid conflicts and maintain data integrity.
+ */
 const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
   switch (action.type) {
     case 'APPLY_NODE_CHANGES':
@@ -227,27 +264,25 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
     case 'PROCESS_SELECTED': {
       const { nodes, edges, logicalParentId } = action.payload;
 
-      // Filter out any undefined nodes first
+      // Filter out any undefined nodes from nodes in payload first
       const validNodes = nodes.filter(node => node && typeof node === 'object' && 'type' in node);
-
-      // Check if there's a sideProductCompound node in the payload
-      const sideProductCompoundNode = validNodes.find(node => node.type === 'sideProductCompoundNode');
+      const nodesToRemove: string[] = [];
 
       let updatedNodes = [...state.nodes];
       let updatedEdges = [...state.edges];
 
-      // If there's an existing sideProductCompound node with the same logicalParentId, remove it and its children
       if (logicalParentId) {
+        // If there's an existing sideProductCompound node with the same logicalParentId, remove it and its children
         const existingSideProductCompoundNodes = state.nodes.filter(
           (node) => node.type === 'sideProductCompoundNode' &&
             node.data.processId &&
             state.nodes.find(n => n.id === node.data.processId)?.data?.logicalParentId === logicalParentId
         );
 
+        // Initialize an empty arry of nodes to remove
         if (existingSideProductCompoundNodes.length > 0) {
-          const nodesToRemove: string[] = [];
 
-          // Find sideProductCompound nodes and their children
+          // Find sideProductCompound nodes and their children and add them to the nodes to remove
           existingSideProductCompoundNodes.forEach(existingSideProductCompoundNode => {
             nodesToRemove.push(existingSideProductCompoundNode.id);
 
@@ -258,34 +293,34 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
               }
             });
           });
-
-          // Also find existing process nodes with this parent
-          const existingProcessNodes = state.nodes.filter(
-            (node) => node.type === 'processNode' &&
-              node.data.logicalParentId === logicalParentId
-          );
-
-          existingProcessNodes.forEach(processNode => {
-            nodesToRemove.push(processNode.id);
-
-            // Find input products of this process
-            state.nodes.forEach(node => {
-              if (node.data.logicalParentId === processNode.id) {
-                nodesToRemove.push(node.id);
-              }
-            });
-          });
-
-          // Remove nodes
-          updatedNodes = updatedNodes.filter(
-            (node) => !nodesToRemove.includes(node.id)
-          );
-
-          // Remove connected edges
-          updatedEdges = updatedEdges.filter(
-            (edge) => !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target)
-          );
         }
+
+        // Also find existing process nodes with this parent and add them to the nodes to remove
+        const existingProcessNodes = state.nodes.filter(
+          (node) => node.type === 'processNode' &&
+            node.data.logicalParentId === logicalParentId
+        );
+
+        existingProcessNodes.forEach(processNode => {
+          nodesToRemove.push(processNode.id);
+
+          // Find input products of this process and add them to the nodes to remove
+          state.nodes.forEach(node => {
+            if (node.data.logicalParentId === processNode.id) {
+              nodesToRemove.push(node.id);
+            }
+          });
+        });
+
+        // Remove nodes
+        updatedNodes = updatedNodes.filter(
+          (node) => !nodesToRemove.includes(node.id)
+        );
+
+        // Remove connected edges
+        updatedEdges = updatedEdges.filter(
+          (edge) => !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target)
+        );
       }
 
       // Add all the new nodes and edges
@@ -567,8 +602,8 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { sideProductCompoundNode, processNode, productNodes, sideProductNodes, edges } = result;
         const newNodes = [
           ...(sideProductCompoundNode ? [sideProductCompoundNode] : []), // Only include if not undefined
-          processNode, 
-          ...productNodes, 
+          processNode,
+          ...productNodes,
           ...sideProductNodes
         ];
 
