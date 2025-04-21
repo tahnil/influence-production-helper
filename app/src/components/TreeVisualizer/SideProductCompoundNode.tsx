@@ -2,7 +2,7 @@ import React from 'react';
 import { Node, NodeProps, Handle, Position } from '@xyflow/react';
 import { InfluenceNode } from '@/types/reactFlowTypes';
 
-export interface CompoundNodeData {
+export interface SideProductCompoundNodeData {
   id: string;
   children: [];
   width: number;
@@ -16,12 +16,12 @@ export interface CompoundNodeData {
   [key: string]: unknown; // Allow for additional properties
 }
 
-export type CompoundNode = Node<CompoundNodeData>;
+export type SideProductCompoundNode = Node<SideProductCompoundNodeData>;
 
-const CompoundNode: React.FC<NodeProps<CompoundNode>> = ({ data, id }) => {
+const SideProductCompoundNode: React.FC<NodeProps<SideProductCompoundNode>> = ({ data, id }) => {
   return (
     <div
-      className="compound-node"
+      className="sideProductCompound-node"
       style={{
         position: 'relative',
         width: data.width,
@@ -31,18 +31,18 @@ const CompoundNode: React.FC<NodeProps<CompoundNode>> = ({ data, id }) => {
         padding: '10px'
       }}
     >
-      {/* Handles for the compound node */}
+      {/* Handles for the sideProductCompound node */}
       <Handle
         type="target"
         position={Position.Bottom}
         style={{ background: '#555' }}
-        id={`compound-target-${id}`}
+        id={`sideProductCompound-target-${id}`}
       />
       <Handle
         type="source"
         position={Position.Bottom}
         style={{ background: '#555' }}
-        id={`compound-source-${id}`}
+        id={`sideProductCompound-source-${id}`}
       />
       {/* Render children nodes */}
       {data.children}
@@ -67,4 +67,4 @@ const CompoundNode: React.FC<NodeProps<CompoundNode>> = ({ data, id }) => {
   );
 };
 
-export default CompoundNode;
+export default SideProductCompoundNode;

@@ -22,7 +22,7 @@ const useProcessNodeBuilder = () => {
         handleSelectProcess: (processId: string, nodeId: string) => void,
         handleSerialize: (focalProductId: string) => void,
     ): Promise<{
-        compoundNode?: Node,
+        sideProductCompoundNode?: Node,
         processNode: Node,
         productNodes: Node[],
         sideProductNodes: Node[],
@@ -48,24 +48,24 @@ const useProcessNodeBuilder = () => {
             const hasSideProducts = sideProductOutputs.length > 0;
             console.log(`[useProcessNodeBuilder] Process ${processId} has ${sideProductOutputs.length} side products`);
 
-            // Only create a compound node if we have side products
-            const compoundNodeId = hasSideProducts ? `compound-${processNodeId}` : undefined;
-            let compoundNode: Node | undefined;
+            // Only create a sideProductCompound node if we have side products
+            const sideProductCompoundNodeId = hasSideProducts ? `sideProductCompound-${processNodeId}` : undefined;
+            let sideProductCompoundNode: Node | undefined;
 
-            if (hasSideProducts && compoundNodeId) {
-                compoundNode = {
-                    id: compoundNodeId,
-                    type: 'compoundNode',
+            if (hasSideProducts && sideProductCompoundNodeId) {
+                sideProductCompoundNode = {
+                    id: sideProductCompoundNodeId,
+                    type: 'sideProductCompoundNode',
                     position: { x: 0, y: 0 },
                     data: {
-                        id: compoundNodeId,
+                        id: sideProductCompoundNodeId,
                         width: 400,  // Default width, will be measured/adjusted by layout
                         height: 300, // Default height, will be measured/adjusted by layout
                         processId: processNodeId,
                         label: 'Side Products',
                     }
                 };
-                console.log('[useProcessNodeBuilder] Creating compound node:', compoundNode);
+                console.log('[useProcessNodeBuilder] Creating sideProductCompound node:', sideProductCompoundNode);
             }
 
             const output = processDetails.outputs.find(output => output.productId === logicalParentIdProductId);
@@ -113,12 +113,12 @@ const useProcessNodeBuilder = () => {
                         amount,
                     );
 
-                    if (sideProductNode && compoundNodeId) {
+                    if (sideProductNode && sideProductCompoundNodeId) {
                         console.log(`[SideProducts] Created node for ${output.productId} with ID ${sideProductNode.id}`);
                         const newSideProductNode = {
                             ...sideProductNode,
                             type: 'sideProductNode',
-                            parentId: compoundNodeId,
+                            parentId: sideProductCompoundNodeId,
                             extent: 'parent',
                             data: {
                                 ...sideProductNode.data,
@@ -167,13 +167,13 @@ const useProcessNodeBuilder = () => {
 
             // Log successful creation
             if (hasSideProducts) {
-                console.log('[useProcessNodeBuilder] Created compound node, process node, product nodes, and side product nodes');
+                console.log('[useProcessNodeBuilder] Created sideProductCompound node, process node, product nodes, and side product nodes');
             } else {
                 console.log('[useProcessNodeBuilder] Created process node and product nodes (no side products)');
             }
 
             return {
-                compoundNode, // This will be undefined if no side products
+                sideProductCompoundNode, // This will be undefined if no side products
                 processNode: newProcessNode,
                 productNodes,
                 sideProductNodes,

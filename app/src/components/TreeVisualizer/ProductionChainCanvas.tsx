@@ -4,7 +4,7 @@ import { useReactFlowSetup } from '@/hooks/useReactFlowSetup';
 import ProductNode from './ProductNode';
 import ProcessNode from './ProcessNode';
 import SideProductNode from './SideProductNode';
-import CompoundNode from './CompoundNode';
+import SideProductCompoundNode from './SideProductCompoundNode';
 import CustomEdge from './CustomEdges';
 import ControlPanel from './ControlPanel';
 import LayoutConfigPanel from './LayoutConfigPanel';
@@ -19,7 +19,7 @@ const nodeTypes = {
     productNode: ProductNode,
     processNode: ProcessNode,
     sideProductNode: SideProductNode,
-    compoundNode: CompoundNode,
+    sideProductCompoundNode: SideProductCompoundNode,
 };
 
 const edgeTypes = {

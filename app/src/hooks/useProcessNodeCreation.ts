@@ -4,12 +4,12 @@ import { Edge } from '@xyflow/react';
 import { FlowAction } from '@/contexts/FlowContext';
 import { ProductNode } from '@/components/TreeVisualizer/ProductNode';
 import { ProcessNode } from '@/components/TreeVisualizer/ProcessNode';
-import { CompoundNode } from '@/components/TreeVisualizer/CompoundNode';
+import { SideProductCompoundNode } from '@/components/TreeVisualizer/SideProductCompoundNode';
 import { InfluenceNode } from '@/types/reactFlowTypes';
 import { SideProductNode } from '@/components/TreeVisualizer/SideProductNode';
 
 interface ProcessNodeCreationResult {
-  compoundNode?: CompoundNode;
+  sideProductCompoundNode?: SideProductCompoundNode;
   processNode: ProcessNode;
   productNodes: ProductNode[];
   sideProductNodes: SideProductNode[];
@@ -83,13 +83,13 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
         });
       });
 
-      // Only create compound node edges if a compound node exists
-      if (result.compoundNode && result.sideProductNodes.length > 0) {
-        // Edges from process node to compound node with side product nodes
+      // Only create sideProductCompound node edges if a sideProductCompound node exists
+      if (result.sideProductCompoundNode && result.sideProductNodes.length > 0) {
+        // Edges from process node to sideProductCompound node with side product nodes
         newEdges.push({
-          id: `edge-${result.compoundNode.id}-${result.processNode.id}`,
-          source: result.compoundNode.id,
-          sourceHandle: `compound-source-${result.compoundNode.id}`,
+          id: `edge-${result.sideProductCompoundNode.id}-${result.processNode.id}`,
+          source: result.sideProductCompoundNode.id,
+          sourceHandle: `sideProductCompound-source-${result.sideProductCompoundNode.id}`,
           target: result.processNode.id,
           type: 'custom',
         });
@@ -101,7 +101,7 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
       }
 
       return {
-        compoundNode: result.compoundNode as CompoundNode | undefined,
+        sideProductCompoundNode: result.sideProductCompoundNode as SideProductCompoundNode | undefined,
         processNode: result.processNode as ProcessNode,
         productNodes: result.productNodes as ProductNode[],
         sideProductNodes: result.sideProductNodes as SideProductNode[],

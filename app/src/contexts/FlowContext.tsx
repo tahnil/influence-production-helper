@@ -230,30 +230,30 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       // Filter out any undefined nodes first
       const validNodes = nodes.filter(node => node && typeof node === 'object' && 'type' in node);
 
-      // Check if there's a compound node in the payload
-      const compoundNode = validNodes.find(node => node.type === 'compoundNode');
+      // Check if there's a sideProductCompound node in the payload
+      const sideProductCompoundNode = validNodes.find(node => node.type === 'sideProductCompoundNode');
 
       let updatedNodes = [...state.nodes];
       let updatedEdges = [...state.edges];
 
-      // If there's an existing compound node with the same logicalParentId, remove it and its children
+      // If there's an existing sideProductCompound node with the same logicalParentId, remove it and its children
       if (logicalParentId) {
-        const existingCompoundNodes = state.nodes.filter(
-          (node) => node.type === 'compoundNode' &&
+        const existingSideProductCompoundNodes = state.nodes.filter(
+          (node) => node.type === 'sideProductCompoundNode' &&
             node.data.processId &&
             state.nodes.find(n => n.id === node.data.processId)?.data?.logicalParentId === logicalParentId
         );
 
-        if (existingCompoundNodes.length > 0) {
+        if (existingSideProductCompoundNodes.length > 0) {
           const nodesToRemove: string[] = [];
 
-          // Find compound nodes and their children
-          existingCompoundNodes.forEach(existingCompoundNode => {
-            nodesToRemove.push(existingCompoundNode.id);
+          // Find sideProductCompound nodes and their children
+          existingSideProductCompoundNodes.forEach(existingSideProductCompoundNode => {
+            nodesToRemove.push(existingSideProductCompoundNode.id);
 
-            // Find all child nodes of the compound node
+            // Find all child nodes of the sideProductCompound node
             state.nodes.forEach(node => {
-              if (node.parentId === existingCompoundNode.id) {
+              if (node.parentId === existingSideProductCompoundNode.id) {
                 nodesToRemove.push(node.id);
               }
             });
@@ -564,9 +564,9 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // Add newly created nodes to the state
-        const { compoundNode, processNode, productNodes, sideProductNodes, edges } = result;
+        const { sideProductCompoundNode, processNode, productNodes, sideProductNodes, edges } = result;
         const newNodes = [
-          ...(compoundNode ? [compoundNode] : []), // Only include if not undefined
+          ...(sideProductCompoundNode ? [sideProductCompoundNode] : []), // Only include if not undefined
           processNode, 
           ...productNodes, 
           ...sideProductNodes
