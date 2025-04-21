@@ -21,9 +21,14 @@ const useProcessNodeBuilder = () => {
         logicalParentIdProductId: string,
         handleSelectProcess: (processId: string, nodeId: string) => void,
         handleSerialize: (focalProductId: string) => void,
-    ): Promise<{ compoundNode: Node, processNode: Node, productNodes: Node[], sideProductNodes: Node[], edges: Edge[] } | null> => {
+    ): Promise<{
+        compoundNode?: Node,
+        processNode: Node,
+        productNodes: Node[],
+        sideProductNodes: Node[],
+        edges: Edge[]
+    } | null> => {
         try {
-
             const [processDetails, inputProducts] = await Promise.all([
                 getProcessDetails(processId),
                 getInputsByProcessId(processId)
@@ -34,33 +39,42 @@ const useProcessNodeBuilder = () => {
             ]);
 
             const processNodeId = generateUniqueId();
-            const compoundNodeId = `compound-${processNodeId}`;
+
+            // Check if this process has side products
+            const sideProductOutputs = processDetails.outputs.filter(
+                output => output.productId !== logicalParentIdProductId
+            );
+
+            const hasSideProducts = sideProductOutputs.length > 0;
+            console.log(`[useProcessNodeBuilder] Process ${processId} has ${sideProductOutputs.length} side products`);
+
+            // Only create a compound node if we have side products
+            const compoundNodeId = hasSideProducts ? `compound-${processNodeId}` : undefined;
+            let compoundNode: Node | undefined;
+
+            if (hasSideProducts && compoundNodeId) {
+                compoundNode = {
+                    id: compoundNodeId,
+                    type: 'compoundNode',
+                    position: { x: 0, y: 0 },
+                    data: {
+                        id: compoundNodeId,
+                        width: 400,  // Default width, will be measured/adjusted by layout
+                        height: 300, // Default height, will be measured/adjusted by layout
+                        processId: processNodeId,
+                        label: 'Side Products',
+                    }
+                };
+                console.log('[useProcessNodeBuilder] Creating compound node:', compoundNode);
+            }
 
             const output = processDetails.outputs.find(output => output.productId === logicalParentIdProductId);
-
             const outputUnitsPerSR = output ? parseFloat(output.unitsPerSR) : 0;
-
             const totalRuns = logicalParentIdAmount / outputUnitsPerSR || 1;
-
-            // Create compound node
-            const compoundNode: Node = {
-                id: compoundNodeId,
-                type: 'compoundNode',
-                position: { x: 0, y: 0 },
-                data: {
-                    id: compoundNodeId,
-                    width: 400,  // Default width, will be measured/adjusted by layout
-                    height: 300, // Default height, will be measured/adjusted by layout
-                    processId: processNodeId,
-                    label: 'Side Products',
-                }
-            };
-
-            console.log('[useProcessNodeBuilder] Creating compound node:', compoundNode);
 
             // Build input ProductNodes
             const productNodesPromises = inputProducts.map(async (inputProduct) => {
-                console.log(`[useProcessNodeBuilder] Executing productNodesPromises, creating product node for input:`, inputProduct);
+                console.log(`[useProcessNodeBuilder] Creating product node for input:`, inputProduct);
                 const amount = parseFloat(inputProduct.unitsPerSR) * totalRuns;
 
                 const productNode = await buildProductNode(
@@ -80,17 +94,17 @@ const useProcessNodeBuilder = () => {
                             logicalParentId: processNodeId,
                         }
                     };
-                    console.log(`[useProcessNodeBuilder] Created node for ${inputProduct.product.id} with ID ${newProductNode.id}`, newProductNode);
+                    console.log(`[useProcessNodeBuilder] Created node for ${inputProduct.product.id} with ID ${newProductNode.id}`);
                     return newProductNode;
                 }
 
                 return null;
             });
 
-            // Build SideProductNodes
-            const sideProductNodesPromises = processDetails.outputs
-                .filter(output => output.productId !== logicalParentIdProductId)
-                .map(async (output) => {
+            // Build SideProductNodes only if there are side products
+            const sideProductNodes: Node[] = [];
+            if (hasSideProducts) {
+                const sideProductNodesPromises = sideProductOutputs.map(async (output) => {
                     console.log(`[SideProducts] Creating side product for output:`, output);
                     const amount = parseFloat(output.unitsPerSR) * totalRuns;
 
@@ -99,8 +113,8 @@ const useProcessNodeBuilder = () => {
                         amount,
                     );
 
-                    if (sideProductNode) {
-                        console.log(`[SideProducts] Created node for ${output.productId} with ID ${sideProductNode.id}`, sideProductNode);
+                    if (sideProductNode && compoundNodeId) {
+                        console.log(`[SideProducts] Created node for ${output.productId} with ID ${sideProductNode.id}`);
                         const newSideProductNode = {
                             ...sideProductNode,
                             type: 'sideProductNode',
@@ -119,11 +133,15 @@ const useProcessNodeBuilder = () => {
                     return null;
                 });
 
+                const resolvedSideProductNodes = (await Promise.all(sideProductNodesPromises)).filter(Boolean) as Node[];
+                sideProductNodes.push(...resolvedSideProductNodes);
+
+                console.log(`[SideProducts] Finished creating ${sideProductNodes.length} side product nodes:`,
+                    sideProductNodes.map(n => ({ id: n.id, productId: (n.data as { productDetails: { id: string } }).productDetails.id })));
+            }
+
             // After all product nodes are created
             const productNodes = (await Promise.all(productNodesPromises)).filter(Boolean) as Node[];
-            const sideProductNodes = (await Promise.all(sideProductNodesPromises)).filter(Boolean) as Node[];
-            console.log(`[SideProducts] Finished creating ${sideProductNodes.length} side product nodes:`,
-                sideProductNodes.map(n => ({ id: n.id, productId: (n.data as { productDetails: { id: string } }).productDetails.id })));
 
             // Update the process node
             const newProcessNode: Node = {
@@ -136,7 +154,10 @@ const useProcessNodeBuilder = () => {
                     image: buildingIcon,
                     totalRuns,
                     inflowIds: productNodes.map(node => node.id), // Input products are inflows of the process
-                    outflowIds: [logicalParentId, ...sideProductNodes.map(node => node.id)], // The parent product node is the outflow
+                    outflowIds: [
+                        logicalParentId,
+                        ...(hasSideProducts ? sideProductNodes.map(node => node.id) : [])
+                    ], // The parent product node and any side products are outflows
                     logicalParentId: logicalParentId,
                 },
             };
@@ -144,11 +165,15 @@ const useProcessNodeBuilder = () => {
             // Create edges for the nodes
             const edges: Edge[] = [];
 
-            console.log('[useProcessNodeBuilder] Created following nodes:', compoundNode, newProcessNode, productNodes, sideProductNodes);
-            console.log('[useProcessNodeBuilder] Created following edges for side products:', edges);
+            // Log successful creation
+            if (hasSideProducts) {
+                console.log('[useProcessNodeBuilder] Created compound node, process node, product nodes, and side product nodes');
+            } else {
+                console.log('[useProcessNodeBuilder] Created process node and product nodes (no side products)');
+            }
 
             return {
-                compoundNode,
+                compoundNode, // This will be undefined if no side products
                 processNode: newProcessNode,
                 productNodes,
                 sideProductNodes,

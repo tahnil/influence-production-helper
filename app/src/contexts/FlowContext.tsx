@@ -227,46 +227,69 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
     case 'PROCESS_SELECTED': {
       const { nodes, edges, logicalParentId } = action.payload;
 
-      const compoundNode = nodes.find(node => node.type === 'compoundNode');
+      // Filter out any undefined nodes first
+      const validNodes = nodes.filter(node => node && typeof node === 'object' && 'type' in node);
 
-      if (!compoundNode) {
-        console.error('Compound node not found in PROCESS_SELECTED payload');
-        return state;
-      }
-
-      // Find the existing ProcessNode with the same data.logicalParentId if any
-      const existingCompoundNode = state.nodes.find(
-        (node) => node.type === 'compoundNode' && 
-                  node.data.logicalParentId === logicalParentId
-      );
+      // Check if there's a compound node in the payload
+      const compoundNode = validNodes.find(node => node.type === 'compoundNode');
 
       let updatedNodes = [...state.nodes];
       let updatedEdges = [...state.edges];
 
-      if (existingCompoundNode) {
-        // Remove existing compound node, process node, side products and their edges
-        const nodesToRemove = [existingCompoundNode.id];
-
-        // Find all child nodes of the compound node
-        state.nodes.forEach(node => {
-          if (node.parentId === existingCompoundNode.id) {
-            nodesToRemove.push(node.id);
-          }
-        });
-
-        // Remove nodes
-        updatedNodes = updatedNodes.filter(
-          (node) => !nodesToRemove.includes(node.id)
+      // If there's an existing compound node with the same logicalParentId, remove it and its children
+      if (logicalParentId) {
+        const existingCompoundNodes = state.nodes.filter(
+          (node) => node.type === 'compoundNode' &&
+            node.data.processId &&
+            state.nodes.find(n => n.id === node.data.processId)?.data?.logicalParentId === logicalParentId
         );
 
-        // Remove connected edges
-        updatedEdges = updatedEdges.filter(
-          (edge) => !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target)
-        );
+        if (existingCompoundNodes.length > 0) {
+          const nodesToRemove: string[] = [];
+
+          // Find compound nodes and their children
+          existingCompoundNodes.forEach(existingCompoundNode => {
+            nodesToRemove.push(existingCompoundNode.id);
+
+            // Find all child nodes of the compound node
+            state.nodes.forEach(node => {
+              if (node.parentId === existingCompoundNode.id) {
+                nodesToRemove.push(node.id);
+              }
+            });
+          });
+
+          // Also find existing process nodes with this parent
+          const existingProcessNodes = state.nodes.filter(
+            (node) => node.type === 'processNode' &&
+              node.data.logicalParentId === logicalParentId
+          );
+
+          existingProcessNodes.forEach(processNode => {
+            nodesToRemove.push(processNode.id);
+
+            // Find input products of this process
+            state.nodes.forEach(node => {
+              if (node.data.logicalParentId === processNode.id) {
+                nodesToRemove.push(node.id);
+              }
+            });
+          });
+
+          // Remove nodes
+          updatedNodes = updatedNodes.filter(
+            (node) => !nodesToRemove.includes(node.id)
+          );
+
+          // Remove connected edges
+          updatedEdges = updatedEdges.filter(
+            (edge) => !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target)
+          );
+        }
       }
 
       // Add all the new nodes and edges
-      updatedNodes = [...updatedNodes, ...nodes];
+      updatedNodes = [...updatedNodes, ...validNodes];
       updatedEdges = [...updatedEdges, ...edges];
 
       return {
@@ -542,7 +565,12 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Add newly created nodes to the state
         const { compoundNode, processNode, productNodes, sideProductNodes, edges } = result;
-        const newNodes = [compoundNode, processNode, ...productNodes, ...sideProductNodes];
+        const newNodes = [
+          ...(compoundNode ? [compoundNode] : []), // Only include if not undefined
+          processNode, 
+          ...productNodes, 
+          ...sideProductNodes
+        ];
 
         dispatch({
           type: 'PROCESS_SELECTED',

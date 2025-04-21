@@ -122,7 +122,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
             finalNodes.push(node);
         }
     });
-
+    
     return {
         layoutedNodes: finalNodes,
         layoutedEdges: edges // Return edges unchanged

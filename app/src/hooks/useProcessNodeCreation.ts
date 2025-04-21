@@ -9,7 +9,7 @@ import { InfluenceNode } from '@/types/reactFlowTypes';
 import { SideProductNode } from '@/components/TreeVisualizer/SideProductNode';
 
 interface ProcessNodeCreationResult {
-  compoundNode: CompoundNode;
+  compoundNode?: CompoundNode;
   processNode: ProcessNode;
   productNodes: ProductNode[];
   sideProductNodes: SideProductNode[];
@@ -83,8 +83,9 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
         });
       });
 
-      // Edges from process node to compound node with side product nodes
-      result.sideProductNodes.forEach(sideProductNode => {
+      // Only create compound node edges if a compound node exists
+      if (result.compoundNode && result.sideProductNodes.length > 0) {
+        // Edges from process node to compound node with side product nodes
         newEdges.push({
           id: `edge-${result.compoundNode.id}-${result.processNode.id}`,
           source: result.compoundNode.id,
@@ -92,15 +93,15 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
           target: result.processNode.id,
           type: 'custom',
         });
-      });
 
-      // Include the side product edges that were created in buildProcessNode
-      if (result.edges && result.edges.length > 0) {
-        newEdges.push(...result.edges);
+        // Include the side product edges that were created in buildProcessNode
+        if (result.edges && result.edges.length > 0) {
+          newEdges.push(...result.edges);
+        }
       }
 
       return {
-        compoundNode: result.compoundNode as CompoundNode,
+        compoundNode: result.compoundNode as CompoundNode | undefined,
         processNode: result.processNode as ProcessNode,
         productNodes: result.productNodes as ProductNode[],
         sideProductNodes: result.sideProductNodes as SideProductNode[],
