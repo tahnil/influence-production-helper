@@ -65,20 +65,31 @@ export function useProcessNodeCreation(dispatch: React.Dispatch<FlowAction>) {
       // Create edges for connecting the nodes
       const newEdges: Edge[] = [];
 
-      // Edge from parent product to compound node (main flow)
+      // Edge from parent product to process node (main flow)
       newEdges.push({
-        id: `edge-${logicalParentId}-${result.compoundNode.id}`,
+        id: `edge-${logicalParentId}-${result.processNode.id}`,
         source: logicalParentId,
-        target: result.compoundNode.id,
+        target: result.processNode.id,
         type: 'custom',
       });
 
-      // Edges from compound node to input product nodes
+      // Edges from process node to input product nodes
       result.productNodes.forEach(productNode => {
         newEdges.push({
-          id: `edge-${result.compoundNode.id}-${productNode.id}`,
-          source: result.compoundNode.id,
+          id: `edge-${result.processNode.id}-${productNode.id}`,
+          source: result.processNode.id,
           target: productNode.id,
+          type: 'custom',
+        });
+      });
+
+      // Edges from process node to compound node with side product nodes
+      result.sideProductNodes.forEach(sideProductNode => {
+        newEdges.push({
+          id: `edge-${result.compoundNode.id}-${result.processNode.id}`,
+          source: result.compoundNode.id,
+          sourceHandle: `compound-source-${result.compoundNode.id}`,
+          target: result.processNode.id,
           type: 'custom',
         });
       });

@@ -46,12 +46,6 @@ const ProcessNode: React.FC<NodeProps<ProcessNode>> = ({ id, data }) => {
         className="process-inflow-handle bg-green-500"
         id={`source-${id}`}
       />
-      <Handle
-        type="target"
-        position={Position.Right}
-        className="process-outflow-side-product-handle bg-purple-500"
-        id={`target-side-product-${id}`}
-      />
       <div id="processNodeCard" className="flex flex-col items-center">
         <div id="titleSection" className="p-2 bg-falcon-800 w-full flex justify-center items-center gap-2.5 grid grid-cols-3">
           <div id="buildingIcon" className="p-2">

@@ -51,7 +51,8 @@ const useProcessNodeBuilder = () => {
                     id: compoundNodeId,
                     width: 400,  // Default width, will be measured/adjusted by layout
                     height: 300, // Default height, will be measured/adjusted by layout
-                    processId: processNodeId
+                    processId: processNodeId,
+                    label: 'Side Products',
                 }
             };
 
@@ -129,8 +130,6 @@ const useProcessNodeBuilder = () => {
                 id: processNodeId,
                 type: 'processNode',
                 position: { x: 0, y: 0 },
-                parentId: compoundNodeId,
-                extent: 'parent',
                 data: {
                     processDetails,
                     inputProducts,
@@ -144,19 +143,6 @@ const useProcessNodeBuilder = () => {
 
             // Create edges for the nodes
             const edges: Edge[] = [];
-
-            // Create an edge from the process node to each side product node
-            sideProductNodes.forEach(sideProductNode => {
-                edges.push({
-                    id: `edge-${sideProductNode.id}-${processNodeId}`,
-                    source: sideProductNode.id,
-                    sourceHandle: `bottom-${sideProductNode.id}`, // Bottom handle of side product node
-                    target: processNodeId,
-                    targetHandle: `target-${processNodeId}`, // Right handle of process node
-                    type: 'custom',
-                    data: { isSideProductConnection: true }
-                });
-            });
 
             console.log('[useProcessNodeBuilder] Created following nodes:', compoundNode, newProcessNode, productNodes, sideProductNodes);
             console.log('[useProcessNodeBuilder] Created following edges for side products:', edges);
