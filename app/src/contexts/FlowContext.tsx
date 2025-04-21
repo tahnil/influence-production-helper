@@ -297,7 +297,17 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
           });
         }
 
-
+        // THIS LOGIC BELONGS IN useProcessNodeCreation.ts AND useProcessNodeBuilder.ts
+        // We need for example to update parentIds of outflowing product nodes
+        // If there's an existing OutflowsCompoundNode with the same logicalParentId, remove it
+        const existingOutflowsCompoundNodes = state.nodes.filter(
+          (node) => node.type === 'outflowsCompoundNode' &&
+            node.data.processId &&
+            state.nodes.find(n => n.id === node.data.processId)?.data?.logicalParentId === logicalParentId
+        );
+        existingOutflowsCompoundNodes.forEach(existingOutflowsCompoundNode => {
+          nodesToRemove.push(existingOutflowsCompoundNode.id);
+        });
 
         // Also find existing process nodes with this parent and add them to the nodes to remove
         const existingProcessNodes = state.nodes.filter(
