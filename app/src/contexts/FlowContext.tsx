@@ -266,8 +266,11 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
 
       // Filter out any undefined nodes from nodes in payload first
       const validNodes = nodes.filter(node => node && typeof node === 'object' && 'type' in node);
+
+      // Initialize an empty arry of nodes to remove
       const nodesToRemove: string[] = [];
 
+      // Populate local variables with current nodes and edges
       let updatedNodes = [...state.nodes];
       let updatedEdges = [...state.edges];
 
@@ -279,7 +282,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
             state.nodes.find(n => n.id === node.data.processId)?.data?.logicalParentId === logicalParentId
         );
 
-        // Initialize an empty arry of nodes to remove
         if (existingSideProductCompoundNodes.length > 0) {
 
           // Find sideProductCompound nodes and their children and add them to the nodes to remove
@@ -294,6 +296,8 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
             });
           });
         }
+
+
 
         // Also find existing process nodes with this parent and add them to the nodes to remove
         const existingProcessNodes = state.nodes.filter(
