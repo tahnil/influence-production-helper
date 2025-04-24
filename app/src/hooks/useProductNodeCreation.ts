@@ -1,3 +1,5 @@
+// hooks/useProductNodeCreation.ts
+
 import { useCallback } from "react";
 import useProductNodeBuilder from "@/utils/TreeVisualizer/useProductNodeBuilder";
 import { FlowAction } from '@/contexts/FlowContext';
@@ -8,8 +10,8 @@ export function useProductNodeCreation(dispatch: React.Dispatch<FlowAction>) {
 
     return useCallback(async (
         productId: string,
-        amount: number = 1, // Default amount to 1 if not provided
-        isRoot: boolean = false // Default to false if not provided
+        amount: number = 1,
+        isRoot: boolean = false
     ): Promise<ProductNode | null> => {
         try {
             if (!productId) {

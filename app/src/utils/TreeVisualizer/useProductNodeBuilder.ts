@@ -6,7 +6,9 @@ import { generateUniqueId } from '../generateUniqueId';
 import useProductDetails from '@/hooks/useInfluenceProductDetails';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 import useProductImage from '@/hooks/useProductImage';
+import { ProductNodeData } from '@/components/TreeVisualizer/ProductNode';
 
+// This hook should focus purely on building the node data structure
 const useProductNodeBuilder = () => {
     const { getProductDetails } = useProductDetails();
     const { getProcessesByProductId } = useProcessesByProductId();
@@ -15,7 +17,7 @@ const useProductNodeBuilder = () => {
     const buildProductNode = useCallback(async (
         selectedProductId: string,
         amount: number,
-    ): Promise<Node | null> => {
+    ): Promise<Node<ProductNodeData> | null> => {
         try {
             const [productDetails, processesByProductId, productImage] = await Promise.all([
                 getProductDetails(selectedProductId),
@@ -26,10 +28,10 @@ const useProductNodeBuilder = () => {
             const weight: number = productDetails.massKilogramsPerUnit ? parseFloat(productDetails.massKilogramsPerUnit) : 0;
             const totalWeight = amount * weight;
 
-            const volume: number = productDetails.volumeLitersPerUnit? parseFloat(productDetails.volumeLitersPerUnit) : 0;
+            const volume: number = productDetails.volumeLitersPerUnit ? parseFloat(productDetails.volumeLitersPerUnit) : 0;
             const totalVolume = amount * volume;
 
-            const newProductNode: Node = {
+            const newProductNode: Node<ProductNodeData> = {
                 id: generateUniqueId(),
                 type: 'productNode',
                 position: { x: 0, y: 0 },
@@ -42,7 +44,8 @@ const useProductNodeBuilder = () => {
                     processesByProductId,
                     inflowIds: [],
                     outflowIds: [],
-                },
+                    // Not including callbacks - these will be added by the consumer
+                }
             };
 
             return newProductNode;

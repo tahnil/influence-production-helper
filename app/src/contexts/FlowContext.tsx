@@ -456,16 +456,18 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error('Product ID is undefined');
         }
 
-        const enhancedNode = await createProductNode(productId, amount, isRoot);
+        const productNode = await createProductNode(productId, amount, isRoot);
 
-        if (!enhancedNode) return; // Creation failed or was cancelled
+        if (!productNode) {
+          return; // Creation failed or was cancelled
+        }
 
         if (isRoot) {
           dispatch({
             type: 'BATCH_UPDATE',
             payload: {
-              nodes: [enhancedNode],
-              rootNodeId: enhancedNode.id,
+              nodes: [productNode],
+              rootNodeId: productNode.id,
               nodesReady: true
             }
           });
@@ -473,7 +475,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
           dispatch({
             type: 'BATCH_UPDATE',
             payload: {
-              nodes: [...state.nodes, enhancedNode]
+              nodes: [...state.nodes, productNode]
             }
           });
         }
