@@ -58,6 +58,7 @@ const SideProductCompoundNode: React.FC<NodeProps<SideProductCompoundNode>> = ({
           }}
         >
           {data.label}
+          {id}
         </div>
       )}
     </div>

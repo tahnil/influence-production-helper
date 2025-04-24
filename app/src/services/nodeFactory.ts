@@ -93,6 +93,7 @@ export function createSideProductCompoundNode(
             inflowIds: [],
             outflowIds: [],
             logicalParentId: '', // This will be set later to the id of the outflowsCompoundNode
+            label: 'Side Products',
         }
     }
 }

@@ -207,7 +207,7 @@ function realizePlans(plans: NodePlan[], productDataMap: Record<string, ProductD
 function createEdges(nodes: InfluenceNode[], nodeIdMap: Record<string, string>): Edge[] {
     const edges: Edge[] = [];
     const processNodeId = nodeIdMap['PROCESS_NODE_ID'];
-    const compoundNodeId = nodeIdMap['SIDE_PRODUCT_COMPOUND_NODE_ID'];
+    const compoundNodeId = nodeIdMap['NONE_BUT_LATER_OUTFLOWS_COMPOUND_NODE_ID'];
     const processNode = nodes.find(n => n.id === processNodeId);
     
     if (!processNode) return edges;
@@ -219,7 +219,7 @@ function createEdges(nodes: InfluenceNode[], nodeIdMap: Record<string, string>):
         n.type === 'productNode' &&
         n.data.logicalParentId === processNodeId
     );
-    const sideProductNodes = nodes.filter(n => n.type === 'sideProductNode');
+    // const sideProductNodes = nodes.filter(n => n.type === 'sideProductNode');
     const sideProductCompoundNode = nodes.find(n => n.id === compoundNodeId);
 
     // 1. Edge from parent product to process node (main flow)
@@ -242,27 +242,20 @@ function createEdges(nodes: InfluenceNode[], nodeIdMap: Record<string, string>):
         });
     });
 
-    // 3. Handle side product compound and side product nodes
-    if (sideProductCompoundNode && sideProductNodes.length > 0) {
-        // Edge from side product compound to process
+    // 3. Single connection between process and side product compound
+    if (sideProductCompoundNode) {
         edges.push({
             id: `edge-${compoundNodeId}-${processNodeId}`,
             source: compoundNodeId,
             sourceHandle: `sideProductCompound-source-${compoundNodeId}`,
             target: processNodeId,
+            targetHandle: `target-${processNodeId}`,
             type: 'custom',
+            data: { isSideProductConnection: true }
         });
-
-        // Edges from process to side products
-        sideProductNodes.forEach(sideProductNode => {
-            edges.push({
-                id: `edge-${processNodeId}-${sideProductNode.id}`,
-                source: processNodeId,
-                target: sideProductNode.id,
-                type: 'custom',
-                data: { isSideProductConnection: true }
-            });
-        });
+        console.log('[useProcessNodeOrchestrator] Created edge between process node and side product compound node', edges);
+    } else {
+        console.log('[useProcessNodeOrchestrator] No side product compound node found');
     }
 
     // 4. Handle outflows compound (for future implementation)
