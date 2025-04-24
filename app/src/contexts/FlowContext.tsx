@@ -19,7 +19,7 @@ import { InfluenceNode } from '@/types/reactFlowTypes';
 import { handleReplaceNode } from '@/utils/TreeVisualizer/handleReplaceNode';
 import { useProductNodeCreation } from '@/hooks/useProductNodeCreation';
 import { useProcessNodeCreation } from '@/hooks/useProcessNodeCreation';
-import { createProcessStructure } from '@/services/nodeCreationOrchestrator';
+import { useProcessNodeOrchestrator } from '@/hooks/useProcessNodeOrchestrator';
 
 interface NodeCreationRequest {
   type: 'product' | 'process';
@@ -115,7 +115,7 @@ export type FlowAction =
   | { type: 'CLEAR_PENDING_NODE_CREATION' }
   | { type: 'NODE_CREATION_COMPLETED' }
   | { type: 'NODE_CREATION_FAILED'; payload: { error: string } }
-  | { type: 'PROCESS_STRUCTURE_CREATED'; payload: { nodesToRemove: string[], newNodes: Node[], newEdges: Edge[] } }
+  | { type: 'PROCESS_STRUCTURE_CREATED'; payload: { nodes: InfluenceNode[], edges: Edge[] } }
   ;
 
 // Initial state
@@ -389,19 +389,13 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         nodeCreationError: action.payload.error
       };
     case 'PROCESS_STRUCTURE_CREATED': {
-      const { nodesToRemove, newNodes, newEdges } = action.payload;
-
-      // Remove old nodes and edges
-      const updatedNodes = state.nodes.filter(node => !nodesToRemove.includes(node.id));
-      const updatedEdges = state.edges.filter(edge =>
-        !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target)
-      );
+      const { nodes, edges } = action.payload;
 
       // Add the new nodes and edges
       return {
         ...state,
-        nodes: [...updatedNodes, ...newNodes],
-        edges: [...updatedEdges, ...newEdges],
+        nodes: nodes,
+        edges: edges,
         needsLayout: true,
         layoutTrigger: 'STRUCTURE_CHANGE',
         pendingNodeCreation: null
@@ -459,6 +453,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { memoryDb } = usePouchDB();
   const createProductNode = useProductNodeCreation(dispatch);
   const createProcessNode = useProcessNodeCreation(dispatch);
+  const processNodeOrchestrator = useProcessNodeOrchestrator(dispatch);
 
   // Keep the nodesRef in sync with the state.nodes
   React.useEffect(() => {
@@ -532,21 +527,26 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!processId) throw new Error('Process ID is undefined');
         if (!logicalParentId) throw new Error('Parent Node ID is undefined');
 
+        console.log('[FlowContext | Process Node Creation] Creating process node with ID:', processId);
+        console.log('[FlowContext | Process Node Creation] Logical parent ID:', logicalParentId);
+
         // Find parent node
         const parentNode = state.nodes.find(node => node.id === logicalParentId);
-        if (!parentNode) throw new Error(`Parent node with ID ${logicalParentId} not found`);
+        if (!parentNode) throw new Error(`[FlowContext | Process Node Creation] Parent node with ID ${logicalParentId} not found`);
 
         const parentAmount = parentNode.data.amount as number || 0;
+        console.log('[FlowContext | Process Node Creation] Parent amount:', parentAmount);
         const parentProductId = (parentNode.data.productDetails as { id: string } | undefined)?.id || '';
+        console.log('[FlowContext | Process Node Creation] Parent product ID:', parentProductId);
 
-        // Use the orchestrator to create all nodes
-        await createProcessStructure(
+        // Use the orchestrator hook
+        await processNodeOrchestrator.createProcessStructure(
           processId,
           logicalParentId,
           parentAmount,
           parentProductId,
-          dispatch,
-          state.nodes as InfluenceNode[]
+          state.nodes as InfluenceNode[],
+          state.edges
         );
 
         // Success is handled by the dispatched PROCESS_STRUCTURE_CREATED action

@@ -51,7 +51,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
   } = data;
 
   const { name, massKilogramsPerUnit: weight, volumeLitersPerUnit: volume, type, category } = productDetails;
-  const [selectedId, setSelectedId] = useState<string | null>(selectedProcessId ?? null);
+  const [selectedId] = useState<string | null>(selectedProcessId ?? null);
 
   // Setup configurations for this product
   useMatchingConfigurations(productDetails.id);
@@ -74,16 +74,9 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     })
   }), [amount, totalWeight, totalVolume]);
 
-  // Memoize filtered configurations
-  const filteredConfigs = useMemo(() =>
-    matchingConfigs.filter(config => config.focalProductId === productDetails.id),
-    [matchingConfigs, productDetails.id]
-  )
-
   // Memoize process selection handler
   const handleProcessSelection = useCallback((processId: string) => {
     console.log('[ProductNode] Process selected:', processId);
-    setSelectedId(processId);
     dispatch({
       type: 'REQUEST_PROCESS_NODE_CREATION',
       payload: {

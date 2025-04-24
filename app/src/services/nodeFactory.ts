@@ -10,6 +10,7 @@ export function createProcessNode(
     processData: any,
     logicalParentId: string
 ): ProcessNode {
+    console.log('[nodeFactory | createProcessNode] processData:', processData);
     return {
         id: generateUniqueId(),
         type: 'processNode',

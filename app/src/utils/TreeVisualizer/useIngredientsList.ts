@@ -5,6 +5,7 @@ import { Node } from '@xyflow/react';
 import { ProductNodeData } from '@/components/TreeVisualizer/ProductNode';
 import { ProcessNodeData } from '@/components/TreeVisualizer/ProcessNode';
 import { formatNumber } from '@/utils/formatNumber';
+import { InfluenceNode } from '@/types/reactFlowTypes';
 
 export interface Ingredient {
     name: string;
@@ -16,12 +17,12 @@ export interface Ingredient {
 
 export type IngredientsListMode = 'rawMaterials' | 'allProducts';
 
-function useIngredientsList(nodes: Node[], mode: IngredientsListMode = 'rawMaterials'): Ingredient[] {
+function useIngredientsList(nodes: InfluenceNode[], mode: IngredientsListMode = 'rawMaterials'): Ingredient[] {
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
 
     useEffect(() => {
         // Function to check if a node is a leaf node (product with no inflows)
-        const isLeafNode = (node: Node): boolean => {
+        const isLeafNode = (node: InfluenceNode): boolean => {
             if (node.type === 'productNode') {
                 const childNodes = nodes.filter(n => n.data.logicalParentId === node.id);
                 if (childNodes.length === 0) {
@@ -39,7 +40,7 @@ function useIngredientsList(nodes: Node[], mode: IngredientsListMode = 'rawMater
         };
 
         // Function to get all product nodes
-        const getProductNodes = (nodes: Node[]): Node[] => {
+        const getProductNodes = (nodes: InfluenceNode[]): InfluenceNode[] => {
             return nodes.filter(node => node.type === 'productNode');
         };
 
