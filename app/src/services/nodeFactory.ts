@@ -65,6 +65,8 @@ export function createSideProductNode(
         id: generateUniqueId(),
         type: 'sideProductNode',
         position: { x: 0, y: 0 },
+        parentId: compoundNodeId,
+        extent: 'parent',
         data: {
             amount,
             totalWeight: parseFloat(productData.productDetails.massKilogramsPerUnit || '0') * amount,
@@ -92,6 +94,7 @@ export function createSideProductCompoundNode(
             height: 250,
             inflowIds: [],
             outflowIds: [],
+            processId: processNodeId,
             logicalParentId: '', // This will be set later to the id of the outflowsCompoundNode
             label: 'Side Products',
         }

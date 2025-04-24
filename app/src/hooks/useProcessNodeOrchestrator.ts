@@ -183,11 +183,12 @@ function realizePlans(plans: NodePlan[], productDataMap: Record<string, ProductD
             );
             console.log('[useProcessNodeOrchestrator] Created product node:', node);
         } else {
+            console.log('[useProcessNodeOrchestrator] Creating side product node with nodeIdMap:', nodeIdMap);
             node = createSideProductNode(
                 productData,
                 plan.amount!,
                 nodeIdMap['PROCESS_NODE_ID'],
-                nodeIdMap['SIDE_PRODUCT_COMPOUND_NODE_ID']
+                nodeIdMap['NONE_BUT_LATER_OUTFLOWS_COMPOUND_NODE_ID']
             );
             console.log('[useProcessNodeOrchestrator] Created side product node:', node);
         }

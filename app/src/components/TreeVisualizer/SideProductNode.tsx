@@ -42,6 +42,7 @@ const SideProductNode: React.FC<NodeProps<SideProductNode>> = ({ id, data }) => 
 
   return (
     <div className="side-product-node bg-lunarGreen-700 border overflow-hidden rounded-lg shadow-lg w-56">
+      {id}
       <div className="flex flex-col items-center">
         <div className="p-2 bg-lunarGreen-600 w-full flex items-center gap-2">
           {/* Side Product Indicator */}
