@@ -19,6 +19,7 @@ import { InfluenceNode } from '@/types/reactFlowTypes';
 import { handleReplaceNode } from '@/utils/TreeVisualizer/handleReplaceNode';
 import { useProductNodeCreation } from '@/hooks/useProductNodeCreation';
 import { useProcessNodeCreation } from '@/hooks/useProcessNodeCreation';
+import { createProcessStructure } from '@/services/nodeCreationOrchestrator';
 
 interface NodeCreationRequest {
   type: 'product' | 'process';
@@ -114,6 +115,7 @@ export type FlowAction =
   | { type: 'CLEAR_PENDING_NODE_CREATION' }
   | { type: 'NODE_CREATION_COMPLETED' }
   | { type: 'NODE_CREATION_FAILED'; payload: { error: string } }
+  | { type: 'PROCESS_STRUCTURE_CREATED'; payload: { nodesToRemove: string[], newNodes: Node[], newEdges: Edge[] } }
   ;
 
 // Initial state
@@ -386,6 +388,25 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         pendingNodeCreation: null,
         nodeCreationError: action.payload.error
       };
+    case 'PROCESS_STRUCTURE_CREATED': {
+      const { nodesToRemove, newNodes, newEdges } = action.payload;
+
+      // Remove old nodes and edges
+      const updatedNodes = state.nodes.filter(node => !nodesToRemove.includes(node.id));
+      const updatedEdges = state.edges.filter(edge =>
+        !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target)
+      );
+
+      // Add the new nodes and edges
+      return {
+        ...state,
+        nodes: [...updatedNodes, ...newNodes],
+        edges: [...updatedEdges, ...newEdges],
+        needsLayout: true,
+        layoutTrigger: 'STRUCTURE_CHANGE',
+        pendingNodeCreation: null
+      };
+    };
     default:
       return state;
   }
@@ -507,70 +528,28 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { processId, logicalParentId } = state.pendingNodeCreation;
 
     const handleProcessNodeCreation = async () => {
-      console.log('[FlowContext] Starting process node creation by handleProcessNodeCreation');
       try {
-        if (!processId) {
-          throw new Error('Process ID is undefined');
-        }
-
-        if (!logicalParentId) {
-          throw new Error('Parent Node ID is undefined');
-        }
+        if (!processId) throw new Error('Process ID is undefined');
+        if (!logicalParentId) throw new Error('Parent Node ID is undefined');
 
         // Find parent node
         const parentNode = state.nodes.find(node => node.id === logicalParentId);
-        if (!parentNode) {
-          throw new Error(`Parent node with ID ${logicalParentId} not found`);
-        }
+        if (!parentNode) throw new Error(`Parent node with ID ${logicalParentId} not found`);
 
-        const logicalParentNodeIdAmount = parentNode.data.amount as number || 0;
-        const logicalParentNodeIdProductId = (parentNode.data.productDetails as { id: string } | undefined)?.id || '';
+        const parentAmount = parentNode.data.amount as number || 0;
+        const parentProductId = (parentNode.data.productDetails as { id: string } | undefined)?.id || '';
 
-        const result = await createProcessNode(
+        // Use the orchestrator to create all nodes
+        await createProcessStructure(
           processId,
           logicalParentId,
-          logicalParentNodeIdAmount,
-          logicalParentNodeIdProductId,
-          state.nodes as InfluenceNode[],
-          state.edges,
+          parentAmount,
+          parentProductId,
+          dispatch,
+          state.nodes as InfluenceNode[]
         );
 
-        if (!result) {
-          throw new Error('Failed to build process node');
-        }
-
-        // Add newly created nodes to the state
-        const {
-          unchangedNodes,
-          processNode,
-          productNodes,
-          sideProductNodes,
-          sideProductCompoundNode,
-          edges
-        } = result;
-
-        const newNodes = [
-          ...unchangedNodes,
-          processNode,
-          ...productNodes,
-          ...(sideProductCompoundNode ? [sideProductCompoundNode] : []), // Only include if not undefined
-          ...sideProductNodes,
-        ];
-
-        // log content of the whole nodes array
-        console.log('[FlowContext] New nodes after process node creation:', newNodes);
-
-        dispatch({
-          type: 'PROCESS_SELECTED',
-          payload: {
-            nodes: newNodes,
-            edges: edges,
-            logicalParentId
-          }
-        });
-
-        dispatch({ type: 'NODE_CREATION_COMPLETED' });
-
+        // Success is handled by the dispatched PROCESS_STRUCTURE_CREATED action
       } catch (error) {
         console.error('Error in process node creation:', error);
         dispatch({
@@ -585,10 +564,8 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
     state.pendingNodeCreation?.type,
     state.pendingNodeCreation?.processId,
     state.pendingNodeCreation?.logicalParentId,
-    state.pendingNodeCreation?.includeSideProducts,
-    createProcessNode,
     state.nodes,
-    state.edges
+    dispatch
   ]);
 
   // Handle pending save operation

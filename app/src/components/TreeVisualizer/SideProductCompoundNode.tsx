@@ -4,7 +4,6 @@ import { InfluenceNode } from '@/types/reactFlowTypes';
 
 export interface SideProductCompoundNodeData {
   id: string;
-  children: [];
   width: number;
   height: number;
   childrenLayout?: {
@@ -44,8 +43,6 @@ const SideProductCompoundNode: React.FC<NodeProps<SideProductCompoundNode>> = ({
         style={{ background: '#555' }}
         id={`sideProductCompound-source-${id}`}
       />
-      {/* Render children nodes */}
-      {data.children}
       {/* Optional label */}
       {data.label && (
         <div
