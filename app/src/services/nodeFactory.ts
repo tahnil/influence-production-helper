@@ -5,6 +5,8 @@ import { InfluenceNode } from '@/types/reactFlowTypes';
 import { ProductNode } from '@/components/TreeVisualizer/ProductNode';
 import { ProcessNode } from '@/components/TreeVisualizer/ProcessNode';
 import { SideProductCompoundNode } from '@/components/TreeVisualizer/SideProductCompoundNode';
+import { ProductData } from '@/types/influenceTypes';
+import { SideProductNode } from '@/components/TreeVisualizer/SideProductNode';
 
 export function createProcessNode(
     processData: any,
@@ -29,7 +31,7 @@ export function createProcessNode(
 }
 
 export function createProductNode(
-    productData: any,
+    productData: ProductData,
     amount: number,
     logicalParentId?: string
 ): ProductNode {
@@ -39,40 +41,42 @@ export function createProductNode(
         position: { x: 0, y: 0 },
         data: {
             amount,
-            totalWeight: productData.weight * amount,
-            totalVolume: productData.volume * amount,
+            totalWeight: parseFloat(productData.productDetails.massKilogramsPerUnit || '0') * amount,
+            totalVolume: parseFloat(productData.productDetails.volumeLitersPerUnit || '0') * amount,
             image: productData.image,
-            productDetails: productData,
+            productDetails: productData.productDetails,
             processesByProductId: productData.processesByProductId,
             inflowIds: [],
             outflowIds: [],
             logicalParentId,
+            handleSelectProcess: undefined, // Will be added later in the flow
+            handleSerialize: undefined, // Will be added later in the flow
         }
-    }
+    };
 }
 
 export function createSideProductNode(
-    productData: any,
+    productData: ProductData,
     amount: number,
     processNodeId: string,
     compoundNodeId: string
-): ProductNode {
+): SideProductNode {
     return {
         id: generateUniqueId(),
         type: 'sideProductNode',
         position: { x: 0, y: 0 },
         data: {
             amount,
-            totalWeight: productData.weight * amount,
-            totalVolume: productData.volume * amount,
+            totalWeight: parseFloat(productData.productDetails.massKilogramsPerUnit || '0') * amount,
+            totalVolume: parseFloat(productData.productDetails.volumeLitersPerUnit || '0') * amount,
             image: productData.image,
-            productDetails: productData,
-            processesByProductId: [],
+            productDetails: productData.productDetails,
+            ancestorIds: [processNodeId],
             inflowIds: [],
             outflowIds: [processNodeId],
             logicalParentId: compoundNodeId,
         }
-    }
+    };
 }
 
 export function createSideProductCompoundNode(

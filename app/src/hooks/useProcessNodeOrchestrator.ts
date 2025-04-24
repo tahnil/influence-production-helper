@@ -11,7 +11,7 @@ import { generateUniqueId } from '@/utils/generateUniqueId';
 import { InfluenceNode } from '@/types/reactFlowTypes';
 import { createProcessNodePlan, NodePlan } from '@/services/nodeStructurePlanner';
 import { createProcessNode, createProductNode, createSideProductCompoundNode, createSideProductNode } from '@/services/nodeFactory';
-import { InfluenceProcess } from '@/types/influenceTypes';
+import { InfluenceProcess, ProductData } from '@/types/influenceTypes';
 import useProductDetails from './useInfluenceProductDetails';
 import useProcessesByProductId from './useProcessesByProductId';
 import useProductImage from './useProductImage';
@@ -20,6 +20,30 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
     const { getProcessDetails } = useProcessDetails();
     const { getInputsByProcessId } = useInputsByProcessId();
     const { getBuildingIcon } = useBuildingIcon();
+    const { getProductDetails } = useProductDetails();
+    const { getProcessesByProductId } = useProcessesByProductId();
+    const { getProductImage } = useProductImage();
+
+    // Add a dedicated product data fetching function
+    const fetchProductData = useCallback(async (productId: string): Promise<ProductData> => {
+        try {
+            const [productDetails, processesByProductId, image] = await Promise.all([
+                getProductDetails(productId),
+                getProcessesByProductId(productId),
+                getProductImage(productId),
+            ]);
+            
+            return {
+                id: productId,
+                productDetails,
+                processesByProductId,
+                image
+            };
+        } catch (error) {
+            console.error(`Error fetching product data for ${productId}:`, error);
+            throw error;
+        }
+    }, [getProductDetails, getProcessesByProductId, getProductImage]);
 
     const createProcessStructure = useCallback(async (
         processId: string,
@@ -74,20 +98,32 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
             const nodePlans = createProcessNodePlan(processData, logicalParentId);
             console.log('[useProcessNodeOrchestrator] Node plans:', nodePlans);
 
-            // 5. Create new nodes and edges
-            const { nodes, nodeIdMap } = realizePlans(nodePlans);
+            // 5. IMPORTANT: Fetch product data for all product nodes
+            const productPlans = nodePlans.filter(p => 
+                ['product', 'sideProduct'].includes(p.nodeType) && p.productId
+            );
+            
+            const productDataMap: Record<string, ProductData> = {};
+
+            // Fetch all product data in parallel
+            await Promise.all(
+                productPlans.map(async (plan) => {
+                    if (plan.productId) {
+                        productDataMap[plan.productId] = await fetchProductData(plan.productId);
+                    }
+                })
+            );
+            
+            // 6. Create new nodes and edges
+            const { nodes, nodeIdMap } = realizePlans(nodePlans, productDataMap);
             const edges = createEdges(nodes, nodeIdMap);
 
-            // 6. Merge new nodes and edges with existing ones
-            const newNodes = [...updatedNodes, ...nodes];
-            const newEdges = [...updatedEdges, ...edges];
-
-            // 7. Update state via dispatch
+            // 8. Update state
             dispatch({
                 type: 'PROCESS_STRUCTURE_CREATED',
                 payload: {
-                    nodes: newNodes,
-                    edges: newEdges,
+                    nodes: [...updatedNodes, ...nodes],
+                    edges: [...updatedEdges, ...edges],
                 }
             });
 
@@ -100,13 +136,13 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
             });
             return false;
         }
-    }, [getProcessDetails, getInputsByProcessId, getBuildingIcon, dispatch]);
+    }, [getProcessDetails, getInputsByProcessId, getBuildingIcon, fetchProductData, dispatch]);
 
     return { createProcessStructure };
 }
 
 // Helper function to realize node plans with actual IDs
-function realizePlans(plans: NodePlan[]) {
+function realizePlans(plans: NodePlan[], productDataMap: Record<string, ProductData>) {
     const nodeIdMap: Record<string, string> = {};
     const nodes: InfluenceNode[] = [];
 
@@ -117,14 +153,7 @@ function realizePlans(plans: NodePlan[]) {
 
         let node;
         if (plan.nodeType === 'process') {
-            // Why are we writing the processId into the processDetails?
-            node = createProcessNode({ 
-                ...plan.metadata ?? {}, 
-                processDetails: { 
-                  ...plan.metadata?.processDetails ?? {}, 
-                  id: plan.processId 
-                } 
-              }, plan.logicalParentId!);
+            node = createProcessNode(plan.metadata, plan.logicalParentId!);
             console.log('[useProcessNodeOrchestrator] Created process node:', node);
         } else {
             node = createSideProductCompoundNode(nodeIdMap['PROCESS_NODE_ID']);
@@ -137,16 +166,28 @@ function realizePlans(plans: NodePlan[]) {
 
     // Second pass: create product and side product nodes
     plans.filter(p => ['product', 'sideProduct'].includes(p.nodeType)).forEach(plan => { 
+        if (!plan.productId) return; // Skip if no productId
+
+        const productData = productDataMap[plan.productId];
+        if (!productData) {
+            console.error(`No product data found for ${plan.productId}`);
+            return;
+        }
+
         let node;
         if (plan.nodeType === 'product') {
-            node = createProductNode({ id: plan.productId }, plan.amount!, nodeIdMap['PROCESS_NODE_ID']);
+            node = createProductNode(
+                productData, 
+                plan.amount!, 
+                nodeIdMap['PROCESS_NODE_ID']
+            );
             console.log('[useProcessNodeOrchestrator] Created product node:', node);
         } else {
             node = createSideProductNode(
-                { id: plan.productId },
+                productData,
                 plan.amount!,
                 nodeIdMap['PROCESS_NODE_ID'],
-                nodeIdMap['COMPOUND_NODE_ID']
+                nodeIdMap['SIDE_PRODUCT_COMPOUND_NODE_ID']
             );
             console.log('[useProcessNodeOrchestrator] Created side product node:', node);
         }
@@ -166,11 +207,14 @@ function realizePlans(plans: NodePlan[]) {
 function createEdges(nodes: InfluenceNode[], nodeIdMap: Record<string, string>): Edge[] {
     const edges: Edge[] = [];
     const processNodeId = nodeIdMap['PROCESS_NODE_ID'];
-    const compoundNodeId = nodeIdMap['COMPOUND_NODE_ID'];
-    const logicalParentId = nodes.find(n => n.id === processNodeId)?.data.logicalParentId as string;
+    const compoundNodeId = nodeIdMap['SIDE_PRODUCT_COMPOUND_NODE_ID'];
+    const processNode = nodes.find(n => n.id === processNodeId);
+    
+    if (!processNode) return edges;
+
+    const logicalParentId = processNode.data.logicalParentId as string;
 
     // Find node types
-    const processNode = nodes.find(n => n.id === processNodeId);
     const productNodes = nodes.filter(n =>
         n.type === 'productNode' &&
         n.data.logicalParentId === processNodeId

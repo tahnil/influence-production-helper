@@ -91,3 +91,11 @@ export interface InfluenceProcessInput {
   product: InfluenceProduct;
   unitsPerSR: string;
 }
+
+// Define a complete product data structure
+export interface ProductData {
+    id: string;
+    productDetails: InfluenceProduct;
+    processesByProductId: InfluenceProcess[];
+    image: string;
+  }
