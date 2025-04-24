@@ -1,7 +1,5 @@
 // services/nodeFactory.ts
 import { generateUniqueId } from '@/utils/generateUniqueId';
-import { Node } from '@xyflow/react';
-import { InfluenceNode } from '@/types/reactFlowTypes';
 import { ProductNode } from '@/components/TreeVisualizer/ProductNode';
 import { ProcessNode } from '@/components/TreeVisualizer/ProcessNode';
 import { SideProductCompoundNode } from '@/components/TreeVisualizer/SideProductCompoundNode';
@@ -33,7 +31,8 @@ export function createProcessNode(
 export function createProductNode(
     productData: ProductData,
     amount: number,
-    logicalParentId?: string
+    logicalParentId?: string,
+    isRoot: boolean = false
 ): ProductNode {
     return {
         id: generateUniqueId(),

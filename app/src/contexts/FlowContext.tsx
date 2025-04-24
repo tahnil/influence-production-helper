@@ -9,7 +9,6 @@ import {
   applyEdgeChanges,
   addEdge
 } from '@xyflow/react';
-import { getOutflowIds } from '@/utils/TreeVisualizer/nodeHelpers';
 import { DagreConfig } from '@/hooks/useDagreConfig';
 import { usePouchDB } from '@/contexts/PouchDBContext';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
@@ -17,8 +16,8 @@ import applyDagreLayout from '@/utils/TreeVisualizer/applyDagreLayout';
 import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
 import { InfluenceNode } from '@/types/reactFlowTypes';
 import { handleReplaceNode } from '@/utils/TreeVisualizer/handleReplaceNode';
-import { useProductNodeCreation } from '@/hooks/useProductNodeCreation';
 import { useProcessNodeOrchestrator } from '@/hooks/useProcessNodeOrchestrator';
+import { useNodeOrchestrator } from '@/hooks/useNodeOrchestrator';
 
 interface NodeCreationRequest {
   type: 'product' | 'process';
@@ -107,6 +106,7 @@ export type FlowAction =
   | { type: 'NODE_CREATION_COMPLETED' }
   | { type: 'NODE_CREATION_FAILED'; payload: { error: string } }
   | { type: 'PROCESS_STRUCTURE_CREATED'; payload: { nodes: InfluenceNode[], edges: Edge[] } }
+  | { type: 'ROOT_NODE_CREATED'; payload: { nodes: InfluenceNode[], rootNodeId: string } }
   ;
 
 // Initial state
@@ -375,6 +375,14 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         pendingNodeCreation: null
       };
     };
+    case 'ROOT_NODE_CREATED': {
+      return {
+        ...state,
+        nodes: action.payload.nodes,
+        rootNodeId: action.payload.rootNodeId,
+        nodesReady: true
+      };
+    }
     default:
       return state;
   }
@@ -425,7 +433,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [state, dispatch] = useReducer(flowReducer, initialState);
   const nodesRef = useRef<Node[]>([]);
   const { memoryDb } = usePouchDB();
-  const createProductNode = useProductNodeCreation(dispatch);
+  const { createRootProductNode } = useNodeOrchestrator(dispatch);
   const processNodeOrchestrator = useProcessNodeOrchestrator(dispatch);
 
   // Keep the nodesRef in sync with the state.nodes
@@ -439,37 +447,19 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { productId, amount = 1, isRoot = false } = state.pendingNodeCreation;
 
+    // Use the createRootProductNode which handles everything internally
     const handleProductNodeCreation = async () => {
       try {
         if (!productId) {
           throw new Error('Product ID is undefined');
         }
 
-        const productNode = await createProductNode(productId, amount, isRoot);
+        // The createRootProductNode function now handles the dispatch internally
+        const success = await createRootProductNode(productId, amount, isRoot);
 
-        if (!productNode) {
-          return; // Creation failed or was cancelled
+        if (success) {
+          dispatch({ type: 'NODE_CREATION_COMPLETED' });
         }
-
-        if (isRoot) {
-          dispatch({
-            type: 'BATCH_UPDATE',
-            payload: {
-              nodes: [productNode],
-              rootNodeId: productNode.id,
-              nodesReady: true
-            }
-          });
-        } else {
-          dispatch({
-            type: 'BATCH_UPDATE',
-            payload: {
-              nodes: [...state.nodes, productNode]
-            }
-          });
-        }
-
-        dispatch({ type: 'NODE_CREATION_COMPLETED' });
       } catch (error) {
         console.error('Error in product node creation:', error);
         dispatch({
@@ -485,8 +475,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
     state.pendingNodeCreation?.productId,
     state.pendingNodeCreation?.amount,
     state.pendingNodeCreation?.isRoot,
-    createProductNode,
-    state.nodes
+    createRootProductNode
   ]);
 
   // Handle building of process nodes

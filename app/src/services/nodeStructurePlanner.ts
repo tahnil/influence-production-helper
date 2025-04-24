@@ -1,4 +1,4 @@
-import { InfluenceProcessInputOutput, InfluenceProduct, ProcessInput } from "@/types/influenceTypes";
+import { InfluenceProcessInputOutput, InfluenceProduct, ProcessInput, ProductData } from "@/types/influenceTypes";
 
 // services/nodeStructurePlanner.ts
 export interface NodePlan {
@@ -65,4 +65,21 @@ export function createProcessNodePlan(
     // This is where you'd add your planned outflows bundling feature
 
     return plans;
+}
+
+export function createProductNodePlan(
+    productData: ProductData,
+    amount: number,
+    isRoot: boolean = false
+): NodePlan[] {
+    // Create a single plan for a root product node
+    return [{
+        nodeType: 'product',
+        productId: productData.productDetails.id,
+        amount,
+        metadata: {
+            isRoot,
+            productData
+        }
+    }];
 }
