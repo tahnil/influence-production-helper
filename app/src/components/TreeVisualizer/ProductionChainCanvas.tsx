@@ -11,9 +11,9 @@ import LayoutConfigPanel from './LayoutConfigPanel';
 import useIngredientsList from '@/utils/TreeVisualizer/useIngredientsList';
 import debounce from '@/utils/TreeVisualizer/debounce';
 import { useFlow } from '@/contexts/FlowContext';
-import { usePouchDB } from '@/contexts/PouchDBContext';
 import { useDagreConfig } from '@/hooks/useDagreConfig';
 import '@xyflow/react/dist/style.css';
+import { InfluenceNode } from '@/types/reactFlowTypes';
 
 const nodeTypes = {
     productNode: ProductNode,
@@ -27,7 +27,6 @@ const edgeTypes = {
 };
 
 const ProductionChainCanvas: React.FC = () => {
-    const { memoryDb } = usePouchDB();
 
     const {
         nodes,
@@ -48,8 +47,8 @@ const ProductionChainCanvas: React.FC = () => {
     } = useFlow();
 
     // Calculate ingredient lists
-    const rawMaterialIngredients = useIngredientsList(nodes, 'rawMaterials');
-    const allProductIngredients = useIngredientsList(nodes, 'allProducts');
+    const rawMaterialIngredients = useIngredientsList(nodes as InfluenceNode[], 'rawMaterials');
+    const allProductIngredients = useIngredientsList(nodes as InfluenceNode[], 'allProducts');
 
     // Process selection handler
     const handleSelectProcess = useCallback(

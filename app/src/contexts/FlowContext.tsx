@@ -18,7 +18,6 @@ import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProduc
 import { InfluenceNode } from '@/types/reactFlowTypes';
 import { handleReplaceNode } from '@/utils/TreeVisualizer/handleReplaceNode';
 import { useProductNodeCreation } from '@/hooks/useProductNodeCreation';
-import { useProcessNodeCreation } from '@/hooks/useProcessNodeCreation';
 import { useProcessNodeOrchestrator } from '@/hooks/useProcessNodeOrchestrator';
 
 interface NodeCreationRequest {
@@ -72,13 +71,6 @@ interface FlowState {
 export type FlowAction =
   | { type: 'SET_DESIRED_AMOUNT'; payload: number }
   | { type: 'BATCH_UPDATE'; payload: Partial<FlowState> }
-  | {
-    type: 'PROCESS_SELECTED'; payload: {
-      nodes: Node[],
-      edges: Edge[],
-      logicalParentId: string,
-    }
-  }
   // dedicated action types for React Flow operations
   | { type: 'APPLY_NODE_CHANGES'; payload: NodeChange[] }
   | { type: 'APPLY_EDGE_CHANGES'; payload: EdgeChange[] }
@@ -112,7 +104,6 @@ export type FlowAction =
   }
   | { type: 'REQUEST_PRODUCT_NODE_CREATION'; payload: { productId: string, amount: number, isRoot?: boolean } }
   | { type: 'REQUEST_PROCESS_NODE_CREATION'; payload: { processId: string, logicalParentId: string, includeSideProducts?: boolean } }
-  | { type: 'CLEAR_PENDING_NODE_CREATION' }
   | { type: 'NODE_CREATION_COMPLETED' }
   | { type: 'NODE_CREATION_FAILED'; payload: { error: string } }
   | { type: 'PROCESS_STRUCTURE_CREATED'; payload: { nodes: InfluenceNode[], edges: Edge[] } }
@@ -158,7 +149,6 @@ const initialState: FlowState = {
  * - `'REQUEST_LAYOUT'`: Marks the state as needing a layout update.
  * - `'SET_DESIRED_AMOUNT'`: Updates the desired amount and recalculates node values.
  * - `'BATCH_UPDATE'`: Merges the provided payload into the state.
- * - `'PROCESS_SELECTED'`: Updates the state with selected process nodes and edges, removing conflicting nodes if necessary.
  * - `'SELECT_PRODUCT'`: Sets the selected product ID in the state.
  * - `'SELECT_PROCESS'`: Adds a process selection to the state.
  * - `'SAVE_PRODUCTION_CHAIN'`: Initiates saving the production chain, marking the focal node as pending save.
@@ -171,7 +161,6 @@ const initialState: FlowState = {
  * - `'SET_MATCHING_CONFIGS'`: Updates the state with matching configurations.
  * - `'REQUEST_PRODUCT_NODE_CREATION'`: Sets up a pending product node creation request.
  * - `'REQUEST_PROCESS_NODE_CREATION'`: Sets up a pending process node creation request.
- * - `'CLEAR_PENDING_NODE_CREATION'`: Clears any pending node creation requests.
  * - `'NODE_CREATION_COMPLETED'`: Marks node creation as completed and triggers a layout update.
  * - `'NODE_CREATION_FAILED'`: Marks node creation as failed and stores the error.
  *
@@ -263,16 +252,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       };
     case 'BATCH_UPDATE':
       return { ...state, ...action.payload };
-    case 'PROCESS_SELECTED': {
-      const { nodes, edges, logicalParentId } = action.payload;
-      return {
-        ...state,
-        nodes: nodes,
-        edges: edges,
-        needsLayout: true,
-        layoutTrigger: 'STRUCTURE_CHANGE',
-      };
-    };
     case 'SELECT_PRODUCT':
       return { ...state, selectedProductId: action.payload };
     case 'SELECT_PROCESS':
@@ -369,11 +348,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
           ...action.payload
         }
       };
-    case 'CLEAR_PENDING_NODE_CREATION':
-      return {
-        ...state,
-        pendingNodeCreation: null
-      };
     case 'NODE_CREATION_COMPLETED':
       console.log('NODE_CREATION_COMPLETED action dispatched. New nodes:', state.nodes);
       return {
@@ -452,7 +426,6 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const nodesRef = useRef<Node[]>([]);
   const { memoryDb } = usePouchDB();
   const createProductNode = useProductNodeCreation(dispatch);
-  const createProcessNode = useProcessNodeCreation(dispatch);
   const processNodeOrchestrator = useProcessNodeOrchestrator(dispatch);
 
   // Keep the nodesRef in sync with the state.nodes
