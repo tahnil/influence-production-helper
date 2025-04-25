@@ -21,7 +21,19 @@ export function realizePlans(plans: NodePlan[], productDataMap: Record<string, P
                 nodeIdMap['PROCESS_NODE_ID'], // This will be undefined for root nodes
                 isRoot
             );
-            nodeIdMap['OUTFLOWS_COMPOUND_NODE_ID'] = node.id;
+
+            // Store node ID in the map
+            if (plan.id === 'ROOT_OUTFLOWS_COMPOUND_ID') {
+                nodeIdMap['ROOT_OUTFLOWS_COMPOUND_ID'] = node.id;
+                // Also set in the root node ID in FlowContext after creation
+                if (isRoot) {
+                    nodeIdMap['ROOT_NODE_ID'] = node.id;
+                }
+            } else if (plan.id) {
+                nodeIdMap[plan.id] = node.id;
+            } else {
+                nodeIdMap['OUTFLOWS_COMPOUND_NODE_ID'] = node.id;
+            }
         }
         else if (plan.nodeType === 'process') {
             node = createProcessNode(plan.metadata, plan.logicalParentId!);
@@ -70,8 +82,15 @@ export function realizePlans(plans: NodePlan[], productDataMap: Record<string, P
 
             // Resolve parent ID for visualization
             let resolvedParentId = plan.parentId;
-            if (plan.parentId === 'OUTFLOWS_COMPOUND_NODE_ID') {
+
+            // Handle root outflows compound special case
+            if (plan.parentId === 'ROOT_OUTFLOWS_COMPOUND_ID') {
+                resolvedParentId = nodeIdMap['ROOT_OUTFLOWS_COMPOUND_ID'];
+            } else if (plan.parentId === 'OUTFLOWS_COMPOUND_NODE_ID') {
                 resolvedParentId = nodeIdMap['OUTFLOWS_COMPOUND_NODE_ID'];
+            } else if (plan.parentId) {
+                // Handle any other compound node references by ID
+                resolvedParentId = nodeIdMap[plan.parentId] || resolvedParentId;
             }
 
             node = createProductNode(

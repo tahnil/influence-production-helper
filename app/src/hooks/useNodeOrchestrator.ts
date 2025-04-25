@@ -57,36 +57,37 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
     ) => {
         try {
             console.log(`Creating root product node: productId=${productId}, amount=${amount}, isRoot=${isRoot}`);
-            
+
             // 1. Fetch product data
             const productData = await fetchProductData(productId);
-    
+
             // 2. Create node plan (now includes outflows compound for root nodes)
             const nodePlans = createProductNodePlan(productData, amount, isRoot);
             console.log('Node plans created:', nodePlans);
-    
+
             // 3. Realize node plans
             const { nodes, nodeIdMap } = realizePlans(nodePlans, { [productId]: productData });
-            console.log('Nodes realized:', nodes.map(n => ({ 
-                id: n.id, 
-                type: n.type, 
+            console.log('Nodes realized:', nodes.map(n => ({
+                id: n.id,
+                type: n.type,
                 isRoot: n.data.isRoot,
                 parentId: n.parentId,
-                logicalParentId: n.data.logicalParentId 
+                logicalParentId: n.data.logicalParentId
             })));
-            
+
             // 4. Create edges (if any needed for root structure)
             const edges = createEdges(nodes, nodeIdMap);
-    
+
             // 5. Find the root node ID (now it's the outflows compound)
             const rootNodeId = nodeIdMap['OUTFLOWS_COMPOUND_NODE_ID'] || nodes[0].id;
             console.log(`Setting root node ID to: ${rootNodeId}`);
-    
+
             // 6. Make sure isRoot is set correctly
             const enhancedNodes = nodes.map(node => {
                 if (node.id === rootNodeId || node.parentId === rootNodeId) {
                     return {
                         ...node,
+                        extent: node.parentId ? 'parent' : undefined,
                         data: {
                             ...node.data,
                             isRoot: true
@@ -95,17 +96,17 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
                 }
                 return node;
             });
-    
+
             // 7. Dispatch created nodes
             dispatch({
                 type: 'ROOT_NODE_CREATED',
                 payload: {
                     nodes: enhancedNodes as InfluenceNode[],
                     edges,
-                    rootNodeId
+                    rootNodeId: nodeIdMap['ROOT_NODE_ID'] || rootNodeId
                 }
             });
-    
+
             return true;
         } catch (error) {
             console.error('Error creating root product node:', error);
@@ -161,7 +162,7 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
                 sideProducts: processDetails.outputs.filter(o => o.productId !== parentProductId),
                 hasSideProducts: processDetails.outputs.length > 1
             };
-            
+
             const nodePlans = createProcessNodePlan(processData, logicalParentId);
 
             // 6. Fetch product data for all product nodes
@@ -182,7 +183,7 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
 
             // 7. Create new nodes
             const { nodes, nodeIdMap } = realizePlans(nodePlans, productDataMap);
-            
+
             // 8. Create edges
             const edges = createEdges(nodes, nodeIdMap);
 
