@@ -5,6 +5,7 @@ import ProductNode from './ProductNode';
 import ProcessNode from './ProcessNode';
 import SideProductNode from './SideProductNode';
 import SideProductCompoundNode from './SideProductCompoundNode';
+import OutflowsCompoundNode from './OutflowsCompoundNode';
 import CustomEdge from './CustomEdges';
 import ControlPanel from './ControlPanel';
 import LayoutConfigPanel from './LayoutConfigPanel';
@@ -20,6 +21,7 @@ const nodeTypes = {
     processNode: ProcessNode,
     sideProductNode: SideProductNode,
     sideProductCompoundNode: SideProductCompoundNode,
+    outflowsCompoundNode: OutflowsCompoundNode,
 };
 
 const edgeTypes = {

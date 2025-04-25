@@ -17,7 +17,7 @@ import {
     NodePlan
 } from '@/services/nodeStructurePlanner';
 import { InfluenceProcess, ProductData } from '@/types/influenceTypes';
-import { realizePlans } from '@/utils/TreeVisualizer/nodeRealizationHelper';
+import { realizePlans, createEdges } from '@/utils/TreeVisualizer/nodeRealizationHelper';
 
 export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
     const { getProductDetails } = useProductDetails();
@@ -58,18 +58,25 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
             // 1. Fetch product data
             const productData = await fetchProductData(productId);
 
-            // 2. Create node plan
+            // 2. Create node plan (now includes outflows compound for root nodes)
             const nodePlans = createProductNodePlan(productData, amount, isRoot);
 
             // 3. Realize node plans
-            const { nodes } = realizePlans(nodePlans, { [productId]: productData });
+            const { nodes, nodeIdMap } = realizePlans(nodePlans, { [productId]: productData });
+            
+            // 4. Create edges (if any needed for root structure)
+            const edges = createEdges(nodes, nodeIdMap);
 
-            // 4. Dispatch created nodes
+            // 5. Find the root node ID (now it's the outflows compound)
+            const rootNodeId = nodeIdMap['OUTFLOWS_COMPOUND_NODE_ID'] || nodes[0].id;
+
+            // 6. Dispatch created nodes
             dispatch({
                 type: 'ROOT_NODE_CREATED',
                 payload: {
                     nodes,
-                    rootNodeId: nodes[0].id
+                    edges,
+                    rootNodeId
                 }
             });
 
@@ -84,7 +91,7 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
         }
     }, [fetchProductData, dispatch]);
 
-    // Create process structure (existing function)
+    // Create process structure (existing function with updates)
     const createProcessStructure = useCallback(async (
         processId: string,
         logicalParentId: string,
@@ -97,24 +104,18 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
             // 1. Fetch all required data
             const processDetails = await getProcessDetails(processId) as InfluenceProcess;
             if (!processDetails) throw new Error('Failed to fetch process details');
-            console.log('[useProcessNodeOrchestrator] Process details:', processDetails);
 
             const inputProducts = await getInputsByProcessId(processId);
-            console.log('[useProcessNodeOrchestrator] Input products:', inputProducts);
             const buildingIcon = await getBuildingIcon(processDetails.buildingId);
-            // console.log('[useProcessNodeOrchestrator] Building icon:', buildingIcon);
 
             // 2. Calculate process information
             const output = processDetails.outputs.find(o => o.productId === parentProductId);
             const outputUnitsPerSR = output ? parseFloat(output.unitsPerSR) : 0;
             const totalRuns = parentAmount / outputUnitsPerSR || 1;
             const totalDuration = totalRuns * parseFloat(processDetails.bAdalianHoursPerAction || '0');
-            // log output, outputUnitsperSR, totalRuns and totalDuration in one statement to console
-            console.log(`[useProcessNodeOrchestrator] Output: ${output}, Units per SR: ${outputUnitsPerSR}, Total Runs: ${totalRuns}, Total Duration: ${totalDuration}`);
 
             // 3. Identify nodes to remove
             const nodesToRemove = findNodesToRemove(currentNodes, logicalParentId);
-            console.log('[useProcessNodeOrchestrator] Nodes to remove:', nodesToRemove);
 
             // 4. Remove existing nodes and their edges
             const { updatedNodes, updatedEdges } = removeNodes(
@@ -123,7 +124,7 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
                 nodesToRemove
             );
 
-            // 5. Create node plans
+            // 5. Create node plans (now includes outflows compound)
             const processData = {
                 processDetails,
                 inputProducts,
@@ -134,11 +135,10 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
                 sideProducts: processDetails.outputs.filter(o => o.productId !== parentProductId),
                 hasSideProducts: processDetails.outputs.length > 1
             };
-            console.log('[useProcessNodeOrchestrator] Process data:', processData);
+            
             const nodePlans = createProcessNodePlan(processData, logicalParentId);
-            console.log('[useProcessNodeOrchestrator] Node plans:', nodePlans);
 
-            // 5. IMPORTANT: Fetch product data for all product nodes
+            // 6. Fetch product data for all product nodes
             const productPlans = nodePlans.filter(p =>
                 ['product', 'sideProduct'].includes(p.nodeType) && p.productId
             );
@@ -154,11 +154,13 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
                 })
             );
 
-            // 6. Create new nodes and edges
+            // 7. Create new nodes
             const { nodes, nodeIdMap } = realizePlans(nodePlans, productDataMap);
+            
+            // 8. Create edges
             const edges = createEdges(nodes, nodeIdMap);
 
-            // 8. Update state
+            // 9. Update state
             dispatch({
                 type: 'PROCESS_STRUCTURE_CREATED',
                 payload: {
@@ -182,79 +184,4 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
         createRootProductNode,
         createProcessStructure
     };
-}
-
-/**
- * Creates edges between nodes based on their relationships and the nodeIdMap
- * @param nodes The newly created nodes
- * @param nodeIdMap Map of placeholder IDs to actual node IDs
- * @returns Array of edges connecting the nodes
- */
-function createEdges(nodes: InfluenceNode[], nodeIdMap: Record<string, string>): Edge[] {
-    const edges: Edge[] = [];
-    const processNodeId = nodeIdMap['PROCESS_NODE_ID'];
-    const compoundNodeId = nodeIdMap['NONE_BUT_LATER_OUTFLOWS_COMPOUND_NODE_ID'];
-    const processNode = nodes.find(n => n.id === processNodeId);
-
-    if (!processNode) return edges;
-
-    const logicalParentId = processNode.data.logicalParentId as string;
-
-    // Find node types
-    const productNodes = nodes.filter(n =>
-        n.type === 'productNode' &&
-        n.data.logicalParentId === processNodeId
-    );
-    // const sideProductNodes = nodes.filter(n => n.type === 'sideProductNode');
-    const sideProductCompoundNode = nodes.find(n => n.id === compoundNodeId);
-
-    // 1. Edge from parent product to process node (main flow)
-    if (logicalParentId) {
-        edges.push({
-            id: `edge-${logicalParentId}-${processNodeId}`,
-            source: logicalParentId,
-            target: processNodeId,
-            type: 'custom',
-        });
-    }
-
-    // 2. Edges from process node to input product nodes
-    productNodes.forEach(productNode => {
-        edges.push({
-            id: `edge-${processNodeId}-${productNode.id}`,
-            source: processNodeId,
-            target: productNode.id,
-            type: 'custom',
-        });
-    });
-
-    // 3. Single connection between process and side product compound
-    if (sideProductCompoundNode) {
-        edges.push({
-            id: `edge-${compoundNodeId}-${processNodeId}`,
-            source: compoundNodeId,
-            sourceHandle: `sideProductCompound-source-${compoundNodeId}`,
-            target: processNodeId,
-            targetHandle: `target-${processNodeId}`,
-            type: 'custom',
-            data: { isSideProductConnection: true }
-        });
-        console.log('[useProcessNodeOrchestrator] Created edge between process node and side product compound node', edges);
-    } else {
-        console.log('[useProcessNodeOrchestrator] No side product compound node found');
-    }
-
-    // 4. Handle outflows compound (for future implementation)
-    // This is where you'd add your planned outflows bundling feature
-    // Example:
-    // if (outflowsCompoundNodeId) {
-    //   const outflowsCompoundNode = nodes.find(n => n.id === outflowsCompoundNodeId);
-    //   if (outflowsCompoundNode) {
-    //     // Connect process to outflows compound
-    //     // Connect outflows compound to main outflow product
-    //     // Handle other connections...
-    //   }
-    // }
-
-    return edges;
 }

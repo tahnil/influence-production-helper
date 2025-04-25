@@ -1,14 +1,16 @@
+// services/nodeStructurePlanner.ts
 import { InfluenceProcessInputOutput, InfluenceProduct, ProcessInput, ProductData } from "@/types/influenceTypes";
 
-// services/nodeStructurePlanner.ts
 export interface NodePlan {
     nodeType: 'process' | 'product' | 'sideProduct' | 'sideProductCompound' | 'outflowsCompound';
     id?: string; // Will be generated later
     logicalParentId?: string;
+    parentId?: string; // Physical parent for visualization
     compoundId?: string;
     productId?: string;
     processId?: string;
     amount?: number;
+    isRoot?: boolean;
     metadata?: Record<string, any>;
 }
 
@@ -33,36 +35,56 @@ export function createProcessNodePlan(
     };
     plans.push(processNodePlan);
 
-    // 2. Create input product node plans
+    // 2. Create outflows compound node
+    plans.push({
+        nodeType: 'outflowsCompound',
+        logicalParentId: 'PROCESS_NODE_ID', // Will be replaced with actual process node ID
+        metadata: {
+            processId: 'PROCESS_NODE_ID', // Will be replaced with actual process node ID
+        }
+    });
+
+    // 3. Create main outflow product node (now a child of the outflows compound)
+    const mainOutflow = processData.mainOutflow;
+    if (mainOutflow) {
+        plans.push({
+            nodeType: 'product',
+            logicalParentId: 'OUTFLOWS_COMPOUND_NODE_ID', // Will be replaced with actual outflows compound node ID
+            parentId: 'OUTFLOWS_COMPOUND_NODE_ID', // Physical parent for visualization
+            productId: mainOutflow.productId,
+            amount: parseFloat(mainOutflow.unitsPerSR) * processData.totalRuns,
+        });
+    }
+
+    // 4. Create input product node plans (these remain direct children of the process)
     processData.inputProducts.forEach((input: ProcessInput) => {
         plans.push({
             nodeType: 'product',
-            logicalParentId: 'PROCESS_NODE_ID', // Placeholder
+            logicalParentId: 'PROCESS_NODE_ID', // Will be replaced with actual process node ID
             amount: parseFloat(input.unitsPerSR) * processData.totalRuns,
             productId: input.product.id,
         });
     });
 
-    // 3. If there are side products, create a compound node
+    // 5. If there are side products, create a compound node (now as child of outflows compound)
     if (processData.hasSideProducts) {
         plans.push({
             nodeType: 'sideProductCompound',
-            logicalParentId: 'NONE_BUT_LATER_OUTFLOWS_COMPOUND_NODE_ID' // Placeholder
+            logicalParentId: 'OUTFLOWS_COMPOUND_NODE_ID', // Now a child of the outflows compound
+            parentId: 'OUTFLOWS_COMPOUND_NODE_ID', // Physical parent for visualization
         });
 
-        // 4. Create side product node plans
+        // 6. Create side product node plans (still children of side product compound)
         processData.sideProducts.forEach((product: InfluenceProcessInputOutput) => {
             plans.push({
                 nodeType: 'sideProduct',
-                logicalParentId: 'SIDE_PRODUCT_COMPOUND_NODE_ID', // Placeholder
+                logicalParentId: 'SIDE_PRODUCT_COMPOUND_NODE_ID', // Will be replaced with actual side product compound node ID
+                parentId: 'SIDE_PRODUCT_COMPOUND_NODE_ID', // Physical parent for visualization
                 productId: product.productId,
                 amount: parseFloat(product.unitsPerSR) * processData.totalRuns
             });
         });
     }
-
-    // 5. Placeholder for future outflows compound
-    // This is where you'd add your planned outflows bundling feature
 
     return plans;
 }
@@ -72,14 +94,44 @@ export function createProductNodePlan(
     amount: number,
     isRoot: boolean = false
 ): NodePlan[] {
-    // Create a single plan for a root product node
-    return [{
-        nodeType: 'product',
-        productId: productData.productDetails.id,
-        amount,
-        metadata: {
-            isRoot,
-            productData
-        }
-    }];
+    const plans: NodePlan[] = [];
+    
+    if (isRoot) {
+        // For root nodes, create an outflows compound node first
+        plans.push({
+            nodeType: 'outflowsCompound',
+            isRoot: true,
+            metadata: {
+                isRoot: true,
+                label: 'Root Outflows',
+            }
+        });
+        
+        // Then create the product node as a child of the outflows compound
+        plans.push({
+            nodeType: 'product',
+            productId: productData.productDetails.id,
+            amount,
+            isRoot: true,
+            logicalParentId: 'OUTFLOWS_COMPOUND_NODE_ID', // Will be replaced with actual outflows compound node ID
+            parentId: 'OUTFLOWS_COMPOUND_NODE_ID', // Physical parent for visualization
+            metadata: {
+                isRoot: true,
+                productData
+            }
+        });
+    } else {
+        // Non-root product nodes remain unchanged
+        plans.push({
+            nodeType: 'product',
+            productId: productData.productDetails.id,
+            amount,
+            metadata: {
+                isRoot,
+                productData
+            }
+        });
+    }
+    
+    return plans;
 }

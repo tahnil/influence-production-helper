@@ -146,23 +146,25 @@ function layoutNodesWithDagre(nodes: Node[], edges: Edge[], config: DagreConfig)
         ranker: config.ranker,
     });
 
-    // Add nodes to dagre with dimensions
+    // Add node dimensions based on type
     nodes.forEach(node => {
         const width = node.measured?.width ||
             (node.type === 'processNode' ? 250 :
                 node.type === 'sideProductNode' ? 200 :
                     node.type === 'sideProductCompoundNode' ? (node.data.width || 400) :
-                        node.type === 'productNode' ? 300 : 150);
+                        node.type === 'outflowsCompoundNode' ? (node.data.width || 500) :
+                            node.type === 'productNode' ? 300 : 150);
 
         const height = node.measured?.height ||
             (node.type === 'processNode' ? 120 :
                 node.type === 'sideProductNode' ? 100 :
                     node.type === 'sideProductCompoundNode' ? (node.data.height || 200) :
-                        node.type === 'productNode' ? 150 : 80);
+                        node.type === 'outflowsCompoundNode' ? (node.data.height || 300) :
+                            node.type === 'productNode' ? 150 : 80);
 
         dagreGraph.setNode(node.id, { label: node.id, width: Number(width), height: Number(height) });
     });
-
+    
     // Add edges to dagre
     edges.forEach(edge => {
         dagreGraph.setEdge(edge.source, edge.target);
