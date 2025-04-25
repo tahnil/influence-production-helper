@@ -118,7 +118,17 @@ export function realizePlans(plans: NodePlan[], productDataMap: Record<string, P
         }
     });
 
-    return { nodes, nodeIdMap };
+    const finalNodes = nodes.map(node => {
+        if (node.parentId) {
+            return {
+                ...node,
+                extent: 'parent',
+            };
+        }
+        return node;
+    });
+
+    return { nodes: finalNodes, nodeIdMap };
 }
 
 /**

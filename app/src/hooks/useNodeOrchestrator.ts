@@ -74,36 +74,67 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
                 parentId: n.parentId,
                 logicalParentId: n.data.logicalParentId
             })));
+            console.log('Node ID map:', nodeIdMap);
+            console.log('Nodes before enhancement:', nodes);
 
             // 4. Create edges (if any needed for root structure)
-            const edges = createEdges(nodes, nodeIdMap);
+            const edges = createEdges(nodes as InfluenceNode[], nodeIdMap);
 
             // 5. Find the root node ID (now it's the outflows compound)
-            const rootNodeId = nodeIdMap['OUTFLOWS_COMPOUND_NODE_ID'] || nodes[0].id;
-            console.log(`Setting root node ID to: ${rootNodeId}`);
+            const rootOutflowsNodeId = nodeIdMap['ROOT_OUTFLOWS_COMPOUND_ID'] || nodes.find(n => n.type === 'outflowsCompoundNode')?.id || nodes[0].id;
+            const rootProductNodeId = nodeIdMap['ROOT_PRODUCT_NODE_ID'] || nodes.find(n => n.type === 'productNode' && n.data.isRoot)?.id;
+
+            console.log(`Root outflows node ID: ${rootOutflowsNodeId}`);
+            console.log(`Root product node ID: ${rootProductNodeId}`);
 
             // 6. Make sure isRoot is set correctly
+            // Enhanced nodes with extent explicitly set
             const enhancedNodes = nodes.map(node => {
-                if (node.id === rootNodeId || node.parentId === rootNodeId) {
-                    return {
+                // Add debug logging
+                if (node.parentId) {
+                    console.log(`Node ${node.id} (${node.type}) has parentId ${node.parentId}`);
+                }
+
+                // Set properties for nodes related to the root
+                if (node.id === rootOutflowsNodeId || node.parentId === rootOutflowsNodeId) {
+                    const enhanced = {
                         ...node,
-                        extent: node.parentId ? 'parent' : undefined,
                         data: {
                             ...node.data,
                             isRoot: true
                         }
                     };
+
+                    // Explicitly set extent for nodes with a parentId
+                    if (node.parentId) {
+                        console.log(`Setting extent: 'parent' for root-related node ${node.id}`);
+                        enhanced.extent = 'parent';
+                    }
+
+                    return enhanced;
                 }
+
+                // For other nodes, ensure extent is set if they have a parentId
+                if (node.parentId) {
+                    return {
+                        ...node,
+                        extent: 'parent'
+                    };
+                }
+
                 return node;
             });
 
             // 7. Dispatch created nodes
+            // Use the outflows compound node as the rootNodeId since it's the true parent
+            // in the hierarchy, but also track the root product node
             dispatch({
                 type: 'ROOT_NODE_CREATED',
                 payload: {
                     nodes: enhancedNodes as InfluenceNode[],
                     edges,
-                    rootNodeId: nodeIdMap['ROOT_NODE_ID'] || rootNodeId
+                    rootNodeId: rootOutflowsNodeId,
+                    // rootProductNodeId // Add this if your FlowState needs it
                 }
             });
 
@@ -185,13 +216,13 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
             const { nodes, nodeIdMap } = realizePlans(nodePlans, productDataMap);
 
             // 8. Create edges
-            const edges = createEdges(nodes, nodeIdMap);
+            const edges = createEdges(nodes as InfluenceNode[], nodeIdMap);
 
             // 9. Update state
             dispatch({
                 type: 'PROCESS_STRUCTURE_CREATED',
                 payload: {
-                    nodes: [...updatedNodes, ...nodes],
+                    nodes: [...updatedNodes, ...nodes as InfluenceNode[]],
                     edges: [...updatedEdges, ...edges],
                 }
             });
