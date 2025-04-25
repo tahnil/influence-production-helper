@@ -128,7 +128,19 @@ export function realizePlans(plans: NodePlan[], productDataMap: Record<string, P
         return node;
     });
 
-    return { nodes: finalNodes, nodeIdMap };
+    return {
+        nodes: finalNodes.map(node => {
+            if (node.parentId && node.extent === undefined) {
+                console.log(`Setting missing extent for node ${node.id} with parent ${node.parentId}`);
+                return {
+                    ...node,
+                    extent: 'parent'
+                };
+            }
+            return node;
+        }),
+        nodeIdMap
+    };
 }
 
 /**
