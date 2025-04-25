@@ -80,7 +80,6 @@ export function createSideProductNode(
             ancestorIds: [processNodeId],
             inflowIds: [],
             outflowIds: [processNodeId],
-            logicalParentId: compoundNodeId,
         }
     };
 }
@@ -102,7 +101,6 @@ export function createSideProductCompoundNode(
             inflowIds: [],
             outflowIds: [],
             processId: processNodeId,
-            logicalParentId: outflowsCompoundNodeId || '', // This will be set to the outflowsCompoundNode
             label: 'Side Products',
         }
     }

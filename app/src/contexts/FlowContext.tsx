@@ -360,12 +360,12 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
           ...action.payload
         }
       };
-    case 'REQUEST_PROCESS_NODE_CREATION':
+    case 'REQUEST_PROCESS_NODE_CREATION': // This is called when a process is selected from a product node
       return {
         ...state,
         pendingNodeCreation: {
           type: 'process',
-          ...action.payload
+          ...action.payload // processId, logicalParentId, includeSideProducts (boolean)
         }
       };
     case 'NODE_CREATION_COMPLETED':
@@ -384,6 +384,8 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       };
     case 'PROCESS_STRUCTURE_CREATED': {
       const { nodes, edges } = action.payload;
+      console.log('[FlowContext | Process Structure Created] Process structure created, received nodes:', nodes.length);
+      console.log('[FlowContext | Process Structure Created] Nodes:', nodes);
 
       // Add the new nodes and edges
       return {
@@ -508,26 +510,27 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const handleProcessNodeCreation = async () => {
       try {
         if (!processId) throw new Error('Process ID is undefined');
-        if (!logicalParentId) throw new Error('Parent Node ID is undefined');
+        if (!logicalParentId) throw new Error('Logical Parent Node ID is undefined');
 
         console.log('[FlowContext | Process Node Creation] Creating process node with ID:', processId);
-        console.log('[FlowContext | Process Node Creation] Logical parent ID:', logicalParentId);
+        console.log('[FlowContext | Process Node Creation] Logical parent ID (this should be the product node where the process was selected):', logicalParentId);
 
         // Find parent node
-        const parentNode = state.nodes.find(node => node.id === logicalParentId);
-        if (!parentNode) throw new Error(`[FlowContext | Process Node Creation] Parent node with ID ${logicalParentId} not found`);
+        const logicalParent = state.nodes.find(node => node.id === logicalParentId);
+        if (!logicalParent) throw new Error(`[FlowContext | Process Node Creation] Parent node with ID ${logicalParentId} not found`);
+        console.log('[FlowContext | Process Node Creation] Logical parent node found by its logicalParentId:', logicalParent);
 
-        const parentAmount = parentNode.data.amount as number || 0;
-        console.log('[FlowContext | Process Node Creation] Parent amount:', parentAmount);
-        const parentProductId = (parentNode.data.productDetails as { id: string } | undefined)?.id || '';
-        console.log('[FlowContext | Process Node Creation] Parent product ID:', parentProductId);
+        const logicalParentAmount = logicalParent.data.amount as number || 0;
+        console.log('[FlowContext | Process Node Creation] Logical parent amount:', logicalParentAmount);
+        const logicalParentProductId = (logicalParent.data.productDetails as { id: string } | undefined)?.id || '';
+        console.log('[FlowContext | Process Node Creation] Logical parent product ID:', logicalParentProductId);
 
         // Use the orchestrator hook
         await processNodeOrchestrator.createProcessStructure(
           processId,
           logicalParentId,
-          parentAmount,
-          parentProductId,
+          logicalParentAmount,
+          logicalParentProductId,
           state.nodes as InfluenceNode[],
           state.edges
         );

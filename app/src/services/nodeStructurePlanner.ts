@@ -16,7 +16,7 @@ export interface NodePlan {
 
 export function createProcessNodePlan(
     processData: any,
-    logicalParentId: string
+    logicalParentId: string,
 ): NodePlan[] {
     const plans: NodePlan[] = [];
 
@@ -35,42 +35,21 @@ export function createProcessNodePlan(
     };
     plans.push(processNodePlan);
 
-    // 2. Create outflows compound node for the main output product
-    const outputCompoundId = 'OUTPUT_COMPOUND_NODE_ID';
-    plans.push({
-        nodeType: 'outflowsCompound',
-        logicalParentId: logicalParentId, // Same parent as the process
-        id: outputCompoundId,
-        metadata: {
-            label: 'Process Output',
-        }
-    });
+    // 2. Set outflows compound node id for rest of plans
+    const outputCompoundId = processData.outflowsCompoundId;
 
-    // 3. Create main outflow product node inside its outflows compound
-    const mainOutflow = processData.mainOutflow;
-    if (mainOutflow) {
-        plans.push({
-            nodeType: 'product',
-            logicalParentId: 'PROCESS_NODE_ID', // Logical parent is the process
-            parentId: outputCompoundId, // Physical parent is the outflows compound
-            productId: mainOutflow.productId,
-            amount: parseFloat(mainOutflow.unitsPerSR) * processData.totalRuns,
-        });
-    }
-
-    // 4. If there are side products, add them to the same outflows compound as the main product
+    // 3. If there are side products, add them to the same outflows compound as the main product
     if (processData.hasSideProducts) {
         plans.push({
             nodeType: 'sideProductCompound',
-            logicalParentId: 'PROCESS_NODE_ID', // Logical parent is the process
             parentId: outputCompoundId, // Physical parent is the same outflows compound as the main product
         });
+        console.log('[createProcessNodePlan] Side product compound node configured with parentId:', outputCompoundId);
 
         // Add side product nodes inside the side product compound
         processData.sideProducts.forEach((product: InfluenceProcessInputOutput) => {
             plans.push({
                 nodeType: 'sideProduct',
-                logicalParentId: 'PROCESS_NODE_ID', // Logical parent is the process
                 parentId: 'SIDE_PRODUCT_COMPOUND_NODE_ID', // Physical parent is the side product compound
                 productId: product.productId,
                 amount: parseFloat(product.unitsPerSR) * processData.totalRuns
@@ -78,7 +57,7 @@ export function createProcessNodePlan(
         });
     }
 
-    // 5. Create an outflows compound for each input product
+    // 4. Create an outflows compound for each input product
     processData.inputProducts.forEach((input: ProcessInput, index: number) => {
         const inputCompoundId = `INPUT_COMPOUND_${index}`;
 
@@ -86,7 +65,6 @@ export function createProcessNodePlan(
         plans.push({
             nodeType: 'outflowsCompound',
             id: inputCompoundId,
-            logicalParentId: 'PROCESS_NODE_ID', // Logical parent is the process
             metadata: {
                 label: `${input.product.name} Container`,
             }

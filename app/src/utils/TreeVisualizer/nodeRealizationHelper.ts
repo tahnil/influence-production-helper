@@ -160,7 +160,7 @@ export function createEdges(nodes: InfluenceNode[], nodeIdMap: Record<string, st
 
         if (processNode) {
             // 1. Edge from parent product to process node
-            const logicalParentId = processNode.data.logicalParentId as string;
+            // const logicalParentId = processNode.data.logicalParentId as string;
             // if (logicalParentId) {
             //     edges.push({
             //         id: `edge-${logicalParentId}-${processNodeId}`,

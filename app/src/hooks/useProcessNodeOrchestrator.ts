@@ -10,7 +10,7 @@ import { findNodesToRemove, removeNodes } from '@/utils/TreeVisualizer/nodeRemov
 import { generateUniqueId } from '@/utils/generateUniqueId';
 import { InfluenceNode } from '@/types/reactFlowTypes';
 import { createProcessNodePlan, NodePlan } from '@/services/nodeStructurePlanner';
-import { createProcessNode, createProductNode, createSideProductCompoundNode, createSideProductNode } from '@/services/nodeFactory';
+import { createProcessNode, createProductNode, createSideProductCompoundNode, createSideProductNode, createOutflowsCompoundNode } from '@/services/nodeFactory';
 import { InfluenceProcess, ProductData } from '@/types/influenceTypes';
 import useProductDetails from './useInfluenceProductDetails';
 import useProcessesByProductId from './useProcessesByProductId';
@@ -50,8 +50,8 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
     const createProcessStructure = useCallback(async (
         processId: string,
         logicalParentId: string,
-        parentAmount: number,
-        parentProductId: string,
+        logicalParentAmount: number,
+        logicalParentProductId: string,
         currentNodes: InfluenceNode[],
         currentEdges: Edge[]
     ) => {
@@ -65,25 +65,42 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
             console.log('[useProcessNodeOrchestrator] Input products:', inputProducts);
             const buildingIcon = await getBuildingIcon(processDetails.buildingId);
             // console.log('[useProcessNodeOrchestrator] Building icon:', buildingIcon);
+            // get parentId of the product node with given logicalParentId
+            const mainOutflowNode = currentNodes.find(node => node.id === logicalParentId);
+            console.log('[useProcessNodeOrchestrator] Main outflow node:', mainOutflowNode);
+            if (!mainOutflowNode) throw new Error(`Main outflow node with id ${logicalParentId} not found`);
+            const outflowsCompoundId = mainOutflowNode.parentId;
+            console.log('[useProcessNodeOrchestrator] Parent product ID:', outflowsCompoundId);
 
             // 2. Calculate process information
-            const output = processDetails.outputs.find(o => o.productId === parentProductId);
+            const output = processDetails.outputs.find(o => o.productId === logicalParentProductId); // Identify the main outflow product
             const outputUnitsPerSR = output ? parseFloat(output.unitsPerSR) : 0;
-            const totalRuns = parentAmount / outputUnitsPerSR || 1;
+            const totalRuns = logicalParentAmount / outputUnitsPerSR || 1;
             const totalDuration = totalRuns * parseFloat(processDetails.bAdalianHoursPerAction || '0');
             // log output, outputUnitsperSR, totalRuns and totalDuration in one statement to console
             console.log(`[useProcessNodeOrchestrator] Output: ${output}, Units per SR: ${outputUnitsPerSR}, Total Runs: ${totalRuns}, Total Duration: ${totalDuration}`);
 
             // 3. Identify nodes to remove
+            // Function looks if an existing process node is present and marks it and all its inflows for removal
             const nodesToRemove = findNodesToRemove(currentNodes, logicalParentId);
-            console.log('[useProcessNodeOrchestrator] Nodes to remove:', nodesToRemove);
 
-            // 4. Remove existing nodes and their edges
-            const { updatedNodes, updatedEdges } = removeNodes(
-                currentNodes,
-                currentEdges,
-                nodesToRemove
-            );
+            // Initialize updatedNodes and updatedEdges outside the conditional block
+            let updatedNodes = currentNodes;
+            let updatedEdges = currentEdges;
+            console.log('[useProcessNodeOrchestrator] Current nodes and edges:', { currentNodes, currentEdges });
+
+            if (nodesToRemove.length > 0) {
+                console.log(`[useProcessNodeOrchestrator] Found ${nodesToRemove.length} nodes to remove:`, nodesToRemove);
+
+                // 4. Remove existing nodes and their edges
+                const removalResult = removeNodes(currentNodes, currentEdges, nodesToRemove);
+                updatedNodes = removalResult.updatedNodes;
+                updatedEdges = removalResult.updatedEdges;
+
+                console.log('[useProcessNodeOrchestrator] Nodes and edges updated after removal:', { updatedNodes, updatedEdges });
+            } else {
+                console.log('[useProcessNodeOrchestrator] No nodes to remove.');
+            }
 
             // 5. Create node plans
             const processData = {
@@ -93,10 +110,11 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
                 totalRuns,
                 totalDuration,
                 mainOutflow: output,
-                sideProducts: processDetails.outputs.filter(o => o.productId !== parentProductId),
+                outflowsCompoundId,
+                sideProducts: processDetails.outputs.filter(o => o.productId !== logicalParentProductId),
                 hasSideProducts: processDetails.outputs.length > 1
             };
-            console.log('[useProcessNodeOrchestrator] Process data:', processData);
+            console.log('[useProcessNodeOrchestrator] Process data for node plans:', processData);
             const nodePlans = createProcessNodePlan(processData, logicalParentId);
             console.log('[useProcessNodeOrchestrator] Node plans:', nodePlans);
 
@@ -121,11 +139,15 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
             const edges = createEdges(nodes, nodeIdMap);
 
             // 8. Update state
+            const finalNodes = [...updatedNodes, ...nodes];
+            const finalEdges = [...updatedEdges, ...edges];
+            console.log('[useProcessNodeOrchestrator] Final nodes and edges being dispatched:', { finalNodes, finalEdges });
+            
             dispatch({
                 type: 'PROCESS_STRUCTURE_CREATED',
                 payload: {
-                    nodes: [...updatedNodes, ...nodes],
-                    edges: [...updatedEdges, ...edges],
+                    nodes: finalNodes,
+                    edges: finalEdges,
                 }
             });
 
@@ -133,12 +155,14 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
             dispatch({
                 type: 'APPLY_LAYOUT',
                 payload: {
-                    nodes: [...updatedNodes, ...nodes],
-                    edges: [...updatedEdges, ...edges],
+                    nodes: finalNodes,
+                    edges: finalEdges,
                     dagreConfig,
                     layoutTrigger: 'STRUCTURE_CHANGE'
                 }
             });
+
+            console.log('[useProcessNodeOrchestrator] Nodes and edges updated after realization:', { nodes, edges });
 
             return true;
         } catch (error) {
@@ -159,8 +183,10 @@ function realizePlans(plans: NodePlan[], productDataMap: Record<string, ProductD
     const nodeIdMap: Record<string, string> = {};
     const nodes: InfluenceNode[] = [];
 
+    console.log('[useProcessNodeOrchestrator] Realizing node plans:', plans);
+
     // First pass: create process and compound nodes
-    plans.filter(p => ['process', 'sideProductCompound'].includes(p.nodeType)).forEach(plan => {
+    plans.filter(p => ['process', 'sideProductCompound', 'outflowsCompound'].includes(p.nodeType)).forEach(plan => {
         const id = generateUniqueId();
         nodeIdMap[plan.nodeType === 'process' ? 'PROCESS_NODE_ID' : 'NONE_BUT_LATER_OUTFLOWS_COMPOUND_NODE_ID'] = id;
 
@@ -168,9 +194,18 @@ function realizePlans(plans: NodePlan[], productDataMap: Record<string, ProductD
         if (plan.nodeType === 'process') {
             node = createProcessNode(plan.metadata, plan.logicalParentId!);
             console.log('[useProcessNodeOrchestrator] Created process node:', node);
-        } else {
-            node = createSideProductCompoundNode(nodeIdMap['PROCESS_NODE_ID']);
+        } else if (plan.nodeType === 'sideProductCompound') {
+            node = createSideProductCompoundNode(nodeIdMap['PROCESS_NODE_ID'], plan.parentId);
             console.log('[useProcessNodeOrchestrator] Created side product compound node:', node);
+            console.log('[useProcessNodeOrchestrator] Set parenttId for side product compound node:', node.parentId);
+        } else if (plan.nodeType === 'outflowsCompound') {
+            console.log('[useProcessNodeOrchestrator] Creating outflows compound node...');
+            node = createOutflowsCompoundNode(nodeIdMap['PROCESS_NODE_ID'], false);
+            console.log('[useProcessNodeOrchestrator] Created outflows compound node:', node);
+            console.log('[useProcessNodeOrchestrator] Set parenttId for outflows compound node:', node.parentId);
+        } else {
+            console.error(`Unknown node type: ${plan.nodeType}`);
+            return;
         }
 
         node.id = id;
