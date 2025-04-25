@@ -15,6 +15,7 @@ import { InfluenceProcess, ProductData } from '@/types/influenceTypes';
 import useProductDetails from './useInfluenceProductDetails';
 import useProcessesByProductId from './useProcessesByProductId';
 import useProductImage from './useProductImage';
+import { useDagreConfig } from './useDagreConfig';
 
 export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
     const { getProcessDetails } = useProcessDetails();
@@ -23,6 +24,7 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
     const { getProductDetails } = useProductDetails();
     const { getProcessesByProductId } = useProcessesByProductId();
     const { getProductImage } = useProductImage();
+    const { dagreConfig } = useDagreConfig();
 
     // Add a dedicated product data fetching function
     const fetchProductData = useCallback(async (productId: string): Promise<ProductData> => {
@@ -32,7 +34,7 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
                 getProcessesByProductId(productId),
                 getProductImage(productId),
             ]);
-            
+
             return {
                 id: productId,
                 productDetails,
@@ -99,10 +101,10 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
             console.log('[useProcessNodeOrchestrator] Node plans:', nodePlans);
 
             // 5. IMPORTANT: Fetch product data for all product nodes
-            const productPlans = nodePlans.filter(p => 
+            const productPlans = nodePlans.filter(p =>
                 ['product', 'sideProduct'].includes(p.nodeType) && p.productId
             );
-            
+
             const productDataMap: Record<string, ProductData> = {};
 
             // Fetch all product data in parallel
@@ -113,7 +115,7 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
                     }
                 })
             );
-            
+
             // 6. Create new nodes and edges
             const { nodes, nodeIdMap } = realizePlans(nodePlans, productDataMap);
             const edges = createEdges(nodes, nodeIdMap);
@@ -124,6 +126,17 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
                 payload: {
                     nodes: [...updatedNodes, ...nodes],
                     edges: [...updatedEdges, ...edges],
+                }
+            });
+
+            // 9. Dispatch an APPLY_LAYOUT action with STRUCTURE_CHANGE
+            dispatch({
+                type: 'APPLY_LAYOUT',
+                payload: {
+                    nodes: [...updatedNodes, ...nodes],
+                    edges: [...updatedEdges, ...edges],
+                    dagreConfig,
+                    layoutTrigger: 'STRUCTURE_CHANGE'
                 }
             });
 
@@ -165,7 +178,7 @@ function realizePlans(plans: NodePlan[], productDataMap: Record<string, ProductD
     });
 
     // Second pass: create product and side product nodes
-    plans.filter(p => ['product', 'sideProduct'].includes(p.nodeType)).forEach(plan => { 
+    plans.filter(p => ['product', 'sideProduct'].includes(p.nodeType)).forEach(plan => {
         if (!plan.productId) return; // Skip if no productId
 
         const productData = productDataMap[plan.productId];
@@ -177,8 +190,8 @@ function realizePlans(plans: NodePlan[], productDataMap: Record<string, ProductD
         let node;
         if (plan.nodeType === 'product') {
             node = createProductNode(
-                productData, 
-                plan.amount!, 
+                productData,
+                plan.amount!,
                 nodeIdMap['PROCESS_NODE_ID']
             );
             console.log('[useProcessNodeOrchestrator] Created product node:', node);
@@ -210,7 +223,7 @@ function createEdges(nodes: InfluenceNode[], nodeIdMap: Record<string, string>):
     const processNodeId = nodeIdMap['PROCESS_NODE_ID'];
     const compoundNodeId = nodeIdMap['NONE_BUT_LATER_OUTFLOWS_COMPOUND_NODE_ID'];
     const processNode = nodes.find(n => n.id === processNodeId);
-    
+
     if (!processNode) return edges;
 
     const logicalParentId = processNode.data.logicalParentId as string;

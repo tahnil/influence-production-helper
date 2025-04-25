@@ -194,12 +194,29 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       console.log('Layout trigger:', layoutTrigger);
 
       // Determine if we should apply layout based on the trigger type
-      const shouldApplyLayout =
-        layoutTrigger === 'FORCE' || // Always apply when forced
-        (layoutTrigger === 'NODE_CHANGE' && nodes.length !== state.nodes.length) || // Node count changed
-        (layoutTrigger === 'STRUCTURE_CHANGE') || // Graph structure changed (new connections)
-        (layoutTrigger === 'MEASUREMENTS_READY' && nodes.every(node => node.measured?.width && node.measured?.height)); // Measurements are ready
-
+      const shouldApplyLayout = (() => {
+        switch (layoutTrigger) {
+          case 'FORCE':
+            // Always apply when forced
+            return true;
+      
+          case 'NODE_CHANGE':
+            // Apply if the node count has changed
+            return nodes.length !== state.nodes.length;
+      
+          case 'STRUCTURE_CHANGE':
+            // Apply if the graph structure has changed (e.g., new connections)
+            return true;
+      
+          case 'MEASUREMENTS_READY':
+            // Apply if all nodes have their measurements ready
+            return nodes.every(node => node.measured?.width && node.measured?.height);
+      
+          default:
+            // Do not apply layout for other cases
+            return false;
+        }
+      })();
       if (!shouldApplyLayout) {
         return state;
       }
