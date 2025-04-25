@@ -1,3 +1,5 @@
+// components/TreeVisualizer/ControlPanel.tsx
+
 import React from 'react';
 import ProductSelector from '@/components/TreeVisualizer/ProductSelector';
 import AmountInput from '@/components/TreeVisualizer/AmountInput';
@@ -18,12 +20,33 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   handleSelectProcess,
   handleSerialize
 }) => {
-  const { selectedProductId, dispatch } = useFlow();
+  const { selectedProductId, desiredAmount, dispatch } = useFlow();
 
   const handleProductSelect = (productId: string) => {
+    console.log(`Product selected: ${productId}`);
+    
+    // First update the selected product ID in state
     dispatch({
       type: 'SELECT_PRODUCT',
       payload: productId
+    });
+    
+    // Then clear existing nodes and create a new root node
+    dispatch({
+      type: 'BATCH_UPDATE',
+      payload: {
+        nodes: [],
+        edges: []
+      }
+    });
+    
+    dispatch({
+      type: 'REQUEST_PRODUCT_NODE_CREATION',
+      payload: {
+        productId: productId,
+        amount: desiredAmount,
+        isRoot: true
+      }
     });
   };
 

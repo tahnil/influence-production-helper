@@ -12,8 +12,6 @@ const TreeRenderer: React.FC = () => {
     const { dagreConfig } = useDagreConfig();
     const {
         nodesRef,
-        desiredAmount,
-        selectedProductId,
         needsLayout,
         layoutTrigger,
         dispatch
@@ -21,10 +19,12 @@ const TreeRenderer: React.FC = () => {
 
     const nodesInitialized = useNodesInitialized();
 
+    // Track node changes and update reference
     useEffect(() => {
         if (nodes.length !== nodesRef.current.length) {
             nodesRef.current = nodes;
-
+            console.log(`Node count changed to ${nodes.length}, updating nodesRef`);
+            
             // Request layout when node count changes
             dispatch({
                 type: 'REQUEST_LAYOUT',
@@ -33,6 +33,7 @@ const TreeRenderer: React.FC = () => {
         }
     }, [nodes, nodesRef, dispatch]);
 
+    // Check if all nodes have measurements
     useEffect(() => {
         if (nodesInitialized && nodes.every(node => node.measured?.width && node.measured?.height)) {
             dispatch({
@@ -42,9 +43,10 @@ const TreeRenderer: React.FC = () => {
         }
     }, [nodesInitialized, nodes, dispatch]);
 
+    // Apply layout when needed
     useEffect(() => {
         if (needsLayout && layoutTrigger) {
-            // console.log('Applying layout with trigger:', layoutTrigger);
+            console.log(`Applying layout with trigger: ${layoutTrigger}, node count: ${nodes.length}`);
             dispatch({
                 type: 'APPLY_LAYOUT',
                 payload: {
@@ -55,28 +57,7 @@ const TreeRenderer: React.FC = () => {
                 }
             });
         }
-    }, [nodes, edges, dagreConfig, layoutTrigger, dispatch]);
-
-    useEffect(() => {
-        if (selectedProductId) {
-            dispatch({
-                type: 'BATCH_UPDATE',
-                payload: {
-                    nodes: [],
-                    edges: []
-                }
-            });
-
-            dispatch({
-                type: 'REQUEST_PRODUCT_NODE_CREATION',
-                payload: {
-                    productId: selectedProductId,
-                    amount: desiredAmount,
-                    isRoot: true
-                }
-            });
-        }
-    }, [selectedProductId, dispatch]);
+    }, [nodes, edges, dagreConfig, layoutTrigger, needsLayout, dispatch]);
 
     return null;
 };

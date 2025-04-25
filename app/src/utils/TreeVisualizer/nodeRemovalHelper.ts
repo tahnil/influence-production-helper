@@ -10,8 +10,17 @@ import { InfluenceNode } from '@/types/reactFlowTypes';
  * @returns Array of node IDs that should be removed
  */
 export function findNodesToRemove(nodes: InfluenceNode[], logicalParentId: string): string[] {
-  const nodesToRemove: string[] = [];
+  console.log(`Finding nodes to remove with parent: ${logicalParentId}`);
+  console.log('Current nodes:', nodes.map(n => ({
+    id: n.id,
+    type: n.type,
+    isRoot: n.data.isRoot,
+    parentId: n.parentId,
+    logicalParentId: n.data.logicalParentId
+  })));
   
+  const nodesToRemove: string[] = [];
+
   // STEP 1: Find compound nodes to remove
 
   // Find existing SideProductCompound nodes with the same source process
@@ -43,7 +52,7 @@ export function findNodesToRemove(nodes: InfluenceNode[], logicalParentId: strin
   // Add OutflowsCompound nodes to removal list
   existingOutflowsCompoundNodes.forEach(existingOutflowsCompoundNode => {
     nodesToRemove.push(existingOutflowsCompoundNode.id);
-    
+
     // Note: Children of OutflowsCompound nodes often need special handling
     // In the original code, their parentId was being cleared
   });
@@ -57,7 +66,7 @@ export function findNodesToRemove(nodes: InfluenceNode[], logicalParentId: strin
   // Add process nodes and their input nodes to removal list
   existingProcessNodes.forEach(processNode => {
     nodesToRemove.push(processNode.id);
-    
+
     // Find and add all input product nodes of this process
     nodes.forEach(node => {
       if (node.data.logicalParentId === processNode.id) {
@@ -66,6 +75,7 @@ export function findNodesToRemove(nodes: InfluenceNode[], logicalParentId: strin
     });
   });
 
+  console.log('Nodes marked for removal:', nodesToRemove);
   return nodesToRemove;
 }
 

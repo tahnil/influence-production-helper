@@ -18,6 +18,7 @@ import {
 } from '@/services/nodeStructurePlanner';
 import { InfluenceProcess, ProductData } from '@/types/influenceTypes';
 import { realizePlans, createEdges } from '@/utils/TreeVisualizer/nodeRealizationHelper';
+import { ProductNode } from '@/components/TreeVisualizer/ProductNode';
 
 export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
     const { getProductDetails } = useProductDetails();
@@ -55,31 +56,56 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
         isRoot: boolean = true
     ) => {
         try {
+            console.log(`Creating root product node: productId=${productId}, amount=${amount}, isRoot=${isRoot}`);
+            
             // 1. Fetch product data
             const productData = await fetchProductData(productId);
-
+    
             // 2. Create node plan (now includes outflows compound for root nodes)
             const nodePlans = createProductNodePlan(productData, amount, isRoot);
-
+            console.log('Node plans created:', nodePlans);
+    
             // 3. Realize node plans
             const { nodes, nodeIdMap } = realizePlans(nodePlans, { [productId]: productData });
+            console.log('Nodes realized:', nodes.map(n => ({ 
+                id: n.id, 
+                type: n.type, 
+                isRoot: n.data.isRoot,
+                parentId: n.parentId,
+                logicalParentId: n.data.logicalParentId 
+            })));
             
             // 4. Create edges (if any needed for root structure)
             const edges = createEdges(nodes, nodeIdMap);
-
+    
             // 5. Find the root node ID (now it's the outflows compound)
             const rootNodeId = nodeIdMap['OUTFLOWS_COMPOUND_NODE_ID'] || nodes[0].id;
-
-            // 6. Dispatch created nodes
+            console.log(`Setting root node ID to: ${rootNodeId}`);
+    
+            // 6. Make sure isRoot is set correctly
+            const enhancedNodes = nodes.map(node => {
+                if (node.id === rootNodeId || node.parentId === rootNodeId) {
+                    return {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            isRoot: true
+                        }
+                    };
+                }
+                return node;
+            });
+    
+            // 7. Dispatch created nodes
             dispatch({
                 type: 'ROOT_NODE_CREATED',
                 payload: {
-                    nodes,
+                    nodes: enhancedNodes as InfluenceNode[],
                     edges,
                     rootNodeId
                 }
             });
-
+    
             return true;
         } catch (error) {
             console.error('Error creating root product node:', error);
