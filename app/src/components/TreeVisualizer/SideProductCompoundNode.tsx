@@ -17,17 +17,17 @@ export interface SideProductCompoundNodeData {
 
 export type SideProductCompoundNode = Node<SideProductCompoundNodeData>;
 
-const SideProductCompoundNode: React.FC<NodeProps<SideProductCompoundNode>> = ({ data, id }) => {
+const SideProductCompoundNode: React.FC<NodeProps<SideProductCompoundNode>> = ({ data, id, width, height }) => {
   return (
     <div
       className="sideProductCompound-node"
       style={{
         position: 'relative',
-        width: data.width,
-        height: data.height,
         background: 'rgba(0, 0, 0, 0.2)', // Very subtle background
         borderRadius: '8px',
-        padding: '10px'
+        padding: '10px',
+        width: width,
+        height: height,
       }}
     >
       {/* Handles for the sideProductCompound node */}

@@ -16,6 +16,7 @@ import useProductDetails from './useInfluenceProductDetails';
 import useProcessesByProductId from './useProcessesByProductId';
 import useProductImage from './useProductImage';
 import { useDagreConfig } from './useDagreConfig';
+import { updateOutflowsCompoundDimensions } from '@/utils/TreeVisualizer/updateOutflowsCompoundDimensions';
 
 export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
     const { getProcessDetails } = useProcessDetails();
@@ -141,28 +142,57 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
             const edges = createEdges(nodes, nodeIdMap, outflowsCompoundId);
 
             // 8. Update state
-            const finalNodes = [...updatedNodes, ...nodes];
+            const preFinalNodes = [...updatedNodes, ...nodes];
             const finalEdges = [...updatedEdges, ...edges];
-            console.log('[useProcessNodeOrchestrator] Final nodes and edges being dispatched:', { finalNodes, finalEdges });
+            console.log('[useProcessNodeOrchestrator] Final nodes and edges being dispatched:', { preFinalNodes, finalEdges });
 
-            dispatch({
-                type: 'PROCESS_STRUCTURE_CREATED',
-                payload: {
-                    nodes: finalNodes,
-                    edges: finalEdges,
-                }
-            });
+            // 9. After creating all nodes and before dispatching the state update
+            if (processData.hasSideProducts && outflowsCompoundId) {
+                // Update the dimensions of the outflows compound node to accommodate the new side product compound
+                const finalNodes = updateOutflowsCompoundDimensions(
+                    preFinalNodes as InfluenceNode[],
+                    outflowsCompoundId
+                );
 
-            // 9. Dispatch an APPLY_LAYOUT action with STRUCTURE_CHANGE
-            dispatch({
-                type: 'APPLY_LAYOUT',
-                payload: {
-                    nodes: finalNodes,
-                    edges: finalEdges,
-                    dagreConfig,
-                    layoutTrigger: 'STRUCTURE_CHANGE'
-                }
-            });
+                // Use the updated nodes array
+                dispatch({
+                    type: 'PROCESS_STRUCTURE_CREATED',
+                    payload: {
+                        nodes: finalNodes as InfluenceNode[],
+                        edges: finalEdges,
+                    }
+                });
+                dispatch({
+                    type: 'APPLY_LAYOUT',
+                    payload: {
+                        nodes: finalNodes,
+                        edges: finalEdges,
+                        dagreConfig,
+                        layoutTrigger: 'STRUCTURE_CHANGE'
+                    }
+                });
+
+            } else {
+                // Original dispatch without dimension updates
+                const finalNodes = preFinalNodes;
+                dispatch({
+                    type: 'PROCESS_STRUCTURE_CREATED',
+                    payload: {
+                        nodes: finalNodes as InfluenceNode[],
+                        edges: finalEdges,
+                    }
+                });
+                dispatch({
+                    type: 'APPLY_LAYOUT',
+                    payload: {
+                        nodes: finalNodes,
+                        edges: finalEdges,
+                        dagreConfig,
+                        layoutTrigger: 'STRUCTURE_CHANGE'
+                    }
+                });
+
+            }
 
             console.log('[useProcessNodeOrchestrator] Nodes and edges updated after realization:', { nodes, edges });
 
@@ -272,6 +302,69 @@ function realizePlans(plans: NodePlan[], productDataMap: Record<string, ProductD
         if (node) {
             nodes.push(node);
         }
+    });
+
+    // Third pass: Calculate dimensions for compound nodes based on their children
+    const compoundNodes = nodes.filter(node =>
+        node.type === 'sideProductCompoundNode' ||
+        node.type === 'outflowsCompoundNode'
+    );
+
+    compoundNodes.forEach(compoundNode => {
+        // Find all direct children of this compound node
+        const children = nodes.filter(node => node.parentId === compoundNode.id);
+
+        if (children.length === 0) {
+            // If no children, set default dimensions
+            compoundNode.width = 200;
+            compoundNode.height = 100;
+            console.log(`[useProcessNodeOrchestrator] Set dimensions for compound node ${compoundNode.id}: width=200, height=100`);
+            return;
+        }
+
+        // Calculate the bounding box that contains all children
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+
+        // First gather measured dimensions if available, otherwise use default estimates
+        children.forEach(child => {
+            const childWidth = child.width ||
+                (child.type === 'productNode' ? 300 :
+                    child.type === 'processNode' ? 250 :
+                        child.type === 'sideProductNode' ? 200 : 150);
+
+            const childHeight = child.height ||
+                (child.type === 'productNode' ? 290 :
+                    child.type === 'processNode' ? 185 :
+                        child.type === 'sideProductNode' ? 100 : 80);
+
+            // Calculate positions relative to parent
+            // Since we haven't positioned the nodes yet, we'll just stack them
+            if (minX === Infinity) {
+                // First child
+                minX = 0;
+                minY = 0;
+                maxX = childWidth;
+                maxY = childHeight;
+            } else {
+                // Subsequent children - stack horizontally with some padding
+                maxX += 20 + childWidth; // 20px padding between nodes
+                maxY = Math.max(maxY, childHeight);
+            }
+        });
+
+        // Add padding around the compound node
+        const padding = 40; // 20px padding on each side
+        const width = maxX - minX + padding;
+        const height = maxY - minY + padding;
+
+        // Set measured dimensions on the compound node
+        compoundNode.width = width;
+        compoundNode.height = height;
+
+        console.log(`[useProcessNodeOrchestrator] Set dimensions for compound node ${compoundNode.id}: width=${width}, height=${height}`);
     });
 
     return { nodes, nodeIdMap };

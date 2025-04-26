@@ -3,7 +3,7 @@ import { DagreConfig } from '@/hooks/useDagreConfig';
 import { Node, Edge } from '@xyflow/react';
 import dagre from '@dagrejs/dagre';
 import { InfluenceNode } from '@/types/reactFlowTypes';
-import { getCompoundNodeHeight, getCompoundNodeWidth, getNodeHeight, getNodeWidth } from './nodeHelpers';
+import { getNodeHeight, getNodeWidth } from './nodeHelpers';
 
 function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     console.log("[applyDagreLayout | Dagre] Applying layout with config:", config);

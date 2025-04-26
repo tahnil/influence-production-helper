@@ -16,7 +16,7 @@ export interface OutflowsCompoundNodeData extends BaseNodeData {
 
 export type OutflowsCompoundNode = Node<OutflowsCompoundNodeData>;
 
-const OutflowsCompoundNode: React.FC<NodeProps<OutflowsCompoundNode>> = ({ data, id }) => {
+const OutflowsCompoundNode: React.FC<NodeProps<OutflowsCompoundNode>> = ({ data, id, width, height }) => {
   return (
     <div
       className="outflowsCompound-node"
@@ -25,7 +25,9 @@ const OutflowsCompoundNode: React.FC<NodeProps<OutflowsCompoundNode>> = ({ data,
         background: "rgba(50, 70, 90, 0.1)", // Subtle background
         borderRadius: "8px",
         padding: "10px",
-        border: "1px dashed rgba(100, 120, 140, 0.3)" // Subtle dashed border
+        border: "1px dashed rgba(100, 120, 140, 0.3)", // Subtle dashed border
+        width: width,
+        height: height,
       }}
     >
       {/* Handles for the outflowsCompound node */}
