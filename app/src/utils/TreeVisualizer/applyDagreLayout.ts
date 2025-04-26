@@ -57,6 +57,11 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     // Run the layout algorithm
     dagre.layout(dagreGraph);
 
+    // Find all outflows compound nodes
+    const outflowsCompoundNodes = nodes.filter(node =>
+        node.type === 'outflowsCompoundNode'
+    );
+
     // Apply the calculated layout to the nodes
     const layoutedNodes = nodes.map(node => {
         // Only reposition top-level nodes
@@ -79,10 +84,106 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         return node;
     });
 
+    // After positioning top-level nodes, apply grid layout to children of outflows compound nodes
+    const layoutedNodesWithGridChildren = positionOutflowsCompoundChildren(layoutedNodes, outflowsCompoundNodes);
+
     return {
-        layoutedNodes,
+        layoutedNodes: layoutedNodesWithGridChildren,
         layoutedEdges: edges // Return edges unchanged
     };
+}
+
+/**
+ * Positions children of outflows compound nodes in a grid layout
+ * @param nodes All nodes with top-level nodes already positioned
+ * @param outflowsCompoundNodes List of outflows compound nodes
+ * @returns Nodes with outflows compound children positioned in a grid
+ */
+function positionOutflowsCompoundChildren(nodes: Node[], outflowsCompoundNodes: Node[]): Node[] {
+    return nodes.map(node => {
+        // Skip nodes that are not children of outflows compound nodes
+        if (!node.parentId) return node;
+
+        // Check if this node is a child of an outflows compound node
+        const parentNode = outflowsCompoundNodes.find(compoundNode =>
+            compoundNode.id === node.parentId
+        );
+
+        if (!parentNode) return node;
+
+        // Find all children of this parent, including this node
+        const siblings = nodes.filter(n => n.parentId === parentNode.id);
+
+        // If there's only one child, center it within the parent
+        if (siblings.length === 1) {
+            const childNode = siblings[0];
+            const childWidth = childNode.measured?.width || 300;
+            const childHeight = childNode.measured?.height || 200;
+            const parentWidth = parentNode.measured?.width || 600;
+            const parentHeight = parentNode.measured?.height || 400;
+
+            return {
+                ...node,
+                position: {
+                    x: (parentWidth - childWidth) / 2,
+                    y: (parentHeight - childHeight) / 2
+                }
+            };
+        }
+
+        // If there are two children, arrange them in a 2-column grid
+        if (siblings.length === 2) {
+            const childWidth = node.measured?.width || 300;
+            const childHeight = node.measured?.height || 200;
+            const parentWidth = parentNode.measured?.width || 600;
+            const parentHeight = parentNode.measured?.height || 400;
+
+            // Calculate the column index for this node (0 or 1)
+            const columnIndex = siblings.indexOf(node);
+
+            // Position in a 2-column, 1-row grid with padding
+            const padding = 20;
+            const columnWidth = (parentWidth - (padding * 3)) / 2; // Divide available space by 2
+            const x = padding + (columnIndex * (columnWidth + padding));
+            const y = (parentHeight - childHeight) / 2; // Center vertically
+
+            return {
+                ...node,
+                position: { x, y }
+            };
+        }
+
+        // For more than 2 children (unlikely but handled for completeness)
+        if (siblings.length > 2) {
+            const childWidth = node.measured?.width || 300;
+            const childHeight = node.measured?.height || 200;
+            const parentWidth = parentNode.measured?.width || 600;
+            const parentHeight = parentNode.measured?.height || 400;
+
+            const columns = Math.min(siblings.length, 2); // Max 2 columns
+            const rows = Math.ceil(siblings.length / columns);
+
+            // Calculate indices
+            const index = siblings.indexOf(node);
+            const row = Math.floor(index / columns);
+            const col = index % columns;
+
+            // Position in the grid with padding
+            const padding = 20;
+            const columnWidth = (parentWidth - (padding * (columns + 1))) / columns;
+            const rowHeight = (parentHeight - (padding * (rows + 1))) / rows;
+
+            const x = padding + (col * (columnWidth + padding));
+            const y = padding + (row * (rowHeight + padding));
+
+            return {
+                ...node,
+                position: { x, y }
+            };
+        }
+
+        return node;
+    });
 }
 
 export default applyDagreLayout;
