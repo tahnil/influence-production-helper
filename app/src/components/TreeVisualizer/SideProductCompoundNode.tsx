@@ -4,8 +4,8 @@ import { InfluenceNode } from '@/types/reactFlowTypes';
 
 export interface SideProductCompoundNodeData {
   id: string;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
   childrenLayout?: {
     children: InfluenceNode[];
     offsetX: number;

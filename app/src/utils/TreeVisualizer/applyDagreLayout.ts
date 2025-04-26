@@ -2,6 +2,7 @@
 import { DagreConfig } from '@/hooks/useDagreConfig';
 import { Node, Edge } from '@xyflow/react';
 import dagre from '@dagrejs/dagre';
+import { InfluenceNode } from '@/types/reactFlowTypes';
 
 function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     console.log("[applyDagreLayout | Dagre] Applying layout with config:", config);
@@ -27,13 +28,14 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
 
     // Get top-level nodes (no parentId)
     const topLevelNodes = nodes.filter(node => !node.parentId);
-    console.log("[applyDagreLayout | Dagre] Top level nodes for layout:", topLevelNodes.length);
+    console.log("[applyDagreLayout | Dagre] Top level nodes for layout:", topLevelNodes);
 
     // Add nodes to the graph with appropriate dimensions
     topLevelNodes.forEach(node => {
         // Set node dimensions based on type
-        const width = getNodeWidth(node);
-        const height = getNodeHeight(node);
+        const width = getNodeWidth(node, nodes as InfluenceNode[]);
+        console.log("[applyDagreLayout | Dagre] Final node width:", width);
+        const height = getNodeHeight(node, nodes as InfluenceNode[]);
 
         dagreGraph.setNode(node.id, { width, height });
     });
@@ -82,12 +84,28 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
 }
 
 // Helper function to get node width based on type
-function getNodeWidth(node: Node): number {
+function getNodeWidth(node: Node, nodes: InfluenceNode[]): number {
     switch (node.type) {
         case 'outflowsCompoundNode':
-            return (node.data.width as number) || 500;
+            console.log(`[applyDagreLayout | Dagre] Outflows Compound Node: width = `, node.measured?.width, ` height = `, node.measured?.height);
+            // We want to determine the compound width of the node based on the sum of its children's widths
+            // Get all children of this node
+            const outflowsCompoundChildren = nodes.filter(child => child.parentId === node.id);
+            const outflowsCompoundTotalWidth = outflowsCompoundChildren.reduce((acc, child) => {
+                const childWidth = getNodeWidth(child, nodes);
+                return acc + childWidth;
+            }, 0);
+            console.log(`[applyDagreLayout | Dagre] Total width for children of outflows node ${node.id}:`, outflowsCompoundTotalWidth);
+
         case 'sideProductCompoundNode':
-            return (node.data.width as number) || 400;
+            console.log(`[applyDagreLayout | Dagre] Side Products Compound Node: width = `, node.measured?.width, ` height = `, node.measured?.height);
+            const sideProductCompoundChildren = nodes.filter(child => child.parentId === node.id);
+            const sideProductCompoundTotalWidth = sideProductCompoundChildren.reduce((acc, child) => {
+                const childWidth = getNodeWidth(child, nodes);
+                return acc + childWidth;
+            }, 0);
+            console.log(`[applyDagreLayout | Dagre] Total width for children of side products node ${node.id}:`, sideProductCompoundTotalWidth);
+
         case 'processNode':
             return 250;
         case 'productNode':
@@ -100,16 +118,28 @@ function getNodeWidth(node: Node): number {
 }
 
 // Helper function to get node height based on type
-function getNodeHeight(node: Node): number {
+function getNodeHeight(node: Node, nodes: InfluenceNode[]): number {
     switch (node.type) {
         case 'outflowsCompoundNode':
-            return (node.data.height as number) || 300;
+            // Analogous to width, we want to determine the compound height of the node based on the sum of its children's heights
+            const outflowsCompoundChildren = nodes.filter(child => child.parentId === node.id);
+            const outflowsCompoundTotalHeight = outflowsCompoundChildren.reduce((acc, child) => {
+                const childHeight = getNodeHeight(child, nodes);
+                return acc + childHeight;
+            }, 0);
+            console.log(`[applyDagreLayout | Dagre] Total height for children of outflows node ${node.id}:`, outflowsCompoundTotalHeight);
         case 'sideProductCompoundNode':
-            return (node.data.height as number) || 250;
+            // Analogous to width, we want to determine the compound height of the node based on the sum of its children's heights
+            const sideProductCompoundChildren = nodes.filter(child => child.parentId === node.id);
+            const sideProductCompoundTotalHeight = sideProductCompoundChildren.reduce((acc, child) => {
+                const childHeight = getNodeHeight(child, nodes);
+                return acc + childHeight;
+            }, 0);
+            console.log(`[applyDagreLayout | Dagre] Total height for children of side products node ${node.id}:`, sideProductCompoundTotalHeight);
         case 'processNode':
-            return 120;
+            return 185;
         case 'productNode':
-            return 150;
+            return 290;
         case 'sideProductNode':
             return 100;
         default:

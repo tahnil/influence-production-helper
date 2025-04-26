@@ -3,8 +3,8 @@ import { Node, NodeProps, Handle, Position } from "@xyflow/react";
 import { BaseNodeData } from "@/types/reactFlowTypes";
 
 export interface OutflowsCompoundNodeData extends BaseNodeData {
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
   processId?: string;
   childrenLayout?: {
     children: Node[];
@@ -22,8 +22,6 @@ const OutflowsCompoundNode: React.FC<NodeProps<OutflowsCompoundNode>> = ({ data,
       className="outflowsCompound-node"
       style={{
         position: "relative",
-        width: data.width || 400,
-        height: data.height || 200,
         background: "rgba(50, 70, 90, 0.1)", // Subtle background
         borderRadius: "8px",
         padding: "10px",
