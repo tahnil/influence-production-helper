@@ -211,3 +211,43 @@ export const getOutflowIds = (nodeId: string, nodes: Node[]): string[] => {
     // Return the list of all outflow IDs
     return allOutflows;
 };
+
+// Helper function to get measured width of nodes that are not compound nodes
+export function getNodeWidth(node: Node, nodes: InfluenceNode[]): number {
+    if (node.data.isCompound) {
+        return getCompoundNodeWidth(node, nodes);
+    } else {
+        return node.measured?.width || 800;
+    }
+}
+
+// Helper function to get measured height of nodes that are not compound nodes
+export function getNodeHeight(node: Node, nodes: InfluenceNode[]): number {
+    if (node.data.isCompound) {
+        return getCompoundNodeHeight(node, nodes);
+    } else {
+        return node.measured?.height || 800;
+    }
+}
+
+// Helper function to calculate width of compound nodes based on children
+export function getCompoundNodeWidth(node: Node, nodes: InfluenceNode[]): number {
+    const outflowsCompoundChildren = nodes.filter(child => child.parentId === node.id);
+    const outflowsCompoundTotalWidth = outflowsCompoundChildren.reduce((acc, child) => {
+        const childWidth = child.measured?.width || 800;
+        return acc + childWidth;
+    }, 0);
+    console.log("[applyDagreLayout | Dagre] Compound node width:", outflowsCompoundTotalWidth);
+    return outflowsCompoundTotalWidth;
+}
+
+// Helper function to calculate height of compound nodes based on children
+export function getCompoundNodeHeight(node: Node, nodes: InfluenceNode[]): number {
+    const outflowsCompoundChildren = nodes.filter(child => child.parentId === node.id);
+    const outflowsCompoundTotalHeight = outflowsCompoundChildren.reduce((acc, child) => {
+        const childHeight = child.measured?.height || 800;
+        return acc + childHeight;
+    }, 0);
+    console.log("[applyDagreLayout | Dagre] Compound node height:", outflowsCompoundTotalHeight);
+    return outflowsCompoundTotalHeight;
+}

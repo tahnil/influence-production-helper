@@ -97,8 +97,7 @@ export function createSideProductCompoundNode(
         extent: outflowsCompoundNodeId ? 'parent' : undefined,
         data: {
             id: '',
-            // width: 400,
-            // height: 250,
+            isCompound: true,
             inflowIds: [],
             outflowIds: [],
             processId: processNodeId,
@@ -116,8 +115,7 @@ export function createOutflowsCompoundNode(
         type: 'outflowsCompoundNode',
         position: { x: 0, y: 0 },
         data: {
-            // width: 500,
-            // height: 300,
+            isCompound: true,
             inflowIds: [],
             outflowIds: [],
             processId,
