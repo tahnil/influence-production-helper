@@ -1,4 +1,5 @@
 // utils/TreeVisualizer/applyDagreLayout.ts
+
 import { DagreConfig } from '@/hooks/useDagreConfig';
 import { Node, Edge } from '@xyflow/react';
 import dagre from '@dagrejs/dagre';
@@ -35,9 +36,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     topLevelNodes.forEach(node => {
         // Set node dimensions based on type
         const width = getNodeWidth(node, nodes as InfluenceNode[]);
-        console.log("[applyDagreLayout | Dagre] Final node width:", width);
         const height = getNodeHeight(node, nodes as InfluenceNode[]);
-        console.log("[applyDagreLayout | Dagre] Final node height:", height);
 
         dagreGraph.setNode(node.id, { width, height });
     });
@@ -57,14 +56,18 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     // Run the layout algorithm
     dagre.layout(dagreGraph);
 
-    // Find all outflows compound nodes
+    // Find compound nodes
     const outflowsCompoundNodes = nodes.filter(node =>
         node.type === 'outflowsCompoundNode'
     );
 
+    const sideProductCompoundNodes = nodes.filter(node =>
+        node.type === 'sideProductCompoundNode'
+    );
+
     // Apply the calculated layout to the nodes
     const layoutedNodes = nodes.map(node => {
-        // Only reposition top-level nodes
+        // Position top-level nodes according to dagre
         if (!node.parentId) {
             const dagreNode = dagreGraph.node(node.id);
 
@@ -84,8 +87,9 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         return node;
     });
 
-    // After positioning top-level nodes, apply grid layout to children of outflows compound nodes
-    const layoutedNodesWithGridChildren = positionOutflowsCompoundChildren(layoutedNodes, outflowsCompoundNodes);
+    // Apply grid layouts to compound node children
+    let layoutedNodesWithGridChildren = positionOutflowsCompoundChildren(layoutedNodes, outflowsCompoundNodes);
+    layoutedNodesWithGridChildren = positionSideProductCompoundChildren(layoutedNodesWithGridChildren, sideProductCompoundNodes);
 
     return {
         layoutedNodes: layoutedNodesWithGridChildren,
@@ -116,9 +120,8 @@ function positionOutflowsCompoundChildren(nodes: Node[], outflowsCompoundNodes: 
 
         // If there's only one child, center it within the parent
         if (siblings.length === 1) {
-            const childNode = siblings[0];
-            const childWidth = childNode.measured?.width || 300;
-            const childHeight = childNode.measured?.height || 200;
+            const childWidth = node.measured?.width || 300;
+            const childHeight = node.measured?.height || 200;
             const parentWidth = parentNode.measured?.width || 600;
             const parentHeight = parentNode.measured?.height || 400;
 
@@ -183,6 +186,75 @@ function positionOutflowsCompoundChildren(nodes: Node[], outflowsCompoundNodes: 
         }
 
         return node;
+    });
+}
+
+/**
+ * Positions children of side product compound nodes in a grid layout
+ * with 3 columns for 6 or fewer children, 4 columns for 7 or more
+ * @param nodes All nodes after outflows compound children positioning
+ * @param sideProductCompoundNodes List of side product compound nodes
+ * @returns Nodes with side product compound children positioned in a grid
+ */
+function positionSideProductCompoundChildren(nodes: Node[], sideProductCompoundNodes: Node[]): Node[] {
+    return nodes.map(node => {
+        // Skip nodes that are not children of side product compound nodes
+        if (!node.parentId) return node;
+
+        // Check if this node is a child of a side product compound node
+        const parentNode = sideProductCompoundNodes.find(compoundNode =>
+            compoundNode.id === node.parentId
+        );
+
+        if (!parentNode) return node;
+
+        // Find all children of this parent, including this node
+        const siblings = nodes.filter(n => n.parentId === parentNode.id);
+
+        // If there's only one child, center it within the parent
+        if (siblings.length === 1) {
+            const childWidth = node.measured?.width || 200;
+            const childHeight = node.measured?.height || 100;
+            const parentWidth = parentNode.measured?.width || 400;
+            const parentHeight = parentNode.measured?.height || 300;
+
+            return {
+                ...node,
+                position: {
+                    x: (parentWidth - childWidth) / 2,
+                    y: (parentHeight - childHeight) / 2
+                }
+            };
+        }
+
+        // For multiple children, arrange in a grid
+        const childWidth = node.measured?.width || 200;
+        const childHeight = node.measured?.height || 100;
+        const parentWidth = parentNode.measured?.width || 600;
+        const parentHeight = parentNode.measured?.height || 400;
+
+        // Determine number of columns based on child count
+        // 3 columns for 6 or fewer children, 4 columns for 7 or more
+        const columns = siblings.length <= 6 ? 3 : 4;
+        const rows = Math.ceil(siblings.length / columns);
+
+        // Calculate indices
+        const index = siblings.indexOf(node);
+        const row = Math.floor(index / columns);
+        const col = index % columns;
+
+        // Position in the grid with padding
+        const padding = 15; // Slightly smaller padding for side products
+        const columnWidth = (parentWidth - (padding * (columns + 1))) / columns;
+        const rowHeight = (parentHeight - (padding * (rows + 1))) / rows;
+
+        const x = padding + (col * (columnWidth + padding));
+        const y = padding + (row * (rowHeight + padding));
+
+        return {
+            ...node,
+            position: { x, y }
+        };
     });
 }
 

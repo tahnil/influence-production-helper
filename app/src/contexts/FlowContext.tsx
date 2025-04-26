@@ -42,7 +42,7 @@ interface FlowState {
     trigger: string | null;
     allNodesMeasured: boolean;
   }
-  layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | null;
+  layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | 'WAITING_FOR_MEASUREMENTS' | null;
   selectedProductId: string | null;
   processSelections: Array<{ nodeId: string, processId: string }>;
   focalNodeId: string | null;
@@ -59,6 +59,7 @@ interface FlowState {
     nodeCount: number;
   }>;
   pendingNodeCreation: NodeCreationRequest | null;
+  pendingLayoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | null;
   saveStatus?: 'pending' | 'complete' | 'error';
   saveError?: string;
   loadStatus?: 'pending' | 'complete' | 'error';
@@ -131,6 +132,7 @@ const initialState: FlowState = {
   pendingLoadConfig: null,
   matchingConfigs: [],
   pendingNodeCreation: null,
+  pendingLayoutTrigger: null,
 };
 
 // Create the reducer function
@@ -186,73 +188,117 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         ...state,
         edges: addEdge(action.payload, state.edges)
       };
-    case 'APPLY_LAYOUT': {
-      console.log('[FlowContext] APPLY_LAYOUT action dispatched with nodes:', action.payload.nodes.length);
-      const { nodes, edges, dagreConfig, layoutTrigger } = action.payload;
-
-      // log layout trigger
-      console.log('[FlowContext] Layout trigger:', layoutTrigger);
-
-      // Determine if we should apply layout based on the trigger type
-      const shouldApplyLayout = (() => {
-        switch (layoutTrigger) {
-          case 'FORCE':
-            // Always apply when forced
-            return true;
+      case 'APPLY_LAYOUT': {
+        console.log('[FlowContext] APPLY_LAYOUT action dispatched with nodes:', action.payload.nodes.length);
+        const { nodes, edges, dagreConfig, layoutTrigger } = action.payload;
       
-          case 'NODE_CHANGE':
-            // Apply if the node count has changed
-            return nodes.length !== state.nodes.length;
+        // Log layout trigger
+        console.log('[FlowContext] Layout trigger:', layoutTrigger);
       
-          case 'STRUCTURE_CHANGE':
-            // Apply if the graph structure has changed (e.g., new connections)
-            return true;
-      
-          case 'MEASUREMENTS_READY':
-            // Apply if all nodes have their measurements ready
-            return nodes.every(node => node.measured?.width && node.measured?.height);
-      
-          default:
-            // Do not apply layout for other cases
-            return false;
+        // Force layout always proceeds
+        const forceLayout = layoutTrigger === 'FORCE';
+        
+        // For non-forced layouts, check if all nodes have measurements
+        const allNodesMeasured = nodes.every(node => node.measured?.width && node.measured?.height);
+        
+        if (!forceLayout && !allNodesMeasured && nodes.length > 0) {
+          // Queue this layout request until measurements are ready
+          console.log('[FlowContext] Waiting for measurements before layout. Missing measurements for', 
+            nodes.filter(node => !node.measured?.width || !node.measured?.height).length, 'nodes');
+          
+          return {
+            ...state,
+            needsLayout: true,
+            layoutTrigger: 'WAITING_FOR_MEASUREMENTS',
+            pendingLayoutTrigger: layoutTrigger
+          };
         }
-      })();
-      if (!shouldApplyLayout) {
-        return state;
-      }
-
-      // Check if measurements are available for all nodes
-      const allNodesMeasured = nodes.every(node => node.measured?.width && node.measured?.height);
-
-      // Apply fallback dimensions for nodes without measurements
-      const nodesWithDimensions = !allNodesMeasured ? nodes.map(node => ({
-        ...node,
-        measured: {
-          width: node.type === 'processNode' ? 250 : 300,
-          height: node.type === 'processNode' ? 120 : 150,
-          ...node.measured
+      
+        // Determine if we should apply layout based on the trigger type
+        const shouldApplyLayout = (() => {
+          switch (layoutTrigger) {
+            case 'FORCE':
+              // Always apply when forced
+              return true;
+        
+            case 'NODE_CHANGE':
+              // Apply if the node count has changed
+              return nodes.length !== state.nodes.length;
+        
+            case 'STRUCTURE_CHANGE':
+              // Apply if the graph structure has changed (e.g., new connections)
+              return true;
+        
+            case 'MEASUREMENTS_READY':
+              // Apply if all nodes have their measurements ready
+              return allNodesMeasured;
+            
+            case 'CONFIG_CHANGE':
+              // Apply if the configuration has changed
+              return true;
+        
+            default:
+              // Do not apply layout for other cases
+              return false;
+          }
+        })();
+      
+        if (!shouldApplyLayout) {
+          return state;
         }
-      })) : nodes;
-
-      // Calculate layout with the utility
-      const { layoutedNodes, layoutedEdges } = applyDagreLayout(
-        nodesWithDimensions,
-        edges,
-        dagreConfig
-      );
-
-      return {
-        ...state,
-        nodes: layoutedNodes,
-        edges: layoutedEdges,
-        needsLayout: false,
-        layoutStatus: {
+      
+        // At this point, either all nodes have measurements or we're forcing layout
+        
+        // Apply fallback dimensions only for nodes without measurements
+        const nodesWithDimensions = nodes.map(node => {
+          if (node.measured?.width && node.measured?.height) {
+            return node; // Use actual measurements
+          }
+          
+          // Apply fallback dimensions based on node type
+          return {
+            ...node,
+            measured: {
+              width: node.type === 'processNode' ? 250 : 
+                     node.type === 'sideProductNode' ? 200 :
+                     node.type === 'sideProductCompoundNode' ? 400 :
+                     node.type === 'outflowsCompoundNode' ? 350 : 300,
+              height: node.type === 'processNode' ? 120 : 
+                      node.type === 'sideProductNode' ? 100 :
+                      node.type === 'sideProductCompoundNode' ? 250 :
+                      node.type === 'outflowsCompoundNode' ? 200 : 150,
+              ...node.measured
+            }
+          };
+        });
+      
+        // Calculate layout with the utility
+        const { layoutedNodes, layoutedEdges } = applyDagreLayout(
+          nodesWithDimensions,
+          edges,
+          dagreConfig
+        );
+      
+        // Clear waiting state if we were waiting for measurements
+        const newLayoutStatus = {
           lastLayoutTime: Date.now(),
           trigger: layoutTrigger,
           allNodesMeasured
-        }
+        };
+
+        console.log('[FlowContext | layoutedNodes] layoutedNodes:', layoutedNodes);
+      
+        return {
+          ...state,
+          nodes: layoutedNodes,
+          edges: layoutedEdges,
+          needsLayout: false,
+          layoutStatus: newLayoutStatus,
+          // Clear the waiting state if we were in it
+          layoutTrigger: state.layoutTrigger === 'WAITING_FOR_MEASUREMENTS' ? null : state.layoutTrigger,
+          pendingLayoutTrigger: state.layoutTrigger === 'WAITING_FOR_MEASUREMENTS' ? null : state.pendingLayoutTrigger
+        };
       };
-    };
     case 'REQUEST_LAYOUT':
       return {
         ...state,
@@ -423,7 +469,7 @@ interface FlowContextType {
     trigger: string | null;
     allNodesMeasured: boolean;
   }
-  layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | null;
+  layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | 'WAITING_FOR_MEASUREMENTS' | null;
   nodesRef: React.MutableRefObject<Node[]>;
   selectedProductId: string | null;
   processSelections: Array<{ nodeId: string, processId: string }>;
