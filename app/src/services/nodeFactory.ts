@@ -32,16 +32,16 @@ export function createProcessNode(
 export function createProductNode(
     productData: ProductData,
     amount: number,
-    logicalParentId?: string,
+    logicalParentId: string,
     isRoot: boolean = false,
-    parentId?: string
+    compoundNodeId: string,
 ): ProductNode {
     return {
         id: generateUniqueId(),
         type: 'productNode',
         position: { x: 0, y: 0 },
-        parentId,
-        extent: parentId ? 'parent' : undefined,
+        parentId: compoundNodeId,
+        extent: compoundNodeId ? 'parent' : undefined,
         data: {
             amount,
             totalWeight: parseFloat(productData.productDetails.massKilogramsPerUnit || '0') * amount,
@@ -62,9 +62,10 @@ export function createProductNode(
 export function createSideProductNode(
     productData: ProductData,
     amount: number,
+    compoundNodeId: string,
     processNodeId: string,
-    compoundNodeId: string
 ): SideProductNode {
+    console.log('[nodeFactory | createSideProductNode] compoundNodeId:', compoundNodeId);
     return {
         id: generateUniqueId(),
         type: 'sideProductNode',

@@ -96,9 +96,9 @@ export function realizePlans(plans: NodePlan[], productDataMap: Record<string, P
             node = createProductNode(
                 productData,
                 plan.amount!,
-                resolvedLogicalParentId,
+                resolvedLogicalParentId ? resolvedLogicalParentId : '',
                 plan.isRoot || false,
-                resolvedParentId
+                resolvedParentId ? resolvedParentId : '',
             );
         }
         else if (plan.nodeType === 'sideProduct') {

@@ -35,16 +35,16 @@ const ProcessNode: React.FC<NodeProps<ProcessNode>> = ({ id, data }) => {
   return (
     <div className="process-node bg-mako-950 border overflow-hidden rounded-lg shadow-lg w-64">
       <Handle
-        type="target"
-        position={Position.Top}
-        className="process-outflow-handle bg-blue-500"
-        id={`target-${id}`}
-      />
-      <Handle
         type="source"
         position={Position.Bottom}
-        className="process-inflow-handle bg-green-500"
+        className="process-outflow-handle bg-blue-500"
         id={`source-${id}`}
+      />
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="process-inflow-handle bg-green-500"
+        id={`target-${id}`}
       />
       <div id="processNodeCard" className="flex flex-col items-center">
         {id}

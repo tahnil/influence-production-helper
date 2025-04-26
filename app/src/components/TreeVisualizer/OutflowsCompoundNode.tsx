@@ -32,16 +32,16 @@ const OutflowsCompoundNode: React.FC<NodeProps<OutflowsCompoundNode>> = ({ data,
     >
       {/* Handles for the outflowsCompound node */}
       <Handle
-        type="target"
+        type="source"
         position={Position.Bottom}
         style={{ background: "#555" }}
-        id={`outflowsCompound-target-${id}`}
+        id={`outflowsCompound-source-${id}`}
       />
       <Handle
-        type="source"
+        type="target"
         position={Position.Top}
         style={{ background: "#555" }}
-        id={`outflowsCompound-source-${id}`}
+        id={`outflowsCompound-target-${id}`}
       />
       
       {/* Optional label */}
@@ -59,7 +59,8 @@ const OutflowsCompoundNode: React.FC<NodeProps<OutflowsCompoundNode>> = ({ data,
             fontWeight: "bold"
           }}
         >
-          {data.label}
+          {data.label}<br />
+          {id}
         </div>
       )}
     </div>
