@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { ReactFlow, MiniMap } from '@xyflow/react';
 import { useReactFlowSetup } from '@/hooks/useReactFlowSetup';
 import ProductNode from './ProductNode';
@@ -44,7 +44,8 @@ const ProductionChainCanvas: React.FC = () => {
     } = useDagreConfig();
 
     const {
-        nodesRef,
+        needsLayout,
+        layoutTrigger,
         dispatch
     } = useFlow();
 
@@ -72,6 +73,28 @@ const ProductionChainCanvas: React.FC = () => {
             })
         );
     }, [dispatch]);
+
+    useEffect(() => {
+        if (needsLayout && layoutTrigger) {
+            console.log(`[ProductionChainCanvas | Dagre] Applying layout with trigger: ${layoutTrigger}, node count: ${nodes.length}`);
+            console.log("[ProductionChainCanvas | Dagre] About to apply layout with config:", dagreConfig);
+            
+            dispatch({
+                type: 'APPLY_LAYOUT',
+                payload: {
+                    nodes,
+                    edges,
+                    dagreConfig,
+                    layoutTrigger: layoutTrigger
+                }
+            });
+        }
+    }, [nodes, edges, dagreConfig, layoutTrigger, needsLayout, dispatch]);
+
+    useEffect(() => {
+        // This should run when dagreConfig changes
+        console.log("[ProductionChainCanvas | Dagre] dagreConfig changed:", dagreConfig);
+    }, [dagreConfig]);
 
     return (
         <div className="w-full h-full relative">

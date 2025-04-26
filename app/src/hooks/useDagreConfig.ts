@@ -14,6 +14,8 @@ export interface DagreConfig {
     ranker: string;
     minlen: number;
     weight: number;
+    width: number;
+    height: number;
     labelpos: string;
     labeloffset: number;
     direction: string;
@@ -21,17 +23,19 @@ export interface DagreConfig {
 
 export const useDagreConfig = () => {
     const [dagreConfig, setDagreConfig] = useState<DagreConfig>({
-        align: 'DR',
+        align: 'DL',
         rankdir: 'TB',
-        nodesep: 20,
-        ranksep: 70,
-        edgesep: 10,
+        nodesep: 50,
+        ranksep: 150,
+        edgesep: 50,
         marginx: 0,
         marginy: 0,
         acyclicer: 'greedy',
         ranker: 'network-simplex',
-        minlen: 2,
+        minlen: 1,
         weight: 1,
+        width: 1,
+        height: 1,
         labelpos: 'r',
         labeloffset: 10,
         direction: 'LR',

@@ -7,6 +7,7 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { useFlow } from '@/contexts/FlowContext';
 
 interface LayoutConfigPanelProps {
     dagreConfig: DagreConfig;
@@ -15,6 +16,18 @@ interface LayoutConfigPanelProps {
 
 const LayoutConfigPanel: React.FC<LayoutConfigPanelProps> = ({ dagreConfig, updateDagreConfig }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const { dispatch } = useFlow();
+
+    const handleConfigUpdate = (newConfig: Partial<DagreConfig>) => {
+        console.log("[LayoutConfigPanel | Dagre] Updating dagre config:", newConfig);
+        updateDagreConfig(newConfig);
+        
+        // Request a layout with a 'CONFIG_CHANGE' trigger
+        dispatch({
+            type: 'REQUEST_LAYOUT',
+            payload: { trigger: 'CONFIG_CHANGE' }
+        });
+    };
 
     return (
         <Collapsible
@@ -36,7 +49,10 @@ const LayoutConfigPanel: React.FC<LayoutConfigPanelProps> = ({ dagreConfig, upda
                     Rank Direction:
                     <select
                         value={dagreConfig.rankdir}
-                        onChange={(e) => updateDagreConfig({ rankdir: e.target.value })}
+                        onChange={(e) => {
+                            console.log("[LayoutConfigPanel | Dagre] rankdir changed to:", e.target.value);
+                            handleConfigUpdate({ rankdir: e.target.value });
+                        }}
                         className="bg-mako-800 text-falconWhite text-xs p-2 rounded mt-1"
                     >
                         <option value="TB">Top to Bottom</option>
@@ -51,7 +67,10 @@ const LayoutConfigPanel: React.FC<LayoutConfigPanelProps> = ({ dagreConfig, upda
                     <input
                         type="number"
                         value={dagreConfig.nodesep}
-                        onChange={(e) => updateDagreConfig({ nodesep: parseInt(e.target.value) })}
+                        onChange={(e) => {
+                            console.log("[LayoutConfigPanel | Dagre] nodesep changed to:", e.target.value);
+                            handleConfigUpdate({ nodesep: parseInt(e.target.value) });
+                        }}
                         className="bg-mako-800 text-falconWhite text-xs p-2 rounded mt-1"
                     />
                 </label>
@@ -61,7 +80,10 @@ const LayoutConfigPanel: React.FC<LayoutConfigPanelProps> = ({ dagreConfig, upda
                     <input
                         type="number"
                         value={dagreConfig.ranksep}
-                        onChange={(e) => updateDagreConfig({ ranksep: parseInt(e.target.value) })}
+                        onChange={(e) => {
+                            console.log("[LayoutConfigPanel | Dagre] ranksep changed to:", e.target.value);
+                            handleConfigUpdate({ ranksep: parseInt(e.target.value) });
+                        }}
                         className="bg-mako-800 text-falconWhite text-xs p-2 rounded mt-1"
                     />
                 </label>
@@ -71,7 +93,10 @@ const LayoutConfigPanel: React.FC<LayoutConfigPanelProps> = ({ dagreConfig, upda
                     <input
                         type="number"
                         value={dagreConfig.edgesep}
-                        onChange={(e) => updateDagreConfig({ edgesep: parseInt(e.target.value) })}
+                        onChange={(e) => {
+                            console.log("[LayoutConfigPanel | Dagre] edgesep changed to:", e.target.value);
+                            handleConfigUpdate({ edgesep: parseInt(e.target.value) });
+                        }}
                         className="bg-mako-800 text-falconWhite text-xs p-2 rounded mt-1"
                     />
                 </label>
@@ -81,7 +106,10 @@ const LayoutConfigPanel: React.FC<LayoutConfigPanelProps> = ({ dagreConfig, upda
                     <input
                         type="number"
                         value={dagreConfig.marginx}
-                        onChange={(e) => updateDagreConfig({ marginx: parseInt(e.target.value) })}
+                        onChange={(e) => {
+                            console.log("[LayoutConfigPanel | Dagre] marginx changed to:", e.target.value);
+                            handleConfigUpdate({ marginx: parseInt(e.target.value) });
+                        }}
                         className="bg-mako-800 text-falconWhite text-xs p-2 rounded mt-1"
                     />
                 </label>
@@ -91,7 +119,10 @@ const LayoutConfigPanel: React.FC<LayoutConfigPanelProps> = ({ dagreConfig, upda
                     <input
                         type="number"
                         value={dagreConfig.marginy}
-                        onChange={(e) => updateDagreConfig({ marginy: parseInt(e.target.value) })}
+                        onChange={(e) => {
+                            console.log("[LayoutConfigPanel | Dagre] marginy changed to:", e.target.value);
+                            handleConfigUpdate({ marginy: parseInt(e.target.value) });
+                        }}
                         className="bg-mako-800 text-falconWhite text-xs p-2 rounded mt-1"
                     />
                 </label>
@@ -100,7 +131,10 @@ const LayoutConfigPanel: React.FC<LayoutConfigPanelProps> = ({ dagreConfig, upda
                     Align:
                     <select
                         value={dagreConfig.align}
-                        onChange={(e) => updateDagreConfig({ align: e.target.value })}
+                        onChange={(e) => {
+                            console.log("[LayoutConfigPanel | Dagre] align changed to:", e.target.value);
+                            handleConfigUpdate({ align: e.target.value });
+                        }}
                         className="bg-mako-800 text-falconWhite text-xs p-2 rounded mt-1"
                     >
                         <option value="UL">Up Left</option>
@@ -114,7 +148,10 @@ const LayoutConfigPanel: React.FC<LayoutConfigPanelProps> = ({ dagreConfig, upda
                     Acyclicer:
                     <select
                         value={dagreConfig.acyclicer}
-                        onChange={(e) => updateDagreConfig({ acyclicer: e.target.value })}
+                        onChange={(e) => {
+                            console.log("[LayoutConfigPanel | Dagre] acyclicer changed to:", e.target.value);
+                            handleConfigUpdate({ acyclicer: e.target.value });
+                        }}
                         className="bg-mako-800 text-falconWhite text-xs p-2 rounded mt-1"
                     >
                         <option value="undefined">None</option>
@@ -126,7 +163,10 @@ const LayoutConfigPanel: React.FC<LayoutConfigPanelProps> = ({ dagreConfig, upda
                     Ranker:
                     <select
                         value={dagreConfig.ranker}
-                        onChange={(e) => updateDagreConfig({ ranker: e.target.value })}
+                        onChange={(e) => {
+                            console.log("[LayoutConfigPanel | Dagre] ranker changed to:", e.target.value);
+                            handleConfigUpdate({ ranker: e.target.value });
+                        }}
                         className="bg-mako-800 text-falconWhite text-xs p-2 rounded mt-1"
                     >
                         <option value="network-simplex">Network Simplex</option>
@@ -140,7 +180,10 @@ const LayoutConfigPanel: React.FC<LayoutConfigPanelProps> = ({ dagreConfig, upda
                     <input
                         type="number"
                         value={dagreConfig.minlen}
-                        onChange={(e) => updateDagreConfig({ minlen: parseInt(e.target.value) })}
+                        onChange={(e) => {
+                            console.log("[LayoutConfigPanel | Dagre] minlen changed to:", e.target.value);
+                            handleConfigUpdate({ minlen: parseInt(e.target.value) });
+                        }}
                         className="bg-mako-800 text-falconWhite text-xs p-2 rounded mt-1"
                     />
                 </label>
@@ -150,7 +193,10 @@ const LayoutConfigPanel: React.FC<LayoutConfigPanelProps> = ({ dagreConfig, upda
                     <input
                         type="number"
                         value={dagreConfig.weight}
-                        onChange={(e) => updateDagreConfig({ weight: parseInt(e.target.value) })}
+                        onChange={(e) => {
+                            console.log("[LayoutConfigPanel | Dagre] weight changed to:", e.target.value);
+                            handleConfigUpdate({ weight: parseInt(e.target.value) });
+                        }}
                         className="bg-mako-800 text-falconWhite text-xs p-2 rounded mt-1"
                     />
                 </label>
@@ -159,7 +205,10 @@ const LayoutConfigPanel: React.FC<LayoutConfigPanelProps> = ({ dagreConfig, upda
                     Label Position:
                     <select
                         value={dagreConfig.labelpos}
-                        onChange={(e) => updateDagreConfig({ labelpos: e.target.value })}
+                        onChange={(e) => {
+                            console.log("[LayoutConfigPanel | Dagre] labelpos changed to:", e.target.value);
+                            handleConfigUpdate({ labelpos: e.target.value });
+                        }}
                         className="bg-mako-800 text-falconWhite text-xs p-2 rounded mt-1"
                     >
                         <option value="l">Left</option>
@@ -173,7 +222,10 @@ const LayoutConfigPanel: React.FC<LayoutConfigPanelProps> = ({ dagreConfig, upda
                     <input
                         type="number"
                         value={dagreConfig.labeloffset}
-                        onChange={(e) => updateDagreConfig({ labeloffset: parseInt(e.target.value) })}
+                        onChange={(e) => {
+                            console.log("[LayoutConfigPanel | Dagre] labeloffset changed to:", e.target.value);
+                            handleConfigUpdate({ labeloffset: parseInt(e.target.value) });
+                        }}
                         className="bg-mako-800 text-falconWhite text-xs p-2 rounded mt-1"
                     />
                 </label>

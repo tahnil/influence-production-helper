@@ -187,11 +187,11 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         edges: addEdge(action.payload, state.edges)
       };
     case 'APPLY_LAYOUT': {
-      console.log('APPLY_LAYOUT action dispatched with nodes:', action.payload.nodes.length);
+      console.log('[FlowContext] APPLY_LAYOUT action dispatched with nodes:', action.payload.nodes.length);
       const { nodes, edges, dagreConfig, layoutTrigger } = action.payload;
 
       // log layout trigger
-      console.log('Layout trigger:', layoutTrigger);
+      console.log('[FlowContext] Layout trigger:', layoutTrigger);
 
       // Determine if we should apply layout based on the trigger type
       const shouldApplyLayout = (() => {
