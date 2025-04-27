@@ -93,6 +93,16 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
                 measured: { width, height },
             };
         }
+
+        if (node.type === 'outflowsCompoundNode') {
+            const { width, height } = getOutflowsCompoundDimensions(node, layoutedNodes);
+            console.log(`[applyDagreLayout | Dagre] Updating dimensions for Outflows Compound Node ${node.id}: ${width}x${height}`);
+            return {
+                ...node,
+                measured: { width, height },
+            };
+        }
+
         return node;
     });
 
@@ -181,25 +191,32 @@ function getOutflowsCompoundDimensions(compoundNode: Node, allNodes: Node[]): { 
         return { width: 350, height: 200 }; // Default size for empty compound
     }
 
-    // For simplicity, we'll use a horizontal layout for outflows compound
-    let totalWidth = 0;
-    let maxHeight = 0;
+    // Find the Product Node and Side Product Compound Node (SPCN)
+    const productNode = children.find(node => node.type === 'productNode');
+    const spcn = children.find(node => node.type === 'sideProductCompoundNode');
 
-    // Calculate total width and max height
-    children.forEach(child => {
-        const { width, height } = getNodeDimensions(child, allNodes);
-        totalWidth += width;
-        maxHeight = Math.max(maxHeight, height);
-    });
+    // Calculate dimensions for the Product Node
+    const productDimensions = productNode
+        ? getNodeDimensions(productNode, allNodes)
+        : { width: 0, height: 0 };
 
-    // Add padding between nodes and on the edges
+    // Calculate dimensions for the SPCN (if present)
+    const spcnDimensions = spcn
+        ? getSideProductCompoundDimensions(spcn, allNodes)
+        : { width: 0, height: 0 };
+
+    // Add padding between children and around the edges
     const padding = 20;
-    totalWidth += padding * (children.length + 1);
-    maxHeight += padding * 2;
 
-    console.log(`[getOutflowsCompoundDimensions] Compound ${compoundNode.id} with ${children.length} children: ${totalWidth}x${maxHeight}`);
+    // Calculate total width (Product Node + SPCN + padding)
+    const width = productDimensions.width + spcnDimensions.width + (spcn ? padding : 0) + padding * 2;
 
-    return { width: totalWidth, height: maxHeight };
+    // Calculate total height (max of Product Node and SPCN heights + padding)
+    const height = Math.max(productDimensions.height, spcnDimensions.height) + padding * 2;
+
+    console.log(`[getOutflowsCompoundDimensions] Compound ${compoundNode.id} with children: Product Node (${productDimensions.width}x${productDimensions.height}), SPCN (${spcnDimensions.width}x${spcnDimensions.height}): ${width}x${height}`);
+
+    return { width, height };
 }
 
 /**
