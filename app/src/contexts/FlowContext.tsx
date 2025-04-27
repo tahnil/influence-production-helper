@@ -198,7 +198,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         // Queue this layout request until measurements are ready
         console.log('[FlowContext] Waiting for measurements before layout. Missing measurements for',
           nodes.filter(node => !node.measured?.width || !node.measured?.height).length, 'nodes');
-        console.log('[FlowContext] Nodes missing measurements:', nodes.filter(node => !node.measured?.width || !node.measured?.height).map(node => node.id));
+        console.log('[FlowContext] Nodes missing measurements:', nodes.filter(node => !node.measured?.width || !node.measured?.height).map(node => node));
 
         return {
           ...state,
