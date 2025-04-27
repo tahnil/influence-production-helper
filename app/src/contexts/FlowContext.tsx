@@ -37,7 +37,7 @@ interface FlowState {
   nodesReady: boolean;
   rootNodeId: string;
   needsLayout: boolean;
-  layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | 'WAITING_FOR_MEASUREMENTS' | null;
+  layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | 'WAITING_FOR_MEASUREMENTS' | 'REQUEST_LAYOUT' | null;
   selectedProductId: string | null;
   processSelections: Array<{ nodeId: string, processId: string }>;
   focalNodeId: string | null;
@@ -54,7 +54,7 @@ interface FlowState {
     nodeCount: number;
   }>;
   pendingNodeCreation: NodeCreationRequest | null;
-  pendingLayoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | 'WAITING_FOR_MEASUREMENTS' | null;
+  pendingLayoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | 'WAITING_FOR_MEASUREMENTS' | 'REQUEST_LAYOUT' | null;
   saveStatus?: 'pending' | 'complete' | 'error';
   saveError?: string;
   loadStatus?: 'pending' | 'complete' | 'error';
@@ -79,7 +79,7 @@ export type FlowAction =
       nodes: Node[],
       edges: Edge[],
       dagreConfig: DagreConfig,
-      layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | 'WAITING_FOR_MEASUREMENTS'
+      layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | 'WAITING_FOR_MEASUREMENTS' | 'REQUEST_LAYOUT'
     }
   }
   | { type: 'REQUEST_LAYOUT'; payload: { trigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' } }
@@ -447,7 +447,7 @@ interface FlowContextType {
   nodesReady: boolean;
   rootNodeId: string;
   needsLayout: boolean;
-  layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | 'WAITING_FOR_MEASUREMENTS' | null;
+  layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | 'WAITING_FOR_MEASUREMENTS' | 'REQUEST_LAYOUT'| null;
   nodesRef: React.MutableRefObject<Node[]>;
   selectedProductId: string | null;
   processSelections: Array<{ nodeId: string, processId: string }>;
