@@ -7,7 +7,7 @@ import { InfluenceNode } from '@/types/reactFlowTypes';
 import { getNodeHeight, getNodeWidth } from './nodeHelpers';
 
 function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
-    console.log("[applyDagreLayout | Dagre] Applying layout with config:", config);
+    // console.log("[applyDagreLayout | Dagre] Applying layout with config:", config);
     // Create a new dagre graph
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -26,11 +26,11 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     });
 
     // Log the graph settings
-    console.log("[applyDagreLayout | Dagre] Dagre graph settings:", dagreGraph.graph());
+    // console.log("[applyDagreLayout | Dagre] Dagre graph settings:", dagreGraph.graph());
 
     // Get top-level nodes (no parentId)
     const topLevelNodes = nodes.filter(node => !node.parentId);
-    console.log("[applyDagreLayout | Dagre] Top level nodes for layout:", topLevelNodes);
+    // console.log("[applyDagreLayout | Dagre] Top level nodes for layout:", topLevelNodes);
 
     // Add nodes to the graph with appropriate dimensions
     topLevelNodes.forEach(node => {
@@ -72,7 +72,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
             const dagreNode = dagreGraph.node(node.id);
 
             if (dagreNode) {
-                console.log(`[applyDagreLayout | Dagre] Node ${node.id} positioned at:`, dagreNode.x, dagreNode.y);
+                // console.log(`[applyDagreLayout | Dagre] Node ${node.id} positioned at:`, dagreNode.x, dagreNode.y);
                 return {
                     ...node,
                     position: {

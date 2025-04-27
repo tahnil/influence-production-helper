@@ -182,11 +182,11 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         edges: addEdge(action.payload, state.edges)
       };
     case 'APPLY_LAYOUT': {
-      console.log('[FlowContext] APPLY_LAYOUT action dispatched with nodes:', action.payload.nodes.length);
+      // console.log('[FlowContext] APPLY_LAYOUT action dispatched with nodes:', action.payload.nodes.length);
       const { nodes, edges, dagreConfig, layoutTrigger } = action.payload;
 
       // Log layout trigger
-      console.log('[FlowContext] Layout trigger:', layoutTrigger);
+      // console.log('[FlowContext] Layout trigger:', layoutTrigger);
 
       // Force layout always proceeds
       const forceLayout = layoutTrigger === 'FORCE';
@@ -196,8 +196,8 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
 
       if (!forceLayout && !allNodesMeasured && nodes.length > 0) {
         // Queue this layout request until measurements are ready
-        console.log('[FlowContext] Waiting for measurements before layout. Missing measurements for',
-          nodes.filter(node => !node.measured?.width || !node.measured?.height).length, 'nodes');
+        // console.log('[FlowContext] Waiting for measurements before layout. Missing measurements for',
+        //   nodes.filter(node => !node.measured?.width || !node.measured?.height).length, 'nodes');
 
         return {
           ...state,
@@ -272,7 +272,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         dagreConfig
       );
 
-      console.log('[FlowContext | layoutedNodes] layoutedNodes:', layoutedNodes);
+      // console.log('[FlowContext | layoutedNodes] layoutedNodes:', layoutedNodes);
 
       return {
         ...state,
@@ -309,7 +309,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         processSelections: [...state.processSelections, action.payload],
       };
     case 'SAVE_PRODUCTION_CHAIN': {
-      console.log('SAVE_PRODUCTION_CHAIN action dispatched with focal node:', action.payload.focalNodeId);
+      // console.log('SAVE_PRODUCTION_CHAIN action dispatched with focal node:', action.payload.focalNodeId);
 
       if ('focalNodeId' in action.payload) {
         const { focalNodeId } = action.payload;
@@ -321,7 +321,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         };
       }
 
-      console.error('Invalid payload for SAVE_PRODUCTION_CHAIN action');
+      // console.error('Invalid payload for SAVE_PRODUCTION_CHAIN action');
       return state;
     };
     case 'RESET_SAVE_STATUS': {
@@ -398,7 +398,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         }
       };
     case 'NODE_CREATION_COMPLETED':
-      console.log('NODE_CREATION_COMPLETED action dispatched. New nodes:', state.nodes);
+      // console.log('NODE_CREATION_COMPLETED action dispatched. New nodes:', state.nodes);
       return {
         ...state,
         pendingNodeCreation: null,
@@ -413,8 +413,8 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       };
     case 'PROCESS_STRUCTURE_CREATED': {
       const { nodes, edges } = action.payload;
-      console.log('[FlowContext | Process Structure Created] Process structure created, received nodes:', nodes.length);
-      console.log('[FlowContext | Process Structure Created] Nodes:', nodes);
+      // console.log('[FlowContext | Process Structure Created] Process structure created, received nodes:', nodes.length);
+      // console.log('[FlowContext | Process Structure Created] Nodes:', nodes);
 
       // Add the new nodes and edges
       return {
@@ -536,18 +536,18 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!processId) throw new Error('Process ID is undefined');
         if (!logicalParentId) throw new Error('Logical Parent Node ID is undefined');
 
-        console.log('[FlowContext | Process Node Creation] Creating process node with ID:', processId);
-        console.log('[FlowContext | Process Node Creation] Logical parent ID (this should be the product node where the process was selected):', logicalParentId);
+        // console.log('[FlowContext | Process Node Creation] Creating process node with ID:', processId);
+        // console.log('[FlowContext | Process Node Creation] Logical parent ID (this should be the product node where the process was selected):', logicalParentId);
 
         // Find parent node
         const logicalParent = state.nodes.find(node => node.id === logicalParentId);
         if (!logicalParent) throw new Error(`[FlowContext | Process Node Creation] Parent node with ID ${logicalParentId} not found`);
-        console.log('[FlowContext | Process Node Creation] Logical parent node found by its logicalParentId:', logicalParent);
+        // console.log('[FlowContext | Process Node Creation] Logical parent node found by its logicalParentId:', logicalParent);
 
         const logicalParentAmount = logicalParent.data.amount as number || 0;
-        console.log('[FlowContext | Process Node Creation] Logical parent amount:', logicalParentAmount);
+        // console.log('[FlowContext | Process Node Creation] Logical parent amount:', logicalParentAmount);
         const logicalParentProductId = (logicalParent.data.productDetails as { id: string } | undefined)?.id || '';
-        console.log('[FlowContext | Process Node Creation] Logical parent product ID:', logicalParentProductId);
+        // console.log('[FlowContext | Process Node Creation] Logical parent product ID:', logicalParentProductId);
 
         // Use the orchestrator hook
         await processNodeOrchestrator.createProcessStructure(
@@ -582,18 +582,18 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (state.pendingSaveNodeId !== null && memoryDb && state.saveStatus === 'pending') {
       const saveNode = async () => {
-        console.log("Starting serialization with nodeId:", state.pendingSaveNodeId);
-        console.log("Current nodes:", nodesRef.current.length);
+        // console.log("Starting serialization with nodeId:", state.pendingSaveNodeId);
+        // console.log("Current nodes:", nodesRef.current.length);
         try {
           await serializeProductionChain(
             state.pendingSaveNodeId!,
             nodesRef.current as InfluenceNode[],
             memoryDb
           );
-          console.log("Serialization successful");
+          // console.log("Serialization successful");
           dispatch({ type: 'SAVE_COMPLETE' });
         } catch (error) {
-          console.error('Error saving:', error);
+          // console.error('Error saving:', error);
           dispatch({
             type: 'SAVE_ERROR',
             payload: { error: String(error) }
