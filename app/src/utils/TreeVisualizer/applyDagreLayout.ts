@@ -149,9 +149,10 @@ function getSideProductCompoundDimensions(compoundNode: Node, allNodes: Node[]):
         return { width: 300, height: 200 }; // Default size for empty compound
     }
 
-    // Use 3 columns for 6 or fewer children, 4 columns for more
-    const columns = children.length <= 6 ? 3 : 4;
-    const rows = Math.ceil(children.length / columns);
+    // Use the adjusted column logic
+    const childCount = children.length;
+    const columns = childCount < 3 ? childCount : childCount <= 6 ? 3 : 4; // Adjusted column logic
+    const rows = Math.ceil(childCount / columns); // Calculate the number of rows needed
 
     // Use consistent size for side product nodes
     const childWidth = 218; // Expected width for side product nodes
@@ -160,8 +161,8 @@ function getSideProductCompoundDimensions(compoundNode: Node, allNodes: Node[]):
     // Add padding between nodes and on the edges
     const padding = 15;
 
-    // Calculate total dimensions - width is based on columns, not total children
-    const width = (childWidth * columns) + (padding * columns + 1);
+    // Calculate total dimensions
+    const width = (childWidth * columns) + (padding * (columns + 1));
     const height = (childHeight * rows) + (padding * (rows + 1));
 
     console.log(`[getSideProductCompoundDimensions] Compound ${compoundNode.id} with ${children.length} children: ${width}x${height}, grid: ${columns}x${rows}`);
