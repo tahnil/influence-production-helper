@@ -69,9 +69,12 @@ interface FlowState {
 
 // Define the action types
 export type FlowAction =
+  // Component: ControlPanel > AmountInput
+  // Set new desired amount and recalculate node values
+  // Do not update the layout
   | { type: 'SET_DESIRED_AMOUNT'; payload: number }
+  // TO BE DEFINED: Why do we need this?
   | { type: 'BATCH_UPDATE'; payload: Partial<FlowState> }
-  // dedicated action types for React Flow operations
   | { type: 'APPLY_NODE_CHANGES'; payload: NodeChange[] }
   | { type: 'APPLY_EDGE_CHANGES'; payload: EdgeChange[] }
   | { type: 'CONNECT_NODES'; payload: Connection }

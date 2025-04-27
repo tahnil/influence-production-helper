@@ -1,5 +1,7 @@
-import React, { useCallback, useEffect } from 'react';
-import { ReactFlow, MiniMap } from '@xyflow/react';
+// components/TreeVisualizer/ProductionChainCanvas.tsx
+
+import React, { useCallback, useEffect, useRef } from 'react';
+import { ReactFlow, MiniMap, useNodesInitialized } from '@xyflow/react';
 import { useReactFlowSetup } from '@/hooks/useReactFlowSetup';
 import ProductNode from './ProductNode';
 import ProcessNode from './ProcessNode';
@@ -74,11 +76,45 @@ const ProductionChainCanvas: React.FC = () => {
         );
     }, [dispatch]);
 
+    // -- Integrated from TreeRenderer --
+    const nodesInitialized = useNodesInitialized();
+    const lastLayoutTimeRef = useRef(0);
+    const measurementRequestedRef = useRef(false);
+
+    // Check if all nodes have measurements - with debounce and safeguards
+    useEffect(() => {
+        // Avoid repeated measurement requests in short succession
+        if (nodesInitialized &&
+            nodes.length > 0 &&
+            !measurementRequestedRef.current &&
+            nodes.every(node => node.measured?.width && node.measured?.height)) {
+
+            // Add 500ms minimum interval between layout requests to avoid loops
+            const now = Date.now();
+            if (now - lastLayoutTimeRef.current > 500) {
+                measurementRequestedRef.current = true;
+                lastLayoutTimeRef.current = now;
+
+                dispatch({
+                    type: 'REQUEST_LAYOUT',
+                    payload: { trigger: 'MEASUREMENTS_READY' }
+                });
+
+                // Reset after a short delay
+                setTimeout(() => {
+                    measurementRequestedRef.current = false;
+                }, 500);
+            }
+        }
+    }, [nodesInitialized, nodes, dispatch]);
+    // -- End of integrated TreeRenderer logic --
+
+    // Handle layout application
     useEffect(() => {
         if (needsLayout && layoutTrigger) {
             console.log(`[ProductionChainCanvas | Dagre] Applying layout with trigger: ${layoutTrigger}, node count: ${nodes.length}`);
             console.log("[ProductionChainCanvas | Dagre] About to apply layout with config:", dagreConfig);
-            
+
             dispatch({
                 type: 'APPLY_LAYOUT',
                 payload: {
@@ -90,11 +126,6 @@ const ProductionChainCanvas: React.FC = () => {
             });
         }
     }, [nodes, edges, dagreConfig, layoutTrigger, needsLayout, dispatch]);
-
-    useEffect(() => {
-        // This should run when dagreConfig changes
-        console.log("[ProductionChainCanvas | Dagre] dagreConfig changed:", dagreConfig);
-    }, [dagreConfig]);
 
     return (
         <div className="w-full h-full relative">
