@@ -121,6 +121,7 @@ function getNodeDimensions(node: Node, allNodes: Node[]): { width: number; heigh
             return { width: 218, height: 115 };
         case 'sideProductCompoundNode': {
             // Calculate based on children
+            console.log(`[getNodeDimensions | Side Product Compound Node] Calculating dimensions for node ${node.id}`);
             const dimensions = getSideProductCompoundDimensions(node, allNodes);
             return dimensions;
         }
@@ -156,11 +157,11 @@ function getSideProductCompoundDimensions(compoundNode: Node, allNodes: Node[]):
     // Add padding between nodes and on the edges
     const padding = 15;
 
-    // Calculate total dimensions
-    const width = (childWidth * columns) + (padding * (columns + 1));
+    // Calculate total dimensions - width is based on columns, not total children
+    const width = (childWidth * columns) + (padding * columns + 1);
     const height = (childHeight * rows) + (padding * (rows + 1));
 
-    console.log(`[getSideProductCompoundDimensions] Compound ${compoundNode.id} with ${children.length} children: ${width}x${height}`);
+    console.log(`[getSideProductCompoundDimensions] Compound ${compoundNode.id} with ${children.length} children: ${width}x${height}, grid: ${columns}x${rows}`);
 
     return { width, height };
 }
