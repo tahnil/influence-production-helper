@@ -9,11 +9,10 @@ import { getNodeHeight, getNodeWidth } from './nodeHelpers';
 function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     console.log("[applyDagreLayout | Dagre] Applying layout with config:", config);
 
-    // First, handle compound nodes and position their children
-    // Instead of modifying nodes in-place, get new nodes with updated positions
+    // Step 1: Position and update compound nodes
     let updatedNodes = positionCompoundChildren(nodes);
 
-    // Create a new dagre graph
+    // Step 2: Create a new Dagre graph
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 
@@ -30,30 +29,22 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         ranker: config.ranker,
     });
 
-    // Log the graph settings
-    console.log("[applyDagreLayout | Dagre] Dagre graph settings:", dagreGraph.graph());
-
-    // Get top-level nodes (no parentId)
+    // Step 3: Filter top-level nodes (no parentId)
     const topLevelNodes = updatedNodes.filter(node => !node.parentId);
-    console.log("[applyDagreLayout | Dagre] Top level nodes for layout:", topLevelNodes.length);
+    console.log("[applyDagreLayout | Dagre] Top-level nodes for layout:", topLevelNodes.length);
 
-    // Add nodes to the graph with appropriate dimensions
+    // Step 4: Add top-level nodes to the graph
     topLevelNodes.forEach(node => {
-        // Set node dimensions based on type or measured values
-        const width = getNodeDimensions(node, updatedNodes).width;
-        const height = getNodeDimensions(node, updatedNodes).height;
-
-        console.log(`[applyDagreLayout | Dagre] Setting dimensions for node ${node.id} (${node.type}): ${width}x${height}`);
+        const { width, height } = getNodeDimensions(node, updatedNodes);
+        console.log(`[applyDagreLayout | Dagre] Setting dimensions for top-level node ${node.id} (${node.type}): ${width}x${height}`);
         dagreGraph.setNode(node.id, { width, height });
     });
 
-    // Add all edges to the graph that connect top-level nodes
-    let topLevelEdges = 0;
+    // Step 5: Add edges between top-level nodes
     edges.forEach(edge => {
         const sourceNode = updatedNodes.find(n => n.id === edge.source);
         const targetNode = updatedNodes.find(n => n.id === edge.target);
 
-        // Only add edges between top-level nodes to dagre
         if (sourceNode && targetNode && !sourceNode.parentId && !targetNode.parentId) {
             dagreGraph.setEdge(edge.source, edge.target, {
                 minlen: config.minlen,
@@ -63,17 +54,16 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
                 labelpos: config.labelpos,
                 labeloffset: config.labeloffset,
             });
-            topLevelEdges++;
         }
     });
-    console.log(`[applyDagreLayout | Dagre] Added ${topLevelEdges} top-level edges to dagre`);
 
-    // Run the layout algorithm
+    console.log("[applyDagreLayout | Dagre] Added edges to Dagre graph");
+
+    // Step 6: Run the layout algorithm
     dagre.layout(dagreGraph);
 
-    // Apply the calculated layout to the nodes
+    // Step 7: Apply the calculated layout to the top-level nodes
     const layoutedNodes = updatedNodes.map(node => {
-        // Position top-level nodes according to dagre
         if (!node.parentId) {
             const dagreNode = dagreGraph.node(node.id);
 
@@ -89,13 +79,26 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
             }
         }
 
-        // Keep position for child nodes
+        // Keep position for other nodes
+        return node;
+    });
+
+    // Step 8: Update Side Product Compound Nodes
+    const finalNodes = layoutedNodes.map(node => {
+        if (node.type === 'sideProductCompoundNode') {
+            const { width, height } = getSideProductCompoundDimensions(node, layoutedNodes);
+            console.log(`[applyDagreLayout | Dagre] Updating dimensions for Side Product Compound Node ${node.id}: ${width}x${height}`);
+            return {
+                ...node,
+                measured: { width, height },
+            };
+        }
         return node;
     });
 
     return {
-        layoutedNodes,
-        layoutedEdges: edges // Return edges unchanged
+        layoutedNodes: finalNodes,
+        layoutedEdges: edges, // Return edges unchanged
     };
 }
 
