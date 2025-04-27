@@ -14,8 +14,8 @@ export const serializeProductionChain = async (
     nodes: InfluenceNode[],
     db: PouchDB.Database
 ): Promise<void> => {
-    console.log("serializeProductionChain called with focalNodeId:", focalNodeId);
-    console.log("Number of nodes:", nodes.length);
+    // console.log("serializeProductionChain called with focalNodeId:", focalNodeId);
+    // console.log("Number of nodes:", nodes.length);
 
     if (!db) {
         console.error('PouchDB instance is not available');
@@ -23,7 +23,7 @@ export const serializeProductionChain = async (
     }
 
     const focalNode = nodes.find(node => node.id === focalNodeId);
-    console.log("Found focal node:", focalNode?.id, focalNode?.type);
+    // console.log("Found focal node:", focalNode?.id, focalNode?.type);
 
     if (!focalNode || focalNode.type !== 'productNode') {
         console.error('Focal node not found or is not a ProductNode');
@@ -31,7 +31,7 @@ export const serializeProductionChain = async (
     }
 
     const inflowNodes = getAllInflows(nodes, focalNodeId);
-    console.log("Number of inflow nodes:", inflowNodes.length);
+    // console.log("Number of inflow nodes:", inflowNodes.length);
 
     const serializedNodes: SerializableNode[] = [
         {
@@ -66,11 +66,11 @@ export const serializeProductionChain = async (
 
     try {
         const response = await db.put(serializedChain);
-        console.log('Successfully saved configuration:', response);
+        // console.log('Successfully saved configuration:', response);
 
         const attachment = new Blob([JSON.stringify(serializedNodes)], { type: 'application/json' });
         await db.putAttachment(serializedChain._id, 'nodes', response.rev, attachment, 'application/json');
-        console.log('Successfully saved attachment');
+        // console.log('Successfully saved attachment');
 
         // Force manual sync if needed - only necessary for debugging
         // if you implement forceSyncMemoryToLocal
@@ -78,9 +78,9 @@ export const serializeProductionChain = async (
 
         // Log all documents after saving
         const allDocs = await db.allDocs();
-        console.log('All document IDs in PouchDB after saving:', allDocs.rows.map(row => row.id));
+        // console.log('All document IDs in PouchDB after saving:', allDocs.rows.map(row => row.id));
     } catch (error) {
-        console.error('Error saving configuration:', error);
+        // console.error('Error saving configuration:', error);
         throw error;
     }
 };

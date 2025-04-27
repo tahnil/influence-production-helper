@@ -10,14 +10,14 @@ import { InfluenceNode } from '@/types/reactFlowTypes';
  * @returns Array of node IDs that should be removed
  */
 export function findNodesToRemove(nodes: InfluenceNode[], logicalParentId: string): string[] {
-  console.log(`Finding nodes to remove with parent: ${logicalParentId}`);
-  console.log('Current nodes:', nodes.map(n => ({
-    id: n.id,
-    type: n.type,
-    isRoot: n.data.isRoot,
-    parentId: n.parentId,
-    logicalParentId: n.data.logicalParentId
-  })));
+  // console.log(`Finding nodes to remove with parent: ${logicalParentId}`);
+  // console.log('Current nodes:', nodes.map(n => ({
+  //   id: n.id,
+  //   type: n.type,
+  //   isRoot: n.data.isRoot,
+  //   parentId: n.parentId,
+  //   logicalParentId: n.data.logicalParentId
+  // })));
   
   const nodesToRemove: string[] = [];
 
@@ -75,7 +75,7 @@ export function findNodesToRemove(nodes: InfluenceNode[], logicalParentId: strin
     });
   });
 
-  console.log('Nodes marked for removal:', nodesToRemove);
+  // console.log('Nodes marked for removal:', nodesToRemove);
   return nodesToRemove;
 }
 
