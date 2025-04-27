@@ -37,11 +37,6 @@ interface FlowState {
   nodesReady: boolean;
   rootNodeId: string;
   needsLayout: boolean;
-  layoutStatus: {
-    lastLayoutTime: number;
-    trigger: string | null;
-    allNodesMeasured: boolean;
-  }
   layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | 'WAITING_FOR_MEASUREMENTS' | null;
   selectedProductId: string | null;
   processSelections: Array<{ nodeId: string, processId: string }>;
@@ -121,11 +116,6 @@ const initialState: FlowState = {
   nodesReady: false,
   rootNodeId: 'root',
   needsLayout: false,
-  layoutStatus: {
-    lastLayoutTime: 0,
-    trigger: null,
-    allNodesMeasured: false
-  },
   layoutTrigger: null,
   selectedProductId: null,
   processSelections: [],
@@ -282,13 +272,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         dagreConfig
       );
 
-      // Clear waiting state if we were waiting for measurements
-      const newLayoutStatus = {
-        lastLayoutTime: Date.now(),
-        trigger: layoutTrigger,
-        allNodesMeasured
-      };
-
       console.log('[FlowContext | layoutedNodes] layoutedNodes:', layoutedNodes);
 
       return {
@@ -296,10 +279,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         nodes: layoutedNodes,
         edges: layoutedEdges,
         needsLayout: false,
-        layoutStatus: newLayoutStatus,
-        // Clear the waiting state if we were in it
-        layoutTrigger: state.layoutTrigger === 'WAITING_FOR_MEASUREMENTS' ? null : state.layoutTrigger,
-        pendingLayoutTrigger: state.layoutTrigger === 'WAITING_FOR_MEASUREMENTS' ? null : state.pendingLayoutTrigger
+        layoutTrigger: null,
       };
     };
     case 'REQUEST_LAYOUT':
@@ -467,11 +447,6 @@ interface FlowContextType {
   nodesReady: boolean;
   rootNodeId: string;
   needsLayout: boolean;
-  layoutStatus: {
-    lastLayoutTime: number;
-    trigger: string | null;
-    allNodesMeasured: boolean;
-  }
   layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | 'WAITING_FOR_MEASUREMENTS' | null;
   nodesRef: React.MutableRefObject<Node[]>;
   selectedProductId: string | null;
@@ -685,7 +660,6 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         selectedProductId: state.selectedProductId,
         processSelections: state.processSelections,
         needsLayout: state.needsLayout,
-        layoutStatus: state.layoutStatus,
         layoutTrigger: state.layoutTrigger,
         focalNodeId: state.focalNodeId,
         pendingSaveNodeId: state.pendingSaveNodeId,

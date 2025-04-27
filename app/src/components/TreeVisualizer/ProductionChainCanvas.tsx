@@ -17,6 +17,7 @@ import { useFlow } from '@/contexts/FlowContext';
 import { useDagreConfig } from '@/hooks/useDagreConfig';
 import '@xyflow/react/dist/style.css';
 import { InfluenceNode } from '@/types/reactFlowTypes';
+import { layout } from '@dagrejs/dagre';
 
 const nodeTypes = {
     productNode: ProductNode,
@@ -111,7 +112,7 @@ const ProductionChainCanvas: React.FC = () => {
 
     // Handle layout application
     useEffect(() => {
-        if (needsLayout && layoutTrigger) {
+        if (needsLayout && layoutTrigger && layoutTrigger === 'MEASUREMENTS_READY') {
             console.log(`[ProductionChainCanvas | Dagre] Applying layout with trigger: ${layoutTrigger}, node count: ${nodes.length}`);
             console.log("[ProductionChainCanvas | Dagre] About to apply layout with config:", dagreConfig);
 

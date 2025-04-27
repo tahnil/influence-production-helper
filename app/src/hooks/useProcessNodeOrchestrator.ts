@@ -153,22 +153,13 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
                     preFinalNodes as InfluenceNode[],
                     outflowsCompoundId
                 );
-
+                console.log('[useProcessNodeOrchestrator | PROCESS_STRUCTURE_CREATED]');
                 // Use the updated nodes array
                 dispatch({
                     type: 'PROCESS_STRUCTURE_CREATED',
                     payload: {
                         nodes: finalNodes as InfluenceNode[],
                         edges: finalEdges,
-                    }
-                });
-                dispatch({
-                    type: 'APPLY_LAYOUT',
-                    payload: {
-                        nodes: finalNodes,
-                        edges: finalEdges,
-                        dagreConfig,
-                        layoutTrigger: 'STRUCTURE_CHANGE'
                     }
                 });
 
@@ -180,15 +171,6 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
                     payload: {
                         nodes: finalNodes as InfluenceNode[],
                         edges: finalEdges,
-                    }
-                });
-                dispatch({
-                    type: 'APPLY_LAYOUT',
-                    payload: {
-                        nodes: finalNodes,
-                        edges: finalEdges,
-                        dagreConfig,
-                        layoutTrigger: 'STRUCTURE_CHANGE'
                     }
                 });
 
