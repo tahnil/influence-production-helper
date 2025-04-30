@@ -13,35 +13,7 @@ const CustomEdge: React.FC<EdgeProps> = ({
   style = {},
   data
 }) => {
-  // Check if this is a side product connection (data can be passed from edge creation)
-  const isSideProductConnection = data?.isSideProductConnection || id.includes('sideProduct');
-  
-  // Use bezier path for side product connections
-  if (isSideProductConnection) {
-    const [edgePath] = getSmoothStepPath({
-      sourceX,
-      sourceY,
-      sourcePosition,
-      targetX,
-      targetY,
-      targetPosition,
-    });
-
-    return (
-      <path
-        id={id}
-        className="react-flow__edge-path"
-        d={edgePath}
-        style={{
-          stroke: '#AAA', // Different color for side product connections
-          strokeWidth: 1.5,
-          // strokeDasharray: '5, 5', // Dashed line for side products
-          ...style,
-        }}
-      />
-    );
-  }
-  
+    
   // Use smooth step path for main flow connections
   const [edgePath] = getSmoothStepPath({
     sourceX,
