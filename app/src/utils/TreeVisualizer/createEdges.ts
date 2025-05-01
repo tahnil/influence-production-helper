@@ -24,12 +24,7 @@ export function createEdges(
   
     // Get logical parent ID from the process node
     const logicalParentId = processNode.data.logicalParentId as string;
-    
-    // Determine which outflow compound node to use
-    // If mainOutflowCompoundId is provided, use it (this handles the first function's case)
-    // Otherwise use the one from nodeIdMap (handles the second function's case)
-    const outflowsCompoundId = mainOutflowCompoundId || nodeIdMap['OUTFLOWS_COMPOUND_NODE_ID'];
-  
+      
     // 1. Edge from compound node to process node (main flow)
     if (logicalParentId && mainOutflowCompoundId) {
       edges.push({
@@ -61,35 +56,6 @@ export function createEdges(
         });
       }
     });
-  
-    // 3. Edges from process to input products (from second function)
-    // This finds product nodes that have this process as their logical parent
-    const inputProductNodes = nodes.filter(n =>
-      n.type === 'productNode' &&
-      n.data.logicalParentId === processNodeId
-    );
-  
-    inputProductNodes.forEach(productNode => {
-      edges.push({
-        id: `edge-${processNodeId}-${productNode.id}`,
-        source: processNodeId,
-        target: productNode.id,
-        type: 'custom',
-      });
-    });
-  
-    // 4. Optional edge from process to outflows compound (currently commented out in original)
-    // Uncomment if needed
-    /*
-    if (outflowsCompoundId) {
-      edges.push({
-        id: `edge-${processNodeId}-${outflowsCompoundId}`,
-        source: processNodeId,
-        target: outflowsCompoundId,
-        type: 'custom',
-      });
-    }
-    */
-  
+      
     return edges;
   }

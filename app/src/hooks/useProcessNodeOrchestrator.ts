@@ -17,6 +17,7 @@ import useProcessesByProductId from './useProcessesByProductId';
 import useProductImage from './useProductImage';
 import { useDagreConfig } from './useDagreConfig';
 import { updateOutflowsCompoundDimensions } from '@/utils/TreeVisualizer/updateOutflowsCompoundDimensions';
+import { createEdges } from '@/utils/TreeVisualizer/createEdges';
 
 export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
     const { getProcessDetails } = useProcessDetails();
@@ -350,48 +351,4 @@ function realizePlans(plans: NodePlan[], productDataMap: Record<string, ProductD
     });
 
     return { nodes, nodeIdMap };
-}
-
-/**
- * Creates edges between nodes based on their relationships and the nodeIdMap
- * @param nodes The newly created nodes
- * @param nodeIdMap Map of placeholder IDs to actual node IDs
- * @param mainOutflowCompoundId The ID of the main outflow compound node
- * @returns Array of edges connecting the nodes
- */
-function createEdges(nodes: InfluenceNode[], nodeIdMap: Record<string, string>, mainOutflowCompoundId: string): Edge[] {
-    // console.log('[useProcessNodeOrchestrator] nodeIdMap:', nodeIdMap);
-    const edges: Edge[] = [];
-    const processNodeId = nodeIdMap['PROCESS_NODE_ID'];
-    const processNode = nodes.find(n => n.id === processNodeId);
-
-    if (!processNode) return edges;
-
-    const logicalParentId = processNode.data.logicalParentId as string;
-    // console.log('[useProcessNodeOrchestrator] Main Outflow Product ID:', logicalParentId);
-    // console.log('[useProcessNodeOrchestrator] Main Outflow`s Compound Node ID:', mainOutflowCompoundId);
-
-    // 1. Edge from logical parent's outflows compound to process node (main flow)
-    if (logicalParentId) {
-        edges.push({
-            id: `edge-${mainOutflowCompoundId}-${processNodeId}`,
-            source: mainOutflowCompoundId,
-            target: processNodeId,
-            type: 'custom',
-        })
-    }
-
-    // 2. Connect process node to all input outflows compound nodes
-    Object.entries(nodeIdMap).forEach(([key, id]) => {
-        if (key.startsWith('INPUT_COMPOUND_')) {
-            edges.push({
-                id: `edge-${processNodeId}-${id}`,
-                source: processNodeId,
-                target: id,
-                type: 'custom',
-            });
-        }
-    });
-
-    return edges;
 }
