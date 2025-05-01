@@ -82,6 +82,30 @@ const ProductionChainCanvas: React.FC = () => {
     const lastLayoutTimeRef = useRef(0);
     const measurementRequestedRef = useRef(false);
 
+    useEffect(() => {
+        if (nodes.length > 0 && nodesInitialized && !measurementRequestedRef.current) {
+            console.log("[ProductionChainCanvas] Nodes created, scheduling initial layout");
+
+            // Wait for React Flow to render and measure nodes
+            const timer = setTimeout(() => {
+                measurementRequestedRef.current = true;
+                lastLayoutTimeRef.current = Date.now();
+
+                dispatch({
+                    type: 'REQUEST_LAYOUT',
+                    payload: { trigger: 'FORCE' } // Use FORCE to bypass measurement checks
+                });
+
+                // Reset the flag after a delay
+                setTimeout(() => {
+                    measurementRequestedRef.current = false;
+                }, 500);
+            }, 300); // 300ms delay to allow React Flow to measure nodes
+
+            return () => clearTimeout(timer);
+        }
+    }, [nodes.length, nodesInitialized]);
+
     // Check if all nodes have measurements - with debounce and safeguards
     useEffect(() => {
         // Avoid repeated measurement requests in short succession
