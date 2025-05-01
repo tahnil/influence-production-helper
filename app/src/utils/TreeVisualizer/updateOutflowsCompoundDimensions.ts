@@ -82,6 +82,7 @@ export function updateOutflowsCompoundDimensions(
     // Create a new array with the updated node
     return nodes.map(node => {
       if (node.id === outflowsCompoundId) {
+        console.log(`[updateOutflowsCompoundDimensions] Updating outflows compound node ${outflowsCompoundId} with dimensions: ${width}x${height}`);
         return {
           ...node,
           measured: {

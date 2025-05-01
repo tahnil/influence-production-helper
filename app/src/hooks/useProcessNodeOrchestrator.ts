@@ -136,48 +136,34 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
                 })
             );
 
-            // 6. Create new nodes and edges
+            // 6. Create new nodes from the plans
             const { nodes, nodeIdMap } = realizePlans(nodePlans, productDataMap);
-            // console.log('[useProcessNodeOrchestrator] productDataMap:', productDataMap);
-            // call creatEdges with nodes, nodeIdMap, and id of the main outflows compound node
-            const edges = createEdges(nodes, nodeIdMap, outflowsCompoundId);
 
-            // 8. Update state
+            // 7. Combine with existing nodes
             const preFinalNodes = [...updatedNodes, ...nodes];
-            const finalEdges = [...updatedEdges, ...edges];
-            // console.log('[useProcessNodeOrchestrator] Final nodes and edges being dispatched:', { preFinalNodes, finalEdges });
 
-            // 9. After creating all nodes and before dispatching the state update
+            // 8. Update dimensions of compound nodes if needed
+            let finalNodes = preFinalNodes;
             if (processData.hasSideProducts && outflowsCompoundId) {
                 // Update the dimensions of the outflows compound node to accommodate the new side product compound
-                const finalNodes = updateOutflowsCompoundDimensions(
+                finalNodes = updateOutflowsCompoundDimensions(
                     preFinalNodes as InfluenceNode[],
                     outflowsCompoundId
                 );
-                // console.log('[useProcessNodeOrchestrator | PROCESS_STRUCTURE_CREATED]');
-                // Use the updated nodes array
-                dispatch({
-                    type: 'PROCESS_STRUCTURE_CREATED',
-                    payload: {
-                        nodes: finalNodes as InfluenceNode[],
-                        edges: finalEdges,
-                    }
-                });
-
-            } else {
-                // Original dispatch without dimension updates
-                const finalNodes = preFinalNodes;
-                dispatch({
-                    type: 'PROCESS_STRUCTURE_CREATED',
-                    payload: {
-                        nodes: finalNodes as InfluenceNode[],
-                        edges: finalEdges,
-                    }
-                });
-
             }
 
-            // console.log('[useProcessNodeOrchestrator] Nodes and edges updated after realization:', { nodes, edges });
+            // 9. NOW create edges with the properly sized nodes
+            const edges = createEdges(finalNodes as InfluenceNode[], nodeIdMap, outflowsCompoundId);
+            const finalEdges = [...updatedEdges, ...edges];
+
+            // 10. Dispatch the state update with properly sized nodes and correct edges
+            dispatch({
+                type: 'PROCESS_STRUCTURE_CREATED',
+                payload: {
+                    nodes: finalNodes as InfluenceNode[],
+                    edges: finalEdges,
+                }
+            });
 
             return true;
         } catch (error) {
