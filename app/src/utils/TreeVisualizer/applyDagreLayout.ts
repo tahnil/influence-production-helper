@@ -36,7 +36,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     // Step 4: Add top-level nodes to the graph
     topLevelNodes.forEach(node => {
         const { width, height } = getNodeDimensions(node, updatedNodes);
-        console.log(`[applyDagreLayout | Dagre] Setting dimensions for top-level node ${node.id} (${node.type}): ${width}x${height}`);
+        // console.log(`[applyDagreLayout | Dagre] Setting dimensions for top-level node ${node.id} (${node.type}): ${width}x${height}`);
         dagreGraph.setNode(node.id, { width, height });
     });
 
@@ -57,7 +57,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         }
     });
 
-    console.log("[applyDagreLayout | Dagre] Added edges to Dagre graph");
+    // console.log("[applyDagreLayout | Dagre] Added edges to Dagre graph");
 
     // Step 6: Run the layout algorithm
     dagre.layout(dagreGraph);
@@ -87,7 +87,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
     const finalNodes = layoutedNodes.map(node => {
         if (node.type === 'sideProductCompoundNode') {
             const { width, height } = getSideProductCompoundDimensions(node, layoutedNodes);
-            console.log(`[applyDagreLayout | Dagre] Updating dimensions for Side Product Compound Node ${node.id}: ${width}x${height}`);
+            // console.log(`[applyDagreLayout | Dagre] Updating dimensions for Side Product Compound Node ${node.id}: ${width}x${height}`);
             return {
                 ...node,
                 measured: { width, height },
@@ -96,7 +96,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
 
         if (node.type === 'outflowsCompoundNode') {
             const { width, height } = getOutflowsCompoundDimensions(node, layoutedNodes);
-            console.log(`[applyDagreLayout | Dagre] Updating dimensions for Outflows Compound Node ${node.id}: ${width}x${height}`);
+            // console.log(`[applyDagreLayout | Dagre] Updating dimensions for Outflows Compound Node ${node.id}: ${width}x${height}`);
             return {
                 ...node,
                 measured: { width, height },
@@ -134,7 +134,7 @@ function getNodeDimensions(node: Node, allNodes: Node[]): { width: number; heigh
             return { width: 218, height: 115 };
         case 'sideProductCompoundNode': {
             // Calculate based on children
-            console.log(`[getNodeDimensions | Side Product Compound Node] Calculating dimensions for node ${node.id}`);
+            // console.log(`[getNodeDimensions | Side Product Compound Node] Calculating dimensions for node ${node.id}`);
             const dimensions = getSideProductCompoundDimensions(node, allNodes);
             return dimensions;
         }
@@ -175,7 +175,7 @@ function getSideProductCompoundDimensions(compoundNode: Node, allNodes: Node[]):
     const width = (childWidth * columns) + (padding * (columns + 1));
     const height = (childHeight * rows) + (padding * (rows + 1));
 
-    console.log(`[getSideProductCompoundDimensions] Compound ${compoundNode.id} with ${children.length} children: ${width}x${height}, grid: ${columns}x${rows}`);
+    // console.log(`[getSideProductCompoundDimensions] Compound ${compoundNode.id} with ${children.length} children: ${width}x${height}, grid: ${columns}x${rows}`);
 
     return { width, height };
 }
@@ -214,7 +214,7 @@ function getOutflowsCompoundDimensions(compoundNode: Node, allNodes: Node[]): { 
     // Calculate total height (max of Product Node and SPCN heights + padding)
     const height = Math.max(productDimensions.height, spcnDimensions.height) + padding * 2;
 
-    console.log(`[getOutflowsCompoundDimensions] Compound ${compoundNode.id} with children: Product Node (${productDimensions.width}x${productDimensions.height}), SPCN (${spcnDimensions.width}x${spcnDimensions.height}): ${width}x${height}`);
+    // console.log(`[getOutflowsCompoundDimensions] Compound ${compoundNode.id} with children: Product Node (${productDimensions.width}x${productDimensions.height}), SPCN (${spcnDimensions.width}x${spcnDimensions.height}): ${width}x${height}`);
 
     return { width, height };
 }
@@ -281,7 +281,7 @@ function positionSideProductNodes(compoundNode: Node, allNodes: Node[]): Node[] 
             const x = padding + (col * (childWidth + padding));
             const y = padding + (row * (childHeight + padding));
 
-            console.log(`[positionSideProductNodes] Positioning node ${node.id} at (${x}, ${y}) in compound ${compoundNode.id}`);
+            // console.log(`[positionSideProductNodes] Positioning node ${node.id} at (${x}, ${y}) in compound ${compoundNode.id}`);
 
             // Return a new node object with updated position
             return {
@@ -329,7 +329,7 @@ function positionOutflowsNodes(compoundNode: Node, allNodes: Node[]): Node[] {
         // Move currentX for the next node
         currentX += width + 20; // 20px padding between nodes
 
-        console.log(`[positionOutflowsNodes] Calculated position for node ${node.id} at (${currentX}, ${y}) in compound ${compoundNode.id}`);
+        // console.log(`[positionOutflowsNodes] Calculated position for node ${node.id} at (${currentX}, ${y}) in compound ${compoundNode.id}`);
     });
 
     // Create a new nodes array with updated positions
