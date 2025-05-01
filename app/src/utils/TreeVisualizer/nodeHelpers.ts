@@ -237,7 +237,7 @@ export function getCompoundNodeWidth(node: Node, nodes: InfluenceNode[]): number
         const childWidth = child.measured?.width || 800;
         return acc + childWidth;
     }, 0);
-    console.log("[nodeHelpers] Compound node width:", outflowsCompoundTotalWidth);
+    // console.log("[nodeHelpers] Compound node width:", outflowsCompoundTotalWidth);
     return outflowsCompoundTotalWidth;
 }
 
@@ -248,6 +248,6 @@ export function getCompoundNodeHeight(node: Node, nodes: InfluenceNode[]): numbe
         const childHeight = child.measured?.height || 800;
         return acc + childHeight;
     }, 0);
-    console.log("[nodeHelpers] Compound node height:", outflowsCompoundTotalHeight);
+    // console.log("[nodeHelpers] Compound node height:", outflowsCompoundTotalHeight);
     return outflowsCompoundTotalHeight;
 }

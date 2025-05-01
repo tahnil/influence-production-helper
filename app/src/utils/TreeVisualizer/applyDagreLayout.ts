@@ -7,7 +7,7 @@ import { InfluenceNode } from '@/types/reactFlowTypes';
 import { getNodeHeight, getNodeWidth } from './nodeHelpers';
 
 function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
-    console.log("[applyDagreLayout | Dagre] Applying layout with config:", config);
+    // console.log("[applyDagreLayout | Dagre] Applying layout with config:", config);
 
     // Step 1: Position and update compound nodes
     let updatedNodes = positionCompoundChildren(nodes);
@@ -31,7 +31,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
 
     // Step 3: Filter top-level nodes (no parentId)
     const topLevelNodes = updatedNodes.filter(node => !node.parentId);
-    console.log("[applyDagreLayout | Dagre] Top-level nodes for layout:", topLevelNodes.length);
+    // console.log("[applyDagreLayout | Dagre] Top-level nodes for layout:", topLevelNodes.length);
 
     // Step 4: Add top-level nodes to the graph
     topLevelNodes.forEach(node => {
@@ -68,7 +68,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
             const dagreNode = dagreGraph.node(node.id);
 
             if (dagreNode) {
-                console.log(`[applyDagreLayout | Dagre] Node ${node.id} positioned at:`, dagreNode.x, dagreNode.y);
+                // console.log(`[applyDagreLayout | Dagre] Node ${node.id} positioned at:`, dagreNode.x, dagreNode.y);
                 return {
                     ...node,
                     position: {

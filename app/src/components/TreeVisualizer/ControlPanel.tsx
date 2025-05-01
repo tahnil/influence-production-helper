@@ -23,7 +23,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const { selectedProductId, desiredAmount, dispatch } = useFlow();
 
   const handleProductSelect = (productId: string) => {
-    console.log(`Product selected: ${productId}`);
+    // console.log(`Product selected: ${productId}`);
     
     // First update the selected product ID in state
     dispatch({

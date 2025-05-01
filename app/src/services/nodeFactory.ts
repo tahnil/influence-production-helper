@@ -11,7 +11,7 @@ export function createProcessNode(
     processData: any,
     logicalParentId: string
 ): ProcessNode {
-    console.log('[nodeFactory | createProcessNode] processData:', processData);
+    // console.log('[nodeFactory | createProcessNode] processData:', processData);
     return {
         id: generateUniqueId(),
         type: 'processNode',
@@ -65,7 +65,7 @@ export function createSideProductNode(
     compoundNodeId: string,
     processNodeId: string,
 ): SideProductNode {
-    console.log('[nodeFactory | createSideProductNode] compoundNodeId:', compoundNodeId);
+    // console.log('[nodeFactory | createSideProductNode] compoundNodeId:', compoundNodeId);
     return {
         id: generateUniqueId(),
         type: 'sideProductNode',

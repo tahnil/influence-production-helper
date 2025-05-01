@@ -113,8 +113,8 @@ const ProductionChainCanvas: React.FC = () => {
     // Handle layout application
     useEffect(() => {
         if (needsLayout && layoutTrigger && (layoutTrigger === 'MEASUREMENTS_READY' || 'REQUEST_LAYOUT')) {
-            console.log(`[ProductionChainCanvas | Dagre] Applying layout with trigger: ${layoutTrigger}, node count: ${nodes.length}`);
-            console.log("[ProductionChainCanvas | Dagre] About to apply layout with config:", dagreConfig);
+            // console.log(`[ProductionChainCanvas | Dagre] Applying layout with trigger: ${layoutTrigger}, node count: ${nodes.length}`);
+            // console.log("[ProductionChainCanvas | Dagre] About to apply layout with config:", dagreConfig);
 
             dispatch({
                 type: 'APPLY_LAYOUT',

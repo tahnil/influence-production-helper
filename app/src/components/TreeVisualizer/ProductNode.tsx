@@ -76,7 +76,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
 
   // Memoize process selection handler
   const handleProcessSelection = useCallback((processId: string) => {
-    console.log('[ProductNode] Process selected:', processId);
+    // console.log('[ProductNode] Process selected:', processId);
     dispatch({
       type: 'REQUEST_PROCESS_NODE_CREATION',
       payload: {
@@ -107,10 +107,10 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
 
   // Add a useEffect to handle toast based on saveStatus
   useEffect(() => {
-    console.log(
-      "Save status changed:",
-      ...[saveStatus, saveError].filter(value => value !== undefined && value !== null)
-    );
+    // console.log(
+    //   "Save status changed:",
+    //   ...[saveStatus, saveError].filter(value => value !== undefined && value !== null)
+    // );
 
     if (saveStatus === 'complete') {
       toast({

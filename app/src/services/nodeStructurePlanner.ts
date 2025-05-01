@@ -44,7 +44,7 @@ export function createProcessNodePlan(
             nodeType: 'sideProductCompound',
             parentId: outputCompoundId, // Physical parent is the same outflows compound as the main product
         });
-        console.log('[createProcessNodePlan] Side product compound node configured with parentId:', outputCompoundId);
+        // console.log('[createProcessNodePlan] Side product compound node configured with parentId:', outputCompoundId);
 
         // Add side product nodes inside the side product compound
         processData.sideProducts.forEach((product: InfluenceProcessInputOutput) => {

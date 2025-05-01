@@ -25,7 +25,7 @@ export function updateOutflowsCompoundDimensions(
     const children = nodes.filter(node => node.parentId === outflowsCompoundId);
     
     if (children.length === 0) {
-      console.log(`[updateOutflowsCompoundDimensions] No children found for outflows compound node ${outflowsCompoundId}`);
+      // console.log(`[updateOutflowsCompoundDimensions] No children found for outflows compound node ${outflowsCompoundId}`);
       return nodes;
     }
     
