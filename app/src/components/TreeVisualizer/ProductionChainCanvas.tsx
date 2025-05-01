@@ -108,7 +108,6 @@ const ProductionChainCanvas: React.FC = () => {
             }
         }
     }, [nodesInitialized, nodes, dispatch]);
-    // -- End of integrated TreeRenderer logic --
 
     // Handle layout application
     useEffect(() => {

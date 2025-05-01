@@ -31,7 +31,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
 
     // Step 3: Filter top-level nodes (no parentId)
     const topLevelNodes = updatedNodes.filter(node => !node.parentId);
-    // console.log("[applyDagreLayout | Dagre] Top-level nodes for layout:", topLevelNodes.length);
+    console.log("[applyDagreLayout | Dagre] Top-level nodes for layout:", topLevelNodes);
 
     // Step 4: Add top-level nodes to the graph
     topLevelNodes.forEach(node => {
@@ -82,6 +82,8 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], config: DagreConfig) {
         // Keep position for other nodes
         return node;
     });
+
+    console.log("[applyDagreLayout | Dagre] layoutedNodes:", layoutedNodes);
 
     // Step 8: Update Side Product Compound Nodes
     const finalNodes = layoutedNodes.map(node => {
