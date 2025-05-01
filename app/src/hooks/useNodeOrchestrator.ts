@@ -1,32 +1,20 @@
 // hooks/useNodeOrchestrator.ts
 
 import { useCallback } from 'react';
-import { Node, Edge } from '@xyflow/react';
 import { FlowAction } from '@/contexts/FlowContext';
 import useProductDetails from '@/hooks/useInfluenceProductDetails';
-import useProcessDetails from '@/hooks/useProcessDetails';
-import useInputsByProcessId from '@/hooks/useInputsByProcessId';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 import useProductImage from '@/hooks/useProductImage';
-import useBuildingIcon from '@/hooks/useBuildingIcon';
-import { findNodesToRemove, removeNodes } from '@/utils/TreeVisualizer/nodeRemovalHelper';
 import { InfluenceNode } from '@/types/reactFlowTypes';
-import {
-    createProcessNodePlan,
-    createProductNodePlan,
-    NodePlan
-} from '@/services/nodeStructurePlanner';
-import { InfluenceProcess, ProductData } from '@/types/influenceTypes';
-import { realizePlans, createEdges } from '@/utils/TreeVisualizer/nodeRealizationHelper';
-import { ProductNode } from '@/components/TreeVisualizer/ProductNode';
+import { createProductNodePlan } from '@/services/nodeStructurePlanner';
+import { ProductData } from '@/types/influenceTypes';
+import { realizePlans } from '@/utils/TreeVisualizer/nodeRealizationHelper';
+import { createEdges } from "@/utils/TreeVisualizer/createEdges";
 
 export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
     const { getProductDetails } = useProductDetails();
-    const { getProcessDetails } = useProcessDetails();
-    const { getInputsByProcessId } = useInputsByProcessId();
     const { getProcessesByProductId } = useProcessesByProductId();
     const { getProductImage } = useProductImage();
-    const { getBuildingIcon } = useBuildingIcon();
 
     // Fetch product data (reused by both flows)
     const fetchProductData = useCallback(async (productId: string): Promise<ProductData> => {
@@ -149,97 +137,7 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
         }
     }, [fetchProductData, dispatch]);
 
-    // Create process structure (existing function with updates)
-    const createProcessStructure = useCallback(async (
-        processId: string,
-        logicalParentId: string,
-        parentAmount: number,
-        parentProductId: string,
-        currentNodes: InfluenceNode[],
-        currentEdges: Edge[]
-    ) => {
-        try {
-            // 1. Fetch all required data
-            const processDetails = await getProcessDetails(processId) as InfluenceProcess;
-            if (!processDetails) throw new Error('Failed to fetch process details');
-
-            const inputProducts = await getInputsByProcessId(processId);
-            const buildingIcon = await getBuildingIcon(processDetails.buildingId);
-
-            // 2. Calculate process information
-            const output = processDetails.outputs.find(o => o.productId === parentProductId);
-            const outputUnitsPerSR = output ? parseFloat(output.unitsPerSR) : 0;
-            const totalRuns = parentAmount / outputUnitsPerSR || 1;
-            const totalDuration = totalRuns * parseFloat(processDetails.bAdalianHoursPerAction || '0');
-
-            // 3. Identify nodes to remove
-            const nodesToRemove = findNodesToRemove(currentNodes, logicalParentId);
-
-            // 4. Remove existing nodes and their edges
-            const { updatedNodes, updatedEdges } = removeNodes(
-                currentNodes,
-                currentEdges,
-                nodesToRemove
-            );
-
-            // 5. Create node plans (now includes outflows compound)
-            const processData = {
-                processDetails,
-                inputProducts,
-                buildingIcon,
-                totalRuns,
-                totalDuration,
-                mainOutflow: output,
-                sideProducts: processDetails.outputs.filter(o => o.productId !== parentProductId),
-                hasSideProducts: processDetails.outputs.length > 1
-            };
-
-            const nodePlans = createProcessNodePlan(processData, logicalParentId);
-
-            // 6. Fetch product data for all product nodes
-            const productPlans = nodePlans.filter(p =>
-                ['product', 'sideProduct'].includes(p.nodeType) && p.productId
-            );
-
-            const productDataMap: Record<string, ProductData> = {};
-
-            // Fetch all product data in parallel
-            await Promise.all(
-                productPlans.map(async (plan) => {
-                    if (plan.productId) {
-                        productDataMap[plan.productId] = await fetchProductData(plan.productId);
-                    }
-                })
-            );
-
-            // 7. Create new nodes
-            const { nodes, nodeIdMap } = realizePlans(nodePlans, productDataMap);
-
-            // 8. Create edges
-            const edges = createEdges(nodes as InfluenceNode[], nodeIdMap);
-
-            // 9. Update state
-            dispatch({
-                type: 'PROCESS_STRUCTURE_CREATED',
-                payload: {
-                    nodes: [...updatedNodes, ...nodes as InfluenceNode[]],
-                    edges: [...updatedEdges, ...edges],
-                }
-            });
-
-            return true;
-        } catch (error) {
-            console.error('Error in process node creation:', error);
-            dispatch({
-                type: 'NODE_CREATION_FAILED',
-                payload: { error: String(error) }
-            });
-            return false;
-        }
-    }, [getProcessDetails, getInputsByProcessId, getBuildingIcon, fetchProductData, dispatch]);
-
     return {
         createRootProductNode,
-        createProcessStructure
     };
 }

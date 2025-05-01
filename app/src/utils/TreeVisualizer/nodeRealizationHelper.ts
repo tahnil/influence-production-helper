@@ -4,7 +4,6 @@ import { createProcessNode, createProductNode, createSideProductCompoundNode, cr
 import { NodePlan } from "@/services/nodeStructurePlanner";
 import { ProductData } from "@/types/influenceTypes";
 import { InfluenceNode } from "@/types/reactFlowTypes";
-import { Edge } from "@xyflow/react";
 
 export function realizePlans(plans: NodePlan[], productDataMap: Record<string, ProductData>) {
     const nodeIdMap: Record<string, string> = {};
@@ -141,61 +140,4 @@ export function realizePlans(plans: NodePlan[], productDataMap: Record<string, P
         }),
         nodeIdMap
     };
-}
-
-/**
- * Creates edges between nodes based on their relationships and the nodeIdMap
- * @param nodes The newly created nodes
- * @param nodeIdMap Map of placeholder IDs to actual node IDs
- * @returns Array of edges connecting the nodes
- */
-export function createEdges(nodes: InfluenceNode[], nodeIdMap: Record<string, string>): Edge[] {
-    const edges: Edge[] = [];
-    const processNodeId = nodeIdMap['PROCESS_NODE_ID'];
-    const outflowsCompoundNodeId = nodeIdMap['OUTFLOWS_COMPOUND_NODE_ID'];
-
-    // If we have a process node, create edges for process flow
-    if (processNodeId) {
-        const processNode = nodes.find(n => n.id === processNodeId);
-
-        if (processNode) {
-            // 1. Edge from parent product to process node
-            // const logicalParentId = processNode.data.logicalParentId as string;
-            // if (logicalParentId) {
-            //     edges.push({
-            //         id: `edge-${logicalParentId}-${processNodeId}`,
-            //         source: logicalParentId,
-            //         target: processNodeId,
-            //         type: 'custom',
-            //     });
-            // }
-
-            // 2. Edge from process node to outflows compound (main flow)
-            if (outflowsCompoundNodeId) {
-                edges.push({
-                    id: `edge-${processNodeId}-${outflowsCompoundNodeId}`,
-                    source: processNodeId,
-                    target: outflowsCompoundNodeId,
-                    type: 'custom',
-                });
-            }
-
-            // 3. Edges from process to input products
-            const inputProductNodes = nodes.filter(n =>
-                n.type === 'productNode' &&
-                n.data.logicalParentId === processNodeId
-            );
-
-            inputProductNodes.forEach(productNode => {
-                edges.push({
-                    id: `edge-${processNodeId}-${productNode.id}`,
-                    source: processNodeId,
-                    target: productNode.id,
-                    type: 'custom',
-                });
-            });
-        }
-    }
-
-    return edges;
 }
