@@ -153,7 +153,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
 
   return (
     <div className="product-node bg-mako-900 border overflow-hidden rounded-lg shadow-lg w-72">
-      <Handle
+      {/* <Handle
         type="target"
         position={Position.Top}
         className="bg-blue-500"
@@ -164,9 +164,9 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
         position={Position.Bottom}
         className="bg-green-500"
         id={`source-${id}`}
-      />
+      /> */}
       <div id="productNodeCard" className="flex flex-col items-center">
-        {id}
+        {/* {id} */}
         <div id="titleSection" className="p-2 bg-mako-900 w-full flex justify-between items-center gap-2.5 grid grid-cols-[auto,1fr,auto]">
           <div className="p-2">
             <Image src={image} width={80} height={80} alt={name} className='object-contain w-16 h-16' />

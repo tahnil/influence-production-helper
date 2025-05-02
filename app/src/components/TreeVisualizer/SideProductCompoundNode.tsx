@@ -31,7 +31,7 @@ const SideProductCompoundNode: React.FC<NodeProps<SideProductCompoundNode>> = ({
       }}
     >
       {/* Handles for the sideProductCompound node */}
-      <Handle
+      {/* <Handle
         type="target"
         position={Position.Top}
         style={{ background: '#555' }}
@@ -42,7 +42,7 @@ const SideProductCompoundNode: React.FC<NodeProps<SideProductCompoundNode>> = ({
         position={Position.Bottom}
         style={{ background: '#555' }}
         id={`sideProductCompound-source-${id}`}
-      />
+      /> */}
       {/* Optional label */}
       {data.label && (
         <div
@@ -57,8 +57,9 @@ const SideProductCompoundNode: React.FC<NodeProps<SideProductCompoundNode>> = ({
             fontWeight: 'bold'
           }}
         >
-          {data.label}<br />
-          {id}
+          {data.label}
+          {/* <br />
+          {id} */}
         </div>
       )}
     </div>
