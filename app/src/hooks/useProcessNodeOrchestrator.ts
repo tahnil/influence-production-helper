@@ -45,7 +45,7 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
         throw new Error(`Main outflow node with id ${logicalParentId} not found`);
       }
       const outflowsCompoundId = mainOutflowNode.parentId!;
-      console.log('[useProcessNodeOrchestrator] Outflows compound ID:', outflowsCompoundId);
+      // console.log('[useProcessNodeOrchestrator] Outflows compound ID:', outflowsCompoundId);
 
       // 2. Fetch process data using the service
       const processData = await ProcessDataService.fetchProcessData(
@@ -62,26 +62,26 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
 
       // 3. Remove existing nodes if needed
       const nodesToRemove = NodeRemovalService.findNodesToRemove(currentNodes, logicalParentId);
-      console.log('[useProcessNodeOrchestrator] Nodes to remove:', nodesToRemove);
+      // console.log('[useProcessNodeOrchestrator] Nodes to remove:', nodesToRemove);
       const { updatedNodes, updatedEdges } = nodesToRemove.length > 0
         ? NodeRemovalService.removeNodes(currentNodes, currentEdges, nodesToRemove)
         : { updatedNodes: currentNodes, updatedEdges: currentEdges };
 
       // 4. Create node plans
       const nodePlans = NodePlanningService.createProcessNodePlan(processData, logicalParentId);
-      console.log('[useProcessNodeOrchestrator] Node plans:', nodePlans);
+      // console.log('[useProcessNodeOrchestrator] Node plans:', nodePlans);
 
       // 5. Fetch product data for all products in the plans
       const productDataMap = await ProductDataService.fetchProductDataMap(
         nodePlans,
         { getProductDetails, getProcessesByProductId, getProductImage }
       );
-      console.log('[useProcessNodeOrchestrator] Product data map:', productDataMap);
+      // console.log('[useProcessNodeOrchestrator] Product data map:', productDataMap);
 
       // 6. Create nodes from plans
       const { nodes, nodeIdMap } = NodeRealizationService.realizePlans(nodePlans, productDataMap);
-      console.log('[useProcessNodeOrchestrator] Created nodes from plan:', nodes);
-      console.log('[useProcessNodeOrchestrator] …by using node ID map:', nodeIdMap);
+      // console.log('[useProcessNodeOrchestrator] Created nodes from plan:', nodes);
+      // console.log('[useProcessNodeOrchestrator] …by using node ID map:', nodeIdMap);
 
       // 7. Create edges between nodes
       const edges = EdgeCreationService.createEdges(nodes as InfluenceNode[], nodeIdMap, outflowsCompoundId);

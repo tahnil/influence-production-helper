@@ -84,7 +84,7 @@ const ProductionChainCanvas: React.FC = () => {
 
     useEffect(() => {
         if (nodes.length > 0 && nodesInitialized && !measurementRequestedRef.current) {
-            console.log("[ProductionChainCanvas] Nodes created, scheduling initial layout");
+            // console.log("[ProductionChainCanvas] Nodes created, scheduling initial layout");
 
             // Wait for React Flow to render and measure nodes
             const timer = setTimeout(() => {
