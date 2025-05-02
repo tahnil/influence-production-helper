@@ -6,6 +6,9 @@ import { ProcessNode } from '@/components/TreeVisualizer/ProcessNode';
 import { SideProductNode } from '@/components/TreeVisualizer/SideProductNode';
 
 export default function calculateDesiredAmount(nodes: Node[], desiredAmount: number, rootNodeId: string): Node[] {
+    console.log('[calculateDesiredAmount] nodes:', nodes);
+    console.log('[calculateDesiredAmount] desiredAmount:', desiredAmount);
+    console.log('[calculateDesiredAmount] rootNodeId:', rootNodeId);
     const updateProcessNode = (processNode: ProcessNode, parentNode: ProductNode): ProcessNode => {
         const output = processNode.data.processDetails.outputs.find(
             output => output.productId === parentNode.data.productDetails.id
@@ -103,7 +106,9 @@ export default function calculateDesiredAmount(nodes: Node[], desiredAmount: num
     };
 
     // Start the recursive update from the root node
-    updateNodeRecursively(rootNodeId);
+    // Resolve rootNodeId to the actual product node that is the child of the root node
+    const actualRootNodeId = nodes.find(node => node.parentId === rootNodeId)?.id || rootNodeId;
+    updateNodeRecursively(actualRootNodeId);
 
     // Convert the updated node map back to an array, preserving the original order
     return nodes.map(node => nodeMap.get(node.id) || node);
