@@ -1,7 +1,7 @@
 // hooks/useProcessNodeOrchestrator.ts
 
 import { useCallback } from 'react';
-import { Node, Edge } from '@xyflow/react';
+import { Edge } from '@xyflow/react';
 import { FlowAction } from '@/contexts/FlowContext';
 import useProcessDetails from '@/hooks/useProcessDetails';
 import useInputsByProcessId from '@/hooks/useInputsByProcessId';
@@ -15,7 +15,6 @@ import { InfluenceProcess, ProductData } from '@/types/influenceTypes';
 import useProductDetails from './useInfluenceProductDetails';
 import useProcessesByProductId from './useProcessesByProductId';
 import useProductImage from './useProductImage';
-import { useDagreConfig } from './useDagreConfig';
 import { updateOutflowsCompoundDimensions } from '@/utils/TreeVisualizer/updateOutflowsCompoundDimensions';
 import { createEdges } from '@/utils/TreeVisualizer/createEdges';
 
@@ -26,7 +25,6 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
     const { getProductDetails } = useProductDetails();
     const { getProcessesByProductId } = useProcessesByProductId();
     const { getProductImage } = useProductImage();
-    const { dagreConfig } = useDagreConfig();
 
     // Add a dedicated product data fetching function
     const fetchProductData = useCallback(async (productId: string): Promise<ProductData> => {
