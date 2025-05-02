@@ -166,7 +166,7 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
         id={`source-${id}`}
       /> */}
       <div id="productNodeCard" className="flex flex-col items-center">
-        {/* {id} */}
+        {id}
         <div id="titleSection" className="p-2 bg-mako-900 w-full flex justify-between items-center gap-2.5 grid grid-cols-[auto,1fr,auto]">
           <div className="p-2">
             <Image src={image} width={80} height={80} alt={name} className='object-contain w-16 h-16' />

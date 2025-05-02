@@ -41,6 +41,7 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
     try {
       // 1. Find the parent compound node if exists
       const mainOutflowNode = currentNodes.find(node => node.id === logicalParentId);
+      console.log('[useProcessNodeOrchestrator] Main outflow node:', mainOutflowNode);
       if (!mainOutflowNode) {
         throw new Error(`Main outflow node with id ${logicalParentId} not found`);
       }

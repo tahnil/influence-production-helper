@@ -6,9 +6,9 @@ import { ProcessNode } from '@/components/TreeVisualizer/ProcessNode';
 import { SideProductNode } from '@/components/TreeVisualizer/SideProductNode';
 
 export default function calculateDesiredAmount(nodes: Node[], desiredAmount: number, rootNodeId: string): Node[] {
-    console.log('[calculateDesiredAmount] nodes:', nodes);
-    console.log('[calculateDesiredAmount] desiredAmount:', desiredAmount);
-    console.log('[calculateDesiredAmount] rootNodeId:', rootNodeId);
+    // console.log('[calculateDesiredAmount] nodes:', nodes);
+    // console.log('[calculateDesiredAmount] desiredAmount:', desiredAmount);
+    // console.log('[calculateDesiredAmount] rootNodeId:', rootNodeId);
     const updateProcessNode = (processNode: ProcessNode, parentNode: ProductNode): ProcessNode => {
         const output = processNode.data.processDetails.outputs.find(
             output => output.productId === parentNode.data.productDetails.id
