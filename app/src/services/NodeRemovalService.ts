@@ -10,62 +10,79 @@ export const NodeRemovalService = {
    * @returns Array of node IDs that should be removed
    */
   findNodesToRemove(nodes: InfluenceNode[], logicalParentId: string): string[] {
-    const nodesToRemove: string[] = [];
+    const nodesToRemove = new Set<string>();
 
-    // STEP 1: Find compound nodes to remove
-
-    // Find existing SideProductCompound nodes with the same source process
-    const existingSideProductCompoundNodes = nodes.filter(
-      (node) => node.type === 'sideProductCompoundNode' &&
-        node.data.processId &&
-        nodes.find(n => n.id === node.data.processId)?.data?.logicalParentId === logicalParentId
+    // STEP 1: Find the process nodes directly connected to the logical parent
+    // These are process nodes whose logical parent is the product we're replacing the process for
+    const processNodes = nodes.filter(
+      node => node.type === 'processNode' && node.data.logicalParentId === logicalParentId
     );
 
-    // Add compound nodes and their children to removal list
-    existingSideProductCompoundNodes.forEach(existingSideProductCompoundNode => {
-      nodesToRemove.push(existingSideProductCompoundNode.id);
+    // STEP 2: For each process node that needs to be removed
+    for (const processNode of processNodes) {
+      // Add the process node itself
+      nodesToRemove.add(processNode.id);
 
-      // Find and add all child nodes of the sideProductCompound
-      nodes.forEach(node => {
-        if (node.parentId === existingSideProductCompoundNode.id) {
-          nodesToRemove.push(node.id);
-        }
+      // Find all compound nodes that are direct descendants (physical or logical) of this process
+      const relatedCompounds = nodes.filter(node =>
+        (node.type === 'outflowsCompoundNode' || node.type === 'sideProductCompoundNode') &&
+        // Check if this compound's logical parent is the process node
+        (node.data.logicalParentId === processNode.id)
+      );
+
+      // Add all related compounds
+      relatedCompounds.forEach(node => nodesToRemove.add(node.id));
+
+      // STEP 3: Find all product nodes that have this process as their logical parent
+      // These are the input products for the process
+      const inputProductNodes = nodes.filter(node =>
+        node.type === 'productNode' && node.data.logicalParentId === processNode.id
+      );
+
+      inputProductNodes.forEach(node => nodesToRemove.add(node.id));
+    }
+
+    // STEP 4: Find the parent outflows compound that contains the product node
+    const productNode = nodes.find(node => node.id === logicalParentId);
+    if (productNode && productNode.parentId) {
+      const outflowsCompoundId = productNode.parentId;
+
+      // Find all side product compounds in the same outflows compound
+      const sideProductCompounds = nodes.filter(node =>
+        node.type === 'sideProductCompoundNode' &&
+        node.parentId === outflowsCompoundId
+      );
+
+      // Add all of these side product compounds
+      sideProductCompounds.forEach(node => {
+        nodesToRemove.add(node.id);
+
+        // Find and add all children of each side product compound
+        const sideProducts = nodes.filter(child => child.parentId === node.id);
+        sideProducts.forEach(sideProduct => nodesToRemove.add(sideProduct.id));
       });
-    });
+    }
 
-    // Find existing OutflowsCompound nodes with the same source process
-    const existingOutflowsCompoundNodes = nodes.filter(
-      (node) => node.type === 'outflowsCompoundNode' &&
-        node.data.processId &&
-        nodes.find(n => n.id === node.data.processId)?.data?.logicalParentId === logicalParentId
-    );
+    // STEP 5: Walk the node hierarchy to find all orphaned nodes
+    const pendingRemoval = Array.from(nodesToRemove);
+    let additionalRemoved = true;
 
-    // Add OutflowsCompound nodes to removal list
-    existingOutflowsCompoundNodes.forEach(existingOutflowsCompoundNode => {
-      nodesToRemove.push(existingOutflowsCompoundNode.id);
-    });
+    // Keep finding child nodes until no more are found
+    while (additionalRemoved) {
+      additionalRemoved = false;
 
-    // STEP 2: Find process nodes and their inputs
-    const existingProcessNodes = nodes.filter(
-      (node) => node.type === 'processNode' &&
-        node.data.logicalParentId === logicalParentId
-    );
-
-    // Add process nodes and their input nodes to removal list
-    existingProcessNodes.forEach(processNode => {
-      nodesToRemove.push(processNode.id);
-
-      // Find and add all input product nodes of this process
-      nodes.forEach(node => {
-        if (node.data.logicalParentId === processNode.id) {
-          nodesToRemove.push(node.id);
+      // Look for nodes whose parent is scheduled for removal
+      for (const node of nodes) {
+        if (!nodesToRemove.has(node.id) &&
+          ((node.parentId && nodesToRemove.has(node.parentId)) ||
+            (typeof node.data.logicalParentId === 'string' && nodesToRemove.has(node.data.logicalParentId)))) {
+          nodesToRemove.add(node.id);
+          additionalRemoved = true;
         }
-      });
-    });
+      }
+    }
 
-    // Purge nodesToRemove of duplicates
-    const uniqueNodesToRemove = Array.from(new Set(nodesToRemove));
-    return uniqueNodesToRemove;
+    return Array.from(nodesToRemove);
   },
 
   /**
@@ -80,25 +97,69 @@ export const NodeRemovalService = {
     edges: Edge[],
     nodesToRemove: string[]
   ): { updatedNodes: InfluenceNode[], updatedEdges: Edge[] } {
-    // Remove nodes
-    const updatedNodes = nodes.filter(
-      (node) => !nodesToRemove.includes(node.id)
-    );
+    const nodesToRemoveSet = new Set(nodesToRemove);
 
-    // Clean up parentId references for OutflowsCompound children
-    nodes.forEach(node => {
-      const parent = nodes.find(n => n.id === node.parentId);
-      if (parent?.type === 'outflowsCompoundNode' && nodesToRemove.includes(parent.id)) {
-        node.parentId = undefined;
+    // Step 1: Remove the nodes
+    const updatedNodes = nodes.filter(node => !nodesToRemoveSet.has(node.id));
+
+    // Step 2: Clean up references in remaining nodes
+    const cleanedNodes = updatedNodes.map(node => {
+      // Clone node to avoid modifying the original
+      let updatedNode = { ...node };
+
+      // Clean up parentId references
+      if (updatedNode.parentId && nodesToRemoveSet.has(updatedNode.parentId)) {
+        updatedNode.parentId = undefined;
+        updatedNode.extent = undefined;
       }
+
+      // Clean up logicalParentId references
+      if (
+        typeof updatedNode.data.logicalParentId === 'string' &&
+        nodesToRemoveSet.has(updatedNode.data.logicalParentId)
+      ) {
+        updatedNode.data = {
+          ...updatedNode.data,
+          logicalParentId: undefined
+        };
+      }
+
+      // Clean up inflowIds references
+      if (Array.isArray(updatedNode.data.inflowIds)) {
+        updatedNode.data = {
+          ...updatedNode.data,
+          inflowIds: updatedNode.data.inflowIds.filter(id => !nodesToRemoveSet.has(id))
+        };
+      }
+
+      // Clean up outflowIds references
+      if (Array.isArray(updatedNode.data.outflowIds)) {
+        updatedNode.data = {
+          ...updatedNode.data,
+          outflowIds: updatedNode.data.outflowIds.filter(id => !nodesToRemoveSet.has(id))
+        };
+      }
+
+      // Clean up ancestorIds for side product nodes
+      if (updatedNode.type === 'sideProductNode' && Array.isArray(updatedNode.data.ancestorIds)) {
+        updatedNode.data = {
+          ...updatedNode.data,
+          ancestorIds: updatedNode.data.ancestorIds.filter(id => !nodesToRemoveSet.has(id))
+        };
+      }
+
+      return updatedNode;
     });
 
-    // Remove connected edges
-    const updatedEdges = edges.filter(
-      (edge) => !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target)
+    // Step 3: Remove any edges that connect to removed nodes
+    const updatedEdges = edges.filter(edge =>
+      !nodesToRemoveSet.has(edge.source) && !nodesToRemoveSet.has(edge.target)
     );
 
-    return { updatedNodes, updatedEdges };
+    return {
+      updatedNodes: cleanedNodes,
+      updatedEdges
+    };
   }
 };
 
