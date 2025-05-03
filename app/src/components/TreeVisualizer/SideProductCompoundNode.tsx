@@ -57,9 +57,9 @@ const SideProductCompoundNode: React.FC<NodeProps<SideProductCompoundNode>> = ({
             fontWeight: 'bold'
           }}
         >
+          {id}
+          <br />
           {data.label}
-          {/* <br />
-          {id} */}
         </div>
       )}
     </div>

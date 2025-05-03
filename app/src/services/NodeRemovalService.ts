@@ -63,7 +63,9 @@ export const NodeRemovalService = {
       });
     });
 
-    return nodesToRemove;
+    // Purge nodesToRemove of duplicates
+    const uniqueNodesToRemove = Array.from(new Set(nodesToRemove));
+    return uniqueNodesToRemove;
   },
 
   /**

@@ -47,7 +47,7 @@ const ProcessNode: React.FC<NodeProps<ProcessNode>> = ({ id, data }) => {
         id={`target-${id}`}
       />
       <div id="processNodeCard" className="flex flex-col items-center">
-        {/* {id} */}
+        {id}
         <div id="titleSection" className="p-2 bg-falcon-800 w-full flex justify-center items-center gap-2.5 grid grid-cols-3">
           <div id="buildingIcon" className="p-2">
             <Image src={image} width={24} height={24} alt={name} className='object-contain w-16 h-16' />

@@ -53,7 +53,7 @@ const OutflowsCompoundNode: React.FC<NodeProps<OutflowsCompoundNode>> = ({ data,
       />
 
       {/* Optional label */}
-      {/* {data.label && (
+      {data.label && (
         <div
           style={{
             position: "absolute",
@@ -67,10 +67,11 @@ const OutflowsCompoundNode: React.FC<NodeProps<OutflowsCompoundNode>> = ({ data,
             fontWeight: "bold"
           }}
         >
-          {data.label}<br />
           {id}
+          <br />
+          {data.label}
         </div>
-      )} */}
+      )}
     </div>
   );
 };

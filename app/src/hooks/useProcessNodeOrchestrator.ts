@@ -63,7 +63,8 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
 
       // 3. Remove existing nodes if needed
       const nodesToRemove = NodeRemovalService.findNodesToRemove(currentNodes, logicalParentId);
-      // console.log('[useProcessNodeOrchestrator] Nodes to remove:', nodesToRemove);
+      console.log('[useProcessNodeOrchestrator] Current nodes:', currentNodes);
+      console.log('[useProcessNodeOrchestrator] Nodes to remove:', nodesToRemove);
       const { updatedNodes, updatedEdges } = nodesToRemove.length > 0
         ? NodeRemovalService.removeNodes(currentNodes, currentEdges, nodesToRemove)
         : { updatedNodes: currentNodes, updatedEdges: currentEdges };
@@ -108,6 +109,8 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
           edges: finalEdges,
         }
       });
+
+      console.log('[useProcessNodeOrchestrator] finalNodes:', finalNodes);
 
       return true;
     } catch (error) {
