@@ -20,6 +20,7 @@ import useBuildingIcon from '@/hooks/useBuildingIcon';
 import useProductDetails from '@/hooks/useInfluenceProductDetails';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 import useProductImage from '@/hooks/useProductImage';
+import { establishLogicalRelationships } from '@/services/NodeLogicalRelationshipService';
 
 export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
   // Data fetching hooks - kept in the hook for React Context integration
@@ -101,11 +102,14 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
         );
       }
 
-      // 10. Dispatch the state update
+      // 10. Establish logical relationships between nodes (inflowIds, outflowIds)
+      const nodesWithUpdatedRelationships = establishLogicalRelationships(finalNodes as InfluenceNode[]);
+
+      // 11. Dispatch the state update
       dispatch({
         type: 'PROCESS_STRUCTURE_CREATED',
         payload: {
-          nodes: finalNodes as InfluenceNode[],
+          nodes: nodesWithUpdatedRelationships as InfluenceNode[],
           edges: finalEdges,
         }
       });

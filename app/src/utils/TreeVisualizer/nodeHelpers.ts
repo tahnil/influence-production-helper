@@ -134,6 +134,11 @@ export const traverseNodes = (
         const node = nodes.find(n => n.id === nodeId);
         if (!node) return;
 
+        // Skip compound nodes in traversal - they're not part of the logical structure
+        if (node.type === 'outflowsCompoundNode' || node.type === 'sideProductCompoundNode') {
+            return;
+        }
+
         result.push(node);
 
         const idsToTraverse: string[] = direction === 'inflows'

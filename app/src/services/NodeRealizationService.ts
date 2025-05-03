@@ -5,6 +5,7 @@ import { createProcessNode, createProductNode, createSideProductNode,
 import { ProductData } from '@/types/influenceTypes';
 import { InfluenceNode } from '@/types/reactFlowTypes';
 import { NodePlan } from '@/types/nodePlanTypes';
+import { establishLogicalRelationships } from './NodeLogicalRelationshipService';
 
 export const NodeRealizationService = {
   /**
@@ -123,7 +124,7 @@ export const NodeRealizationService = {
     });
 
     // Ensure all nodes with parents have extent set correctly
-    const finalNodes = nodes.map(node => {
+    let finalNodes = nodes.map(node => {
       if (node.parentId && node.extent === undefined) {
         return {
           ...node,
@@ -132,6 +133,9 @@ export const NodeRealizationService = {
       }
       return node;
     });
+
+    // Establish logical relationships (outflowIds and inflowIds)
+    finalNodes = establishLogicalRelationships(finalNodes as InfluenceNode[]);
 
     return { nodes: finalNodes, nodeIdMap };
   }
