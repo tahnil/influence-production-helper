@@ -15,18 +15,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { InfluenceNode } from '@/types/reactFlowTypes';
-import { ProcessNode } from './ProcessNode';
-import { ProductNode } from './ProductNode';
 import { useFlow } from '@/contexts/FlowContext';
 import { usePouchDB } from '@/contexts/PouchDBContext';
 import useInfluenceProductDetails from '@/hooks/useInfluenceProductDetails';
 import useProcessDetails from '@/hooks/useProcessDetails';
-import ProductDataFetchingService from '@/services/ProductDataFecthingService';
-import NodeOrchestratorService from '@/services/NodeOrchestratorService';
-import { useProcessNodeOrchestrator } from '@/hooks/useProcessNodeOrchestrator';
-import useProductImage from '@/hooks/useProductImage';
-import useProcessesByProductId from '@/hooks/useProcessesByProductId';
+import { NodePlan } from '@/types/nodePlanTypes';
 
 interface ConfigNode {
   id: string;
@@ -52,6 +45,7 @@ interface ProductionChainConfig {
   createdAt: string;
   nodeCount: number;
   nodes: ConfigNode[];
+  nodePlans?: NodePlan[]; // Add support for the new format
 }
 
 interface PouchDBViewerProps {
@@ -66,16 +60,13 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { getProductDetails } = useInfluenceProductDetails();
   const { getProcessDetails } = useProcessDetails();
-  const { getProcessesByProductId } = useProcessesByProductId();
   const {
     desiredAmount,
     dispatch
   } = useFlow();
   const { toast } = useToast();
 
-  const processNodeOrchestrator = useProcessNodeOrchestrator(dispatch);
-  const { getProductImage } = useProductImage();
-
+  // Fetch configurations from PouchDB
   useEffect(() => {
     const fetchConfigs = async () => {
       if (memoryDb) {
@@ -86,12 +77,27 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
             .filter((doc): doc is ProductionChainConfig =>
               doc !== null &&
               typeof doc === 'object' &&
-              'nodes' in doc &&
-              Array.isArray(doc.nodes)
+              'focalProductId' in doc &&
+              'nodeCount' in doc
             );
 
+          // Enhance configs with product and process details
           const updatedConfigs = await Promise.all(fetchedConfigs.map(async (config) => {
-            const updatedNodes = await Promise.all(config.nodes.map(async (node: ConfigNode) => {
+            // Load nodes from attachment if they're not in the document
+            if (!config.nodes) {
+              try {
+                const attachment = await memoryDb.getAttachment(config._id, 'nodes');
+                if (attachment instanceof Blob) {
+                  config.nodes = JSON.parse(await attachment.text());
+                }
+              } catch (error) {
+                console.warn(`No nodes attachment for config ${config._id}`);
+                config.nodes = [];
+              }
+            }
+
+            // Update node details with product/process info
+            const updatedNodes = await Promise.all((config.nodes || []).map(async (node: ConfigNode) => {
               if (node.type === 'productNode' && node.data.productId) {
                 const productDetails = await getProductDetails(node.data.productId);
                 return { ...node, data: { ...node.data, productDetails } };
@@ -101,6 +107,7 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
               }
               return node;
             }));
+
             return { ...config, nodes: updatedNodes };
           }));
 
@@ -117,6 +124,7 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
 
     fetchConfigs();
 
+    // Set up changes listener
     const changes = memoryDb?.changes({
       since: 'now',
       live: true,
@@ -130,22 +138,32 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
     };
   }, [memoryDb, getProductDetails, getProcessDetails]);
 
+  // View configuration details
   const viewDetails = (config: ProductionChainConfig) => {
     setSelectedConfig(config);
     setIsModalOpen(true);
   };
 
+  // Get info about the focal product
   const getFocalProductInfo = (config: ProductionChainConfig) => {
-    const focalNode = config.nodes.find(node => node.data.productDetails?.id === config.focalProductId);
-    const inflowProcess = config.nodes.find(node =>
-      node.type === 'processNode' && node.data.outflowIds?.includes(focalNode?.id || '')
+    const focalNode = config.nodes.find(node =>
+      node.type === 'productNode' &&
+      node.data.productDetails?.id === config.focalProductId
     );
+
+    const inflowProcess = config.nodes.find(node =>
+      node.type === 'processNode' &&
+      Array.isArray(node.data.outflowIds) &&
+      node.data.outflowIds.includes(focalNode?.id || '')
+    );
+
     return {
       productName: focalNode?.data.productDetails?.name || 'Unknown Product',
       processName: inflowProcess?.data.processDetails?.name || 'Unknown Process'
     };
   };
 
+  // Delete configuration
   const deleteConfig = async (configId: string) => {
     if (memoryDb) {
       try {
@@ -169,110 +187,25 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
     }
   };
 
+  // Replace the current configuration with a saved one
   const replaceConfig = async (config: ProductionChainConfig) => {
     if (memoryDb) {
       try {
-        // 1. Fetch the saved nodes from the attachment
-        const attachment = await memoryDb.getAttachment(config._id, 'nodes');
-        if (!(attachment instanceof Blob)) {
-          throw new Error('Attachment is not a Blob');
-        }
-        const savedNodes: InfluenceNode[] = JSON.parse(await attachment.text());
+        console.log('[PouchDbViewer] Replacing configuration:', config);
 
-        // 2. Find the root product node and its data
-        const rootProductNode = savedNodes.find(
-          node => node.type === 'productNode' && node.data.isRoot
-        ) as ProductNode;
-
-        if (!rootProductNode) {
-          throw new Error('Root product node not found in saved configuration');
-        }
-
-        const productId = rootProductNode.data.productDetails.id;
-
-        // 3. Fetch product data using ProductDataFetchingService
-        const productData = await ProductDataFetchingService.fetchProductData(
-          productId,
-          { getProductDetails, getProcessesByProductId, getProductImage }
-        );
-
-        // 4. Create a new root node structure using NodeOrchestratorService
-        const { nodes: newNodes, edges: newEdges, rootNodeId } =
-          NodeOrchestratorService.createRootNodeStructure(
-            productData,
-            desiredAmount,
-            true // isRoot
-          );
-
+        // Dispatch the load action with mode set to 'full'
         dispatch({
-          type: 'ROOT_NODE_CREATED',
+          type: 'LOAD_SAVED_CONFIG',
           payload: {
-            nodes: newNodes,
-            edges: newEdges,
-            rootNodeId
+            nodeId: '', // Not needed for full replacements
+            configId: config._id,
+            mode: 'full'
           }
         });
 
-        dispatch({ type: 'NODE_CREATION_COMPLETED' });
-
-        // 5. For any process selections from the original config,
-        // invoke the process node creation as needed
-        const processSelections = savedNodes
-          .filter(node => node.type === 'processNode')
-          .map(node => ({
-            processId: (node as ProcessNode).data.processDetails.id,
-            parentId: node.data.logicalParentId as string,
-            parentNode: savedNodes.find(n => n.id === node.data.logicalParentId)
-          }))
-          .filter(selection => selection.parentNode);
-
-        // 6. If we have process selections, we need to create them sequentially
-        if (processSelections.length > 0) {
-          // First process is special - it's directly connected to the root product
-          const firstProcess = processSelections[0];
-
-          // Find the new root product node
-          const newRootProduct = newNodes.find(
-            node => node.type === 'productNode' && node.data.isRoot
-          );
-
-          if (newRootProduct) {
-            // Create the first process structure
-            await processNodeOrchestrator.createProcessStructure(
-              firstProcess.processId,
-              newRootProduct.id,
-              desiredAmount,
-              productId,
-              newNodes as InfluenceNode[],
-              newEdges
-            );
-
-            // TODO: Handle additional process selections if needed in a more complex graph
-            // This would require building the graph incrementally
-          }
-        } else {
-          // If no process selections, just apply the new root structure
-          dispatch({
-            type: 'BATCH_UPDATE',
-            payload: {
-              nodes: newNodes,
-              edges: newEdges,
-              nodesReady: false,
-              rootNodeId: rootNodeId
-            }
-          });
-        }
-
-        setTimeout(() => {
-          dispatch({
-            type: 'REQUEST_LAYOUT',
-            payload: { trigger: 'FORCE' }
-          });
-        }, 1000);
-
         toast({
           title: "Configuration Replaced",
-          description: `The production chain has been replaced with "${config.focalProductId}"`,
+          description: `The production chain has been replaced with "${getFocalProductInfo(config).productName}"`,
           duration: 3000,
         });
       } catch (error) {

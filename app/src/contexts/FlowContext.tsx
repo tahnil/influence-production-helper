@@ -1,3 +1,5 @@
+// contexts/FlowContext.tsx
+
 import React, { createContext, useContext, useReducer, useRef, useEffect } from 'react';
 import {
   Node,
@@ -13,11 +15,15 @@ import { DagreConfig } from '@/hooks/useDagreConfig';
 import { usePouchDB } from '@/contexts/PouchDBContext';
 import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
 import applyDagreLayout from '@/utils/TreeVisualizer/applyDagreLayout';
-import { serializeProductionChain } from '@/utils/TreeVisualizer/serializeProductionChain';
 import { InfluenceNode } from '@/types/reactFlowTypes';
-import { handleReplaceNode } from '@/utils/TreeVisualizer/handleReplaceNode';
 import { useProcessNodeOrchestrator } from '@/hooks/useProcessNodeOrchestrator';
 import { useNodeOrchestrator } from '@/hooks/useNodeOrchestrator';
+import { ConfigurationSaveService } from '@/services/ConfigurationSaveService';
+import { ConfigurationLoadService } from '@/services/ConfigurationLoadService';
+import useProductDetails from '@/hooks/useInfluenceProductDetails';
+import useProcessesByProductId from '@/hooks/useProcessesByProductId';
+import useProductImage from '@/hooks/useProductImage';
+import ProductDataFetchingService from '@/services/ProductDataFecthingService';
 
 interface NodeCreationRequest {
   type: 'product' | 'process';
@@ -46,6 +52,7 @@ interface FlowState {
   pendingLoadConfig: {
     nodeId: string;
     configId: string;
+    mode: 'full' | 'partial';
   } | null;
   matchingConfigs: Array<{
     _id: string;
@@ -64,16 +71,11 @@ interface FlowState {
 
 // Define the action types
 export type FlowAction =
-  // Component: ControlPanel > AmountInput
-  // Set new desired amount and recalculate node values
-  // Do not update the layout
   | { type: 'SET_DESIRED_AMOUNT'; payload: number }
-  // TO BE DEFINED: Why do we need this?
   | { type: 'BATCH_UPDATE'; payload: Partial<FlowState> }
   | { type: 'APPLY_NODE_CHANGES'; payload: NodeChange[] }
   | { type: 'APPLY_EDGE_CHANGES'; payload: EdgeChange[] }
   | { type: 'CONNECT_NODES'; payload: Connection }
-  // dedicated action specifically for layout operations
   | {
     type: 'APPLY_LAYOUT'; payload: {
       nodes: Node[],
@@ -87,8 +89,8 @@ export type FlowAction =
   | { type: 'SELECT_PROCESS'; payload: { nodeId: string; processId: string } }
   | { type: 'SAVE_PRODUCTION_CHAIN'; payload: { focalNodeId: string } }
   | { type: 'RESET_SAVE_STATUS' }
-  | { type: 'LOAD_SAVED_CONFIG'; payload: { nodeId: string, configId: string } }
-  | { type: 'SAVE_COMPLETE' }
+  | { type: 'LOAD_SAVED_CONFIG'; payload: { nodeId: string, configId: string, mode: 'full' | 'partial' } }
+  | { type: 'SAVE_COMPLETE'; payload: { configId: string } }
   | { type: 'SAVE_ERROR'; payload: { error: string } }
   | { type: 'LOAD_COMPLETE' }
   | { type: 'LOAD_ERROR'; payload: { error: string } }
@@ -106,6 +108,8 @@ export type FlowAction =
   | { type: 'NODE_CREATION_FAILED'; payload: { error: string } }
   | { type: 'PROCESS_STRUCTURE_CREATED'; payload: { nodes: InfluenceNode[], edges: Edge[] } }
   | { type: 'ROOT_NODE_CREATED'; payload: { nodes: InfluenceNode[], edges: Edge[], rootNodeId: string } }
+  | { type: 'CONFIGURATION_REPLACED'; payload: { nodes: InfluenceNode[], edges: Edge[], rootNodeId?: string } }
+  | { type: 'CONFIGURATION_PARTIALLY_LOADED'; payload: { nodes: InfluenceNode[], edges: Edge[], replacedNodeId: string, newNodeId: string } }
   ;
 
 // Initial state
@@ -128,37 +132,12 @@ const initialState: FlowState = {
   pendingLayoutTrigger: null,
 };
 
-// Create the reducer function
 /**
- * Reducer function for managing the state of a flow-based application.
- *
- * @param {FlowState} state - The current state of the flow.
- * @param {FlowAction} action - The action to be applied to the state.
- * @returns {FlowState} - The updated state after applying the action.
- *
- * ### Action Types:
- * - `'APPLY_NODE_CHANGES'`: Updates the nodes in the state based on the provided changes.
- * - `'APPLY_EDGE_CHANGES'`: Updates the edges in the state based on the provided changes.
- * - `'CONNECT_NODES'`: Adds a new edge connecting nodes.
- * - `'APPLY_LAYOUT'`: Applies a layout to the nodes and edges using the Dagre layout algorithm.
- * - `'REQUEST_LAYOUT'`: Marks the state as needing a layout update.
- * - `'SET_DESIRED_AMOUNT'`: Updates the desired amount and recalculates node values.
- * - `'BATCH_UPDATE'`: Merges the provided payload into the state.
- * - `'SELECT_PRODUCT'`: Sets the selected product ID in the state.
- * - `'SELECT_PROCESS'`: Adds a process selection to the state.
- * - `'SAVE_PRODUCTION_CHAIN'`: Initiates saving the production chain, marking the focal node as pending save.
- * - `'RESET_SAVE_STATUS'`: Resets the save status and error fields in the state.
- * - `'SAVE_COMPLETE'`: Marks the save operation as complete.
- * - `'SAVE_ERROR'`: Marks the save operation as failed and stores the error.
- * - `'LOAD_SAVED_CONFIG'`: Initiates loading a saved configuration for a specific node.
- * - `'LOAD_COMPLETE'`: Marks the load operation as complete and triggers a layout update.
- * - `'LOAD_ERROR'`: Marks the load operation as failed and stores the error.
- * - `'SET_MATCHING_CONFIGS'`: Updates the state with matching configurations.
- * - `'REQUEST_PRODUCT_NODE_CREATION'`: Sets up a pending product node creation request.
- * - `'REQUEST_PROCESS_NODE_CREATION'`: Sets up a pending process node creation request.
- * - `'NODE_CREATION_COMPLETED'`: Marks node creation as completed and triggers a layout update.
- * - `'NODE_CREATION_FAILED'`: Marks node creation as failed and stores the error.
- *
+ * Reducer function for managing the flow state
+ * @param state Current state
+ * @param action Action to apply
+ * @returns Updated state
+ *  
  * ### Notes:
  * - The reducer handles complex state transitions, including layout recalculations, node and edge updates, and error handling.
  * - Layout-related actions (`APPLY_LAYOUT`, `REQUEST_LAYOUT`, etc.) ensure that the graph structure remains consistent.
@@ -182,11 +161,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         edges: addEdge(action.payload, state.edges)
       };
     case 'APPLY_LAYOUT': {
-      // console.log('[FlowContext] APPLY_LAYOUT action dispatched with nodes:', action.payload.nodes.length);
       const { nodes, edges, dagreConfig, layoutTrigger } = action.payload;
-
-      // Log layout trigger
-      // console.log('[FlowContext] Layout trigger:', layoutTrigger);
 
       // Force layout always proceeds
       const forceLayout = layoutTrigger === 'FORCE';
@@ -196,10 +171,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
 
       if (!forceLayout && !allNodesMeasured && nodes.length > 0) {
         // Queue this layout request until measurements are ready
-        // console.log('[FlowContext] Waiting for measurements before layout. Missing measurements for',
-        // nodes.filter(node => !node.measured?.width || !node.measured?.height).length, 'nodes');
-        // console.log('[FlowContext] Nodes missing measurements:', nodes.filter(node => !node.measured?.width || !node.measured?.height).map(node => node));
-
         return {
           ...state,
           needsLayout: true,
@@ -212,27 +183,16 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       const shouldApplyLayout = (() => {
         switch (layoutTrigger) {
           case 'FORCE':
-            // Always apply when forced
             return true;
-
           case 'NODE_CHANGE':
-            // Apply if the node count has changed
             return nodes.length !== state.nodes.length;
-
           case 'STRUCTURE_CHANGE':
-            // Apply if the graph structure has changed (e.g., new connections)
             return true;
-
           case 'MEASUREMENTS_READY':
-            // Apply if all nodes have their measurements ready
             return allNodesMeasured;
-
           case 'CONFIG_CHANGE':
-            // Apply if the configuration has changed
             return true;
-
           default:
-            // Do not apply layout for other cases
             return false;
         }
       })();
@@ -240,8 +200,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       if (!shouldApplyLayout) {
         return state;
       }
-
-      // At this point, either all nodes have measurements or we're forcing layout
 
       // Apply fallback dimensions only for nodes without measurements
       const nodesWithDimensions = nodes.map(node => {
@@ -272,11 +230,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         edges,
         dagreConfig
       );
-
-      // console.log('[FlowContext | layoutedNodes] layoutedNodes:', layoutedNodes);
-
-      // log current root node id to console
-      // console.log('[FlowContext | layoutedNodes] rootNodeId:', state.rootNodeId);
 
       return {
         ...state,
@@ -313,8 +266,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         processSelections: [...state.processSelections, action.payload],
       };
     case 'SAVE_PRODUCTION_CHAIN': {
-      // console.log('SAVE_PRODUCTION_CHAIN action dispatched with focal node:', action.payload.focalNodeId);
-
       if ('focalNodeId' in action.payload) {
         const { focalNodeId } = action.payload;
         return {
@@ -324,8 +275,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
           saveStatus: 'pending',
         };
       }
-
-      // console.error('Invalid payload for SAVE_PRODUCTION_CHAIN action');
       return state;
     };
     case 'RESET_SAVE_STATUS': {
@@ -352,15 +301,13 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       };
     };
     case 'LOAD_SAVED_CONFIG': {
-      const { nodeId, configId } = action.payload;
-      // Log to console: configId and nodeId
-      console.log('[FlowContext] Config selected for nodeId / configId:', nodeId, configId);
-
+      const { nodeId, configId, mode } = action.payload;
       return {
         ...state,
         pendingLoadConfig: {
           nodeId,
-          configId
+          configId,
+          mode
         },
         loadStatus: 'pending',
       }
@@ -396,16 +343,15 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
           ...action.payload
         }
       };
-    case 'REQUEST_PROCESS_NODE_CREATION': // This is called when a process is selected from a product node
+    case 'REQUEST_PROCESS_NODE_CREATION': 
       return {
         ...state,
         pendingNodeCreation: {
           type: 'process',
-          ...action.payload // processId, logicalParentId, includeSideProducts (boolean)
+          ...action.payload
         }
       };
     case 'NODE_CREATION_COMPLETED':
-      // console.log('NODE_CREATION_COMPLETED action dispatched. New nodes:', state.nodes);
       return {
         ...state,
         pendingNodeCreation: null,
@@ -420,10 +366,6 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       };
     case 'PROCESS_STRUCTURE_CREATED': {
       const { nodes, edges } = action.payload;
-      // console.log('[FlowContext | Process Structure Created] Process structure created, received nodes:', nodes.length);
-      // console.log('[FlowContext | Process Structure Created] Nodes:', nodes);
-
-      // Add the new nodes and edges
       return {
         ...state,
         nodes: nodes,
@@ -441,12 +383,128 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         rootNodeId: action.payload.rootNodeId,
         nodesReady: true
       };
-    }
+    };
+    case 'CONFIGURATION_REPLACED': {
+      // Handle full configuration replacement
+      return {
+        ...state,
+        nodes: action.payload.nodes,
+        edges: action.payload.edges,
+        rootNodeId: action.payload.rootNodeId || state.rootNodeId,
+        needsLayout: true,
+        layoutTrigger: 'FORCE',
+        pendingLoadConfig: null,
+        loadStatus: 'complete'
+      };
+    };
+    case 'CONFIGURATION_PARTIALLY_LOADED': {
+      // Handle partial configuration replacement
+      const { nodes: newNodes, edges: newEdges, replacedNodeId, newNodeId } = action.payload;
+      
+      // Find nodes that need to be removed (the replaced node and its inflows)
+      const nodesToRemove = new Set<string>();
+      
+      // Helper function to recursively find all inflow nodes
+      const findInflowNodes = (nodeId: string) => {
+        nodesToRemove.add(nodeId);
+        
+        // Find the node
+        const node = state.nodes.find(n => n.id === nodeId);
+        if (!node) return;
+        
+        // Check for inflow IDs
+        if (Array.isArray(node.data.inflowIds)) {
+          node.data.inflowIds.forEach(inflowId => {
+            if (!nodesToRemove.has(inflowId)) {
+              findInflowNodes(inflowId);
+            }
+          });
+        }
+      };
+      
+      // Start with the node to be replaced
+      findInflowNodes(replacedNodeId);
+      
+      // Filter out nodes that are being removed
+      const remainingNodes = state.nodes.filter(node => !nodesToRemove.has(node.id));
+      
+      // Filter out edges connected to removed nodes
+      const remainingEdges = state.edges.filter(
+        edge => !nodesToRemove.has(edge.source) && !nodesToRemove.has(edge.target)
+      );
+      
+      // Update logical connections for the replaced node
+      // Find nodes that had the replaced node as their logical parent
+      const nodesNeedingParentUpdate = state.nodes.filter(
+        node => node.data.logicalParentId === replacedNodeId && !nodesToRemove.has(node.id)
+      );
+      
+      // Update these nodes to point to the new node
+      const updatedNodes = remainingNodes.map(node => {
+        if (nodesNeedingParentUpdate.some(n => n.id === node.id)) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              logicalParentId: newNodeId,
+              outflowIds: node.data.outflowIds ? 
+                ((node.data.outflowIds as string[]).map(id => 
+                  id === replacedNodeId ? newNodeId : id)) : 
+                undefined
+            }
+          };
+        }
+        return node;
+      });
+      
+      // Create edges connecting the new nodes to the remaining graph
+      const connectionEdges: Edge[] = [];
+      
+      // Find the parent node of the replaced node
+      const replacedNodeParent = state.nodes.find(
+        node => Array.isArray(node.data.inflowIds) && 
+               (node.data.inflowIds as string[]).includes(replacedNodeId)
+      );
+      
+      if (replacedNodeParent) {
+        // Create an edge from the parent to the new root node
+        connectionEdges.push({
+          id: `edge-${replacedNodeParent.id}-${newNodeId}`,
+          source: replacedNodeParent.id,
+          target: newNodeId,
+          type: 'custom'
+        });
+        
+        // Update the parent's inflowIds
+        const parentIndex = updatedNodes.findIndex(n => n.id === replacedNodeParent.id);
+        if (parentIndex !== -1) {
+          updatedNodes[parentIndex] = {
+            ...updatedNodes[parentIndex],
+            data: {
+              ...updatedNodes[parentIndex].data,
+              inflowIds: ((updatedNodes[parentIndex].data.inflowIds as string[]) || [])
+                .map(id => id === replacedNodeId ? newNodeId : id)
+            }
+          };
+        }
+      }
+      
+      return {
+        ...state,
+        nodes: [...updatedNodes, ...newNodes],
+        edges: [...remainingEdges, ...newEdges, ...connectionEdges],
+        needsLayout: true,
+        layoutTrigger: 'FORCE',
+        pendingLoadConfig: null,
+        loadStatus: 'complete'
+      };
+    };
     default:
       return state;
   }
 };
 
+// Context interface
 interface FlowContextType {
   nodes: Node[];
   edges: Edge[];
@@ -473,8 +531,11 @@ interface FlowContextType {
   loadError?: string;
   dispatch: React.Dispatch<FlowAction>;
 }
+
+// Create the context
 const FlowContext = createContext<FlowContextType | undefined>(undefined);
 
+// Hook to use the context
 export const useFlow = () => {
   const context = useContext(FlowContext);
   if (!context) {
@@ -483,12 +544,18 @@ export const useFlow = () => {
   return context;
 };
 
+// Provider component
 export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(flowReducer, initialState);
   const nodesRef = useRef<Node[]>([]);
   const { memoryDb } = usePouchDB();
   const { createRootProductNode } = useNodeOrchestrator(dispatch);
   const processNodeOrchestrator = useProcessNodeOrchestrator(dispatch);
+  
+  // Data fetching hooks for loading configurations
+  const { getProductDetails } = useProductDetails();
+  const { getProcessesByProductId } = useProcessesByProductId();
+  const { getProductImage } = useProductImage();
 
   // Keep the nodesRef in sync with the state.nodes
   React.useEffect(() => {
@@ -543,18 +610,12 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!processId) throw new Error('Process ID is undefined');
         if (!logicalParentId) throw new Error('Logical Parent Node ID is undefined');
 
-        // console.log('[FlowContext | Process Node Creation] Creating process node with ID:', processId);
-        // console.log('[FlowContext | Process Node Creation] Logical parent ID (this should be the product node where the process was selected):', logicalParentId);
-
         // Find parent node
         const logicalParent = state.nodes.find(node => node.id === logicalParentId);
-        if (!logicalParent) throw new Error(`[FlowContext | Process Node Creation] Parent node with ID ${logicalParentId} not found`);
-        // console.log('[FlowContext | Process Node Creation] Logical parent node found by its logicalParentId:', logicalParent);
+        if (!logicalParent) throw new Error(`Parent node with ID ${logicalParentId} not found`);
 
         const logicalParentAmount = logicalParent.data.amount as number || 0;
-        // console.log('[FlowContext | Process Node Creation] Logical parent amount:', logicalParentAmount);
         const logicalParentProductId = (logicalParent.data.productDetails as { id: string } | undefined)?.id || '';
-        // console.log('[FlowContext | Process Node Creation] Logical parent product ID:', logicalParentProductId);
 
         // Use the orchestrator hook
         await processNodeOrchestrator.createProcessStructure(
@@ -585,77 +646,120 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatch
   ]);
 
-  // Handle pending save operation
+  // Handle pending save operation using ConfigurationSaveService
   useEffect(() => {
     if (state.pendingSaveNodeId !== null && memoryDb && state.saveStatus === 'pending') {
-      const saveNode = async () => {
-        // console.log("Starting serialization with nodeId:", state.pendingSaveNodeId);
-        // console.log("Current nodes:", nodesRef.current.length);
+      const saveConfiguration = async () => {
         try {
-          await serializeProductionChain(
+          // Use the ConfigurationSaveService to save the configuration
+          const configId = await ConfigurationSaveService.saveConfiguration(
             state.pendingSaveNodeId!,
             nodesRef.current as InfluenceNode[],
             memoryDb
           );
-          // console.log("Serialization successful");
-          dispatch({ type: 'SAVE_COMPLETE' });
+          
+          dispatch({ 
+            type: 'SAVE_COMPLETE',
+            payload: { configId }
+          });
         } catch (error) {
-          // console.error('Error saving:', error);
+          console.error('Error saving configuration:', error);
           dispatch({
             type: 'SAVE_ERROR',
             payload: { error: String(error) }
           });
         }
       };
-      saveNode();
+      
+      saveConfiguration();
     }
   }, [state.pendingSaveNodeId, state.saveStatus, memoryDb]);
 
-  // Handle load operations
+  // Handle configuration loading using ConfigurationLoadService
   useEffect(() => {
-    if (state.pendingLoadConfig && memoryDb) {
-      console.log("[FlowContext] Starting load operation");
-      const loadConfig = async () => {
-        try {
-          const { nodeId, configId } = state.pendingLoadConfig ?? {};
-
-          if (nodeId && configId) {
-            await handleReplaceNode(
-              nodeId,
-              configId,
-              memoryDb,
-              nodesRef.current,
-              state.edges,
-              dispatch,
-              nodesRef,
-              (processId, nodeId) => {
-                dispatch({
-                  type: 'SELECT_PROCESS',
-                  payload: { nodeId, processId }
-                });
-              },
-              (focalNodeId) => {
-                dispatch({
-                  type: 'SAVE_PRODUCTION_CHAIN',
-                  payload: { focalNodeId }
-                });
-              },
-              state.desiredAmount
-            );
-
-            dispatch({ type: 'LOAD_COMPLETE' });
+    if (!state.pendingLoadConfig || !memoryDb) return;
+    
+    const loadConfiguration = async () => {
+      try {
+        const { nodeId, configId, mode } = state.pendingLoadConfig!;
+        
+        // Fetch product data for all products that might be needed
+        const fetchDataForProduct = async (productId: string) => {
+          return await ProductDataFetchingService.fetchProductData(
+            productId,
+            { getProductDetails, getProcessesByProductId, getProductImage }
+          );
+        };
+        
+        // Create a product data map as configurations are loaded
+        const productDataMap: Record<string, any> = {};
+        
+        // Helper function to populate product data map
+        const populateProductDataMap = async (productId: string) => {
+          if (!productDataMap[productId]) {
+            productDataMap[productId] = await fetchDataForProduct(productId);
           }
-        } catch (error) {
-          console.error('Error loading:', error);
+        };
+        
+        // Fetch the configuration document to get the focal product ID
+        const configDoc = await memoryDb.get(configId);
+        // Try to access focalProductId from configDoc, fallback to configDoc.data?.focalProductId if needed
+        const focalProductId = (configDoc as any).focalProductId ?? (configDoc as any).data?.focalProductId;
+        if (focalProductId) {
+          await populateProductDataMap(focalProductId);
+        }
+        
+        // Load the configuration using the service
+        const result = await ConfigurationLoadService.loadConfiguration(
+          configId,
+          memoryDb,
+          mode,
+          mode === 'partial' ? nodeId : undefined,
+          productDataMap
+        );
+        
+        // Handle the result based on the mode
+        if (mode === 'full') {
           dispatch({
-            type: 'LOAD_ERROR',
-            payload: { error: String(error) }
+            type: 'CONFIGURATION_REPLACED',
+            payload: {
+              nodes: result.nodes,
+              edges: result.edges,
+              rootNodeId: result.rootNodeId
+            }
+          });
+        } else {
+          // For partial replacement
+          const replacementInfo = result.replacementInfo!;
+          dispatch({
+            type: 'CONFIGURATION_PARTIALLY_LOADED',
+            payload: {
+              nodes: result.nodes,
+              edges: result.edges,
+              replacedNodeId: replacementInfo.originalNodeId,
+              newNodeId: replacementInfo.newNodeId
+            }
           });
         }
-      };
-      loadConfig();
-    }
-  }, [state.pendingLoadConfig, state.edges, state.desiredAmount, memoryDb]);
+        
+        dispatch({ type: 'LOAD_COMPLETE' });
+      } catch (error) {
+        console.error('Error loading configuration:', error);
+        dispatch({
+          type: 'LOAD_ERROR',
+          payload: { error: String(error) }
+        });
+      }
+    };
+    
+    loadConfiguration();
+  }, [
+    state.pendingLoadConfig,
+    memoryDb,
+    getProductDetails,
+    getProcessesByProductId,
+    getProductImage
+  ]);
 
   return (
     <FlowContext.Provider
@@ -675,6 +779,8 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         matchingConfigs: state.matchingConfigs,
         saveStatus: state.saveStatus,
         saveError: state.saveError,
+        loadStatus: state.loadStatus,
+        loadError: state.loadError,
         nodesRef,
         dispatch
       }}

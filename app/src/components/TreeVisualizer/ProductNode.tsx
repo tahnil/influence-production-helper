@@ -87,15 +87,19 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     });
   }, [dispatch, id]);
 
-  // Memoize config selection handler
+  // Memoize config selection handler - updated to use the new approach
   const handleConfigSelection = useCallback((configId: string) => {
     dispatch({
       type: 'LOAD_SAVED_CONFIG',
-      payload: { nodeId: id, configId }
+      payload: {
+        nodeId: id,
+        configId,
+        mode: 'partial' // This is a partial replacement
+      }
     });
   }, [dispatch, id]);
 
-  // Memoize save handler
+  // Memoize save handler - updated to use the new approach
   const handleSaveProductionChain = useCallback(() => {
     if (saveStatus !== 'pending') {
       dispatch({
@@ -107,11 +111,6 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
 
   // Add a useEffect to handle toast based on saveStatus
   useEffect(() => {
-    // console.log(
-    //   "Save status changed:",
-    //   ...[saveStatus, saveError].filter(value => value !== undefined && value !== null)
-    // );
-
     if (saveStatus === 'complete') {
       toast({
         title: "Configuration Saved",
@@ -146,10 +145,6 @@ const ProductNode: React.FC<NodeProps<ProductNode>> = ({ id, data }) => {
     getDirectChildNodes(nodes as InfluenceNode[], id).length > 0,
     [nodes, id]
   );
-
-  // console.log('Matching configs for', productDetails.id, ':',
-  //   matchingConfigs.filter(config => config.focalProductId === productDetails.id)
-  // );
 
   return (
     <div className="product-node bg-mako-900 border overflow-hidden rounded-lg shadow-lg w-72">
