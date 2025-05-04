@@ -204,6 +204,17 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
             true // isRoot
           );
 
+        dispatch({
+          type: 'ROOT_NODE_CREATED',
+          payload: {
+            nodes: newNodes,
+            edges: newEdges,
+            rootNodeId
+          }
+        });
+
+        dispatch({ type: 'NODE_CREATION_COMPLETED' });
+
         // 5. For any process selections from the original config,
         // invoke the process node creation as needed
         const processSelections = savedNodes
