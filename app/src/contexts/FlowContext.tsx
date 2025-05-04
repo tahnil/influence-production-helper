@@ -275,6 +275,9 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
 
       // console.log('[FlowContext | layoutedNodes] layoutedNodes:', layoutedNodes);
 
+      // log current root node id to console
+      console.log('[FlowContext | layoutedNodes] rootNodeId:', state.rootNodeId);
+
       return {
         ...state,
         nodes: layoutedNodes,

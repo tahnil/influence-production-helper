@@ -42,7 +42,7 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
     try {
       // 1. Find the parent compound node if exists
       const mainOutflowNode = currentNodes.find(node => node.id === logicalParentId);
-      console.log('[useProcessNodeOrchestrator] Main outflow node:', mainOutflowNode);
+      // console.log('[useProcessNodeOrchestrator] Main outflow node:', mainOutflowNode);
       if (!mainOutflowNode) {
         throw new Error(`Main outflow node with id ${logicalParentId} not found`);
       }
@@ -64,8 +64,8 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
 
       // 3. Remove existing nodes if needed
       const nodesToRemove = NodeRemovalService.findNodesToRemove(currentNodes, logicalParentId);
-      console.log('[useProcessNodeOrchestrator] Current nodes:', currentNodes);
-      console.log('[useProcessNodeOrchestrator] Nodes to remove:', nodesToRemove);
+      // console.log('[useProcessNodeOrchestrator] Current nodes:', currentNodes);
+      // console.log('[useProcessNodeOrchestrator] Nodes to remove:', nodesToRemove);
       const { updatedNodes, updatedEdges } = nodesToRemove.length > 0
         ? NodeRemovalService.removeNodes(currentNodes, currentEdges, nodesToRemove)
         : { updatedNodes: currentNodes, updatedEdges: currentEdges };
@@ -114,7 +114,7 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
         }
       });
 
-      console.log('[useProcessNodeOrchestrator] finalNodes:', finalNodes);
+      // console.log('[useProcessNodeOrchestrator] finalNodes:', finalNodes);
 
       return true;
     } catch (error) {
