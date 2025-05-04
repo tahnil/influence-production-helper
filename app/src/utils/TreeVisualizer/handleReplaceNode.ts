@@ -58,9 +58,9 @@ export const handleReplaceNode = async (
     desiredAmount: number
 ) => {
     try {
-        console.log(`Starting handleReplaceNode for currentNodeId: ${currentNodeId}, configId: ${configId}`);
+        console.log(`[handleReplaceNode] Starting handleReplaceNode for currentNodeId: ${currentNodeId}, configId: ${configId}`);
         const currentNodes = nodesRef.current as InfluenceNode[];
-        console.log('Current nodes:', currentNodes.map(n => ({ id: n.id, type: n.type, productId: (n.data as ProductNodeData).productDetails?.id })));
+        console.log('[handleReplaceNode] Current nodes:', currentNodes.map(n => ({ id: n.id, type: n.type, productId: (n.data as ProductNodeData).productDetails?.id })));
 
         // Find the current node and store its logicalParentId
         const currentNode = findNodeById(currentNodes, currentNodeId) as InfluenceNode;
@@ -68,11 +68,11 @@ export const handleReplaceNode = async (
             throw new Error(`Current node not found. ID: ${currentNodeId}`);
         }
         const logicalParentId = currentNode.data.logicalParentId;
-        console.log(`Current node: ${currentNodeId}, Parent node: ${logicalParentId}`);
+        console.log(`[handleReplaceNode] Current node: ${currentNodeId}, logicalParentId: ${logicalParentId}`);
 
         // Fetch the selected configuration from PouchDB
         const config = await db.get(configId);
-        console.log('Retrieved config:', config);
+        console.log('[handleReplaceNode] Retrieved config:', config);
 
         // Fetch the attachment
         const attachment = await db.getAttachment(configId, 'nodes');
@@ -81,7 +81,7 @@ export const handleReplaceNode = async (
         }
 
         const savedNodes: PouchDBNodeDocument[] = JSON.parse(await attachment.text());
-        console.log('Parsed saved nodes:', savedNodes);
+        console.log('[handleReplaceNode] Parsed saved nodes:', savedNodes);
 
         // Reset positions of saved nodes before processing them
         const savedNodesWithResetPositions = savedNodes.map(node => ({
@@ -92,19 +92,19 @@ export const handleReplaceNode = async (
         const inflowNodes = getAllInflows(currentNodes, currentNodeId);
         const nodesToRemove = [currentNodeId, ...inflowNodes.map(n => n.id)];
 
-        console.log('Nodes to remove:', nodesToRemove);
+        console.log('[handleReplaceNode] Nodes to remove:', nodesToRemove);
 
         // Remove the current node, its inflows, and their edges
         let updatedNodes: InfluenceNode[] = currentNodes.filter(node => !nodesToRemove.includes(node.id));
         let updatedEdges = edges.filter(edge => !nodesToRemove.includes(edge.source) && !nodesToRemove.includes(edge.target));
 
         const regeneratedNodes = regenerateNodeIds(savedNodesWithResetPositions);
-        console.log('Regenerated nodes:', regeneratedNodes);
+        console.log('[handleReplaceNode] Regenerated nodes:', regeneratedNodes);
 
         // Convert saved nodes to React Flow nodes
         const newNodes: InfluenceNode[] = regeneratedNodes.map(savedNode => {
             const node = createProductNodeWithCallbacks(savedNode, handleSelectProcess, handleSerialize);
-            console.log(`Created new node: ${node.id}, type: ${node.type}, productId: ${node.type === 'productNode' ? node.data.productDetails?.id : 'N/A'}`);
+            console.log(`[handleReplaceNode] Created new node: ${node.id}, type: ${node.type}, productId: ${node.type === 'productNode' ? node.data.productDetails?.id : 'N/A'}`);
             return node;
         });
 
@@ -113,23 +113,23 @@ export const handleReplaceNode = async (
         if (!rootSavedNode) {
             throw new Error('Root node not found in saved configuration');
         }
-        console.log(`Root saved node: ${rootSavedNode.id}, productId: ${(rootSavedNode.data as ProductNodeData).productDetails?.id}`);
+        console.log(`[handleReplaceNode] Root saved node: ${rootSavedNode.id}, productId: ${(rootSavedNode.data as ProductNodeData).productDetails?.id}`);
 
         // Set the logicalParentId for the root saved node
         rootSavedNode.data.logicalParentId = logicalParentId;
-        console.log(`Set logicalParentId of root saved node to: ${logicalParentId}`);
+        console.log(`[handleReplaceNode] Set logicalParentId of root saved node to: ${logicalParentId}`);
 
         // Set the outflowIds for the root saved node
         if (logicalParentId) {
             rootSavedNode.data.outflowIds = [logicalParentId];
-            console.log(`Set outflowIds of root saved node to: [${logicalParentId}]`);
+            console.log(`[handleReplaceNode] Set outflowIds of root saved node to: [${logicalParentId}]`);
         }
 
         // Update the parent node's inflowIds
         if (logicalParentId) {
             const parentNode = logicalParentId ? findNodeById(updatedNodes, logicalParentId as string) as InfluenceNode : null;
             if (parentNode) {
-                console.log(`Before update - Parent node ${logicalParentId} inflowIds:`, parentNode.data.inflowIds);
+                console.log(`[handleReplaceNode] Before update - Parent node ${logicalParentId} inflowIds:`, parentNode.data.inflowIds);
                 parentNode.data.inflowIds = parentNode.data.inflowIds || [];
                 const inflowIds = parentNode.data.inflowIds as string[]; // Explicitly cast to string[]
                 const index = inflowIds.indexOf(currentNodeId);
@@ -138,7 +138,7 @@ export const handleReplaceNode = async (
                 } else {
                     (parentNode.data.inflowIds as string[]).push(rootSavedNode.id);
                 }
-                console.log(`After update - Parent node ${logicalParentId} inflowIds:`, parentNode.data.inflowIds);
+                console.log(`[handleReplaceNode] After update - Parent node ${logicalParentId} inflowIds:`, parentNode.data.inflowIds);
                 updatedNodes = updateInfluenceNode(updatedNodes, parentNode);
             }
         }
@@ -151,7 +151,7 @@ export const handleReplaceNode = async (
                 target: rootSavedNode.id,
             };
             updatedEdges.push(newEdge);
-            console.log(`Created new edge: ${newEdge.source} -> ${newEdge.target}`);
+            console.log(`[handleReplaceNode] Created new edge: ${newEdge.source} -> ${newEdge.target}`);
         }
 
         // Add new nodes and create edges between them
@@ -159,7 +159,7 @@ export const handleReplaceNode = async (
         const newEdges = createEdgesBetweenNodes(newNodes);
         updatedEdges = [...updatedEdges, ...newEdges];
 
-        console.log('New edges created:', newEdges);
+        console.log('[handleReplaceNode] New edges created:', newEdges);
 
         // Sort the nodes to ensure parent nodes come before children
         const sortedNodes = sortNodesByHierarchy([...updatedNodes, ...newNodes]);
@@ -169,7 +169,7 @@ export const handleReplaceNode = async (
         if (!treeRootNode) {
             throw new Error('Tree root node not found');
         }
-        console.log(`Tree root node: ${treeRootNode.id}, productId: ${(treeRootNode.data as ProductNodeData).productDetails?.id}`);
+        console.log(`[handleReplaceNode] Tree root node: ${treeRootNode.id}, productId: ${(treeRootNode.data as ProductNodeData).productDetails?.id}`);
 
         // Recalculate amounts for all nodes using the provided desiredAmount
         const recalculatedNodes = calculateDesiredAmount(
@@ -178,7 +178,7 @@ export const handleReplaceNode = async (
             treeRootNode.id
         );
 
-        console.log('Recalculated nodes:', recalculatedNodes.map(n => ({ id: n.id, amount: n.data.amount })));
+        console.log('[handleReplaceNode] Recalculated nodes:', recalculatedNodes.map(n => ({ id: n.id, amount: n.data.amount })));
 
         // Update the state
         dispatch({
@@ -192,7 +192,7 @@ export const handleReplaceNode = async (
             }
         });
 
-        console.log('Final updated nodes:', recalculatedNodes.map(n => ({
+        console.log('[handleReplaceNode] Final updated nodes:', recalculatedNodes.map(n => ({
             id: n.id,
             type: n.type,
             productId: (n.data as ProductNodeData).productDetails?.id,
@@ -200,10 +200,10 @@ export const handleReplaceNode = async (
             inflowIds: n.data.inflowIds,
             outflowIds: n.data.outflowIds
         })));
-        console.log('Final updated edges:', updatedEdges);
+        console.log('[handleReplaceNode] Final updated edges:', updatedEdges);
 
     } catch (error) {
-        console.error('Error replacing node from PouchDB:', error);
+        console.error('[handleReplaceNode] Error replacing node from PouchDB:', error);
         if (error instanceof Error) {
             console.error('Error details:', error.message);
             console.error('Error stack:', error.stack);

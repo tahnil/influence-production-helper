@@ -197,7 +197,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       if (!forceLayout && !allNodesMeasured && nodes.length > 0) {
         // Queue this layout request until measurements are ready
         // console.log('[FlowContext] Waiting for measurements before layout. Missing measurements for',
-          // nodes.filter(node => !node.measured?.width || !node.measured?.height).length, 'nodes');
+        // nodes.filter(node => !node.measured?.width || !node.measured?.height).length, 'nodes');
         // console.log('[FlowContext] Nodes missing measurements:', nodes.filter(node => !node.measured?.width || !node.measured?.height).map(node => node));
 
         return {
@@ -276,7 +276,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
       // console.log('[FlowContext | layoutedNodes] layoutedNodes:', layoutedNodes);
 
       // log current root node id to console
-      console.log('[FlowContext | layoutedNodes] rootNodeId:', state.rootNodeId);
+      // console.log('[FlowContext | layoutedNodes] rootNodeId:', state.rootNodeId);
 
       return {
         ...state,
@@ -353,6 +353,9 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
     };
     case 'LOAD_SAVED_CONFIG': {
       const { nodeId, configId } = action.payload;
+      // Log to console: configId and nodeId
+      console.log('[FlowContext] Config selected for nodeId / configId:', nodeId, configId);
+
       return {
         ...state,
         pendingLoadConfig: {
@@ -451,7 +454,7 @@ interface FlowContextType {
   nodesReady: boolean;
   rootNodeId: string;
   needsLayout: boolean;
-  layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | 'WAITING_FOR_MEASUREMENTS' | 'REQUEST_LAYOUT'| null;
+  layoutTrigger: 'FORCE' | 'NODE_CHANGE' | 'STRUCTURE_CHANGE' | 'MEASUREMENTS_READY' | 'CONFIG_CHANGE' | 'WAITING_FOR_MEASUREMENTS' | 'REQUEST_LAYOUT' | null;
   nodesRef: React.MutableRefObject<Node[]>;
   selectedProductId: string | null;
   processSelections: Array<{ nodeId: string, processId: string }>;
