@@ -263,6 +263,13 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
           });
         }
 
+        setTimeout(() => {
+          dispatch({
+            type: 'REQUEST_LAYOUT',
+            payload: { trigger: 'FORCE' }
+          });
+        }, 1000);
+
         toast({
           title: "Configuration Replaced",
           description: `The production chain has been replaced with "${config.focalProductId}"`,
