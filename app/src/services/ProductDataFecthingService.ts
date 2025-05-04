@@ -25,6 +25,10 @@ export const ProductDataFetchingService = {
         fetcher.getProductImage(productId),
       ]);
 
+      console.info(`[ProductDataFetchingService > fetchProductData] Successfully fetched product data for ${productId}`);
+      console.info(`[ProductDataFetchingService > fetchProductData] Product details:`, productDetails);
+      console.info(`[ProductDataFetchingService > fetchProductData] Processes by product ID:`, processesByProductId);
+
       return {
         id: productId,
         productDetails,
@@ -32,7 +36,7 @@ export const ProductDataFetchingService = {
         image
       };
     } catch (error) {
-      console.error(`Error fetching product data for ${productId}:`, error);
+      console.error(`[ProductDataFetchingService > fetchProductData] Error fetching product data for ${productId}:`, error);
       throw error;
     }
   },

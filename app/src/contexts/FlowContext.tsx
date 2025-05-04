@@ -678,6 +678,8 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Handle configuration loading using ConfigurationLoadService
   useEffect(() => {
     if (!state.pendingLoadConfig || !memoryDb) return;
+
+    console.log('[FlowContext > load configuration] Loading of configuration triggered: ', state.pendingLoadConfig);
     
     const loadConfiguration = async () => {
       try {
@@ -698,6 +700,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const populateProductDataMap = async (productId: string) => {
           if (!productDataMap[productId]) {
             productDataMap[productId] = await fetchDataForProduct(productId);
+            console.log(`[FlowContext > load configuration] Populating product data map for product ID: ${productId}: `, productDataMap);
           }
         };
         
@@ -744,7 +747,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         dispatch({ type: 'LOAD_COMPLETE' });
       } catch (error) {
-        console.error('Error loading configuration:', error);
+        console.error('[FlowContext] Error loading configuration:', error);
         dispatch({
           type: 'LOAD_ERROR',
           payload: { error: String(error) }
