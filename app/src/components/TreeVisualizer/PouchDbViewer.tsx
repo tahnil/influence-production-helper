@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Modal from '@/components/ui/modal';
-import { Node, Edge } from '@xyflow/react';
 import { EyeIcon, Trash2Icon, RefreshCwIcon } from 'lucide-react';
 import {
   AlertDialog,
@@ -17,14 +16,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { InfluenceNode } from '@/types/reactFlowTypes';
-import { ProcessNode, ProcessNodeData } from './ProcessNode';
-import { ProductNode, ProductNodeData } from './ProductNode';
-import { SideProductNode, SideProductNodeData } from './SideProductNode';
+import { ProcessNode } from './ProcessNode';
+import { ProductNode } from './ProductNode';
 import { useFlow } from '@/contexts/FlowContext';
 import { usePouchDB } from '@/contexts/PouchDBContext';
 import useInfluenceProductDetails from '@/hooks/useInfluenceProductDetails';
 import useProcessDetails from '@/hooks/useProcessDetails';
-import calculateDesiredAmount from '@/utils/TreeVisualizer/calculateDesiredAmount';
+import ProductDataFetchingService from '@/services/ProductDataFecthingService';
+import NodeOrchestratorService from '@/services/NodeOrchestratorService';
+import { useProcessNodeOrchestrator } from '@/hooks/useProcessNodeOrchestrator';
+import useProductImage from '@/hooks/useProductImage';
+import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 
 interface ConfigNode {
   id: string;
@@ -64,11 +66,15 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { getProductDetails } = useInfluenceProductDetails();
   const { getProcessDetails } = useProcessDetails();
-  const { 
-    desiredAmount, 
-    dispatch 
+  const { getProcessesByProductId } = useProcessesByProductId();
+  const {
+    desiredAmount,
+    dispatch
   } = useFlow();
   const { toast } = useToast();
+
+  const processNodeOrchestrator = useProcessNodeOrchestrator(dispatch);
+  const { getProductImage } = useProductImage();
 
   useEffect(() => {
     const fetchConfigs = async () => {
@@ -166,87 +172,85 @@ const PouchDBViewer: React.FC<PouchDBViewerProps> = ({ handleSelectProcess, hand
   const replaceConfig = async (config: ProductionChainConfig) => {
     if (memoryDb) {
       try {
+        // 1. Fetch the saved nodes from the attachment
         const attachment = await memoryDb.getAttachment(config._id, 'nodes');
         if (!(attachment instanceof Blob)) {
           throw new Error('Attachment is not a Blob');
         }
         const savedNodes: InfluenceNode[] = JSON.parse(await attachment.text());
 
-        // Find the root node (should be the one with isRoot: true)
-        const rootNode = savedNodes.find((node) => node.data.isRoot);
-        if (!rootNode) {
-          throw new Error('Root node not found in saved configuration');
+        // 2. Find the root product node and its data
+        const rootProductNode = savedNodes.find(
+          node => node.type === 'productNode' && node.data.isRoot
+        ) as ProductNode;
+
+        if (!rootProductNode) {
+          throw new Error('Root product node not found in saved configuration');
         }
 
-        // Modify the root node
-        rootNode.data.logicalParentId = undefined;
-        rootNode.data.outflowIds = [];
+        const productId = rootProductNode.data.productDetails.id;
 
-        // Reattach the function properties to each node
-        const nodesWithCallbacks: InfluenceNode[] = savedNodes.map((node: any) => {
-          const baseNode: Partial<InfluenceNode> = {
-            ...node,
-            data: {
-              ...node.data,
-              handleSelectProcess,
-              handleSerialize,
-            },
-            logicalParentId: node.id === rootNode.id ? undefined : node.data.logicalParentId,
-          };
-
-          if (node.type === 'productNode') {
-            return {
-              ...baseNode,
-              type: 'productNode',
-              data: baseNode.data as ProductNodeData,
-            } as ProductNode;
-          } else if (node.type === 'processNode') {
-            return {
-              ...baseNode,
-              type: 'processNode',
-              data: {
-                ...baseNode.data,
-                totalDuration: node.data.totalDuration || 0,
-                totalRuns: node.data.totalRuns || 0,
-                processDetails: node.data.processDetails,
-                inputProducts: node.data.inputProducts,
-              } as ProcessNodeData,
-            } as ProcessNode;
-          } else {
-            throw new Error(`Unknown node type: ${node.type}`);
-          }
-        });
-
-        // Recalculate amounts for all nodes using the current desired amount
-        const recalculatedNodes = calculateDesiredAmount(
-          nodesWithCallbacks,
-          desiredAmount,
-          rootNode.id
+        // 3. Fetch product data using ProductDataFetchingService
+        const productData = await ProductDataFetchingService.fetchProductData(
+          productId,
+          { getProductDetails, getProcessesByProductId, getProductImage }
         );
 
-        // Recreate edges based on the new nodes
-        const newEdges: Edge[] = recalculatedNodes.flatMap((node: Node) => {
-          if ('inflowIds' in node.data && Array.isArray(node.data.inflowIds)) {
-            return node.data.inflowIds.map((inflowId: string) => ({
-              id: `edge-${inflowId}-${node.id}`,
-              target: inflowId,
-              source: node.id,
-              type: 'smoothstep',
-            }));
-          }
-          return [];
-        });
+        // 4. Create a new root node structure using NodeOrchestratorService
+        const { nodes: newNodes, edges: newEdges, rootNodeId } =
+          NodeOrchestratorService.createRootNodeStructure(
+            productData,
+            desiredAmount,
+            true // isRoot
+          );
 
-        // Use BATCH_UPDATE to update multiple state values at once
-        dispatch({
-          type: 'BATCH_UPDATE',
-          payload: {
-            nodes: recalculatedNodes,
-            edges: newEdges,
-            nodesReady: false,
-            rootNodeId: rootNode.id
+        // 5. For any process selections from the original config,
+        // invoke the process node creation as needed
+        const processSelections = savedNodes
+          .filter(node => node.type === 'processNode')
+          .map(node => ({
+            processId: (node as ProcessNode).data.processDetails.id,
+            parentId: node.data.logicalParentId as string,
+            parentNode: savedNodes.find(n => n.id === node.data.logicalParentId)
+          }))
+          .filter(selection => selection.parentNode);
+
+        // 6. If we have process selections, we need to create them sequentially
+        if (processSelections.length > 0) {
+          // First process is special - it's directly connected to the root product
+          const firstProcess = processSelections[0];
+
+          // Find the new root product node
+          const newRootProduct = newNodes.find(
+            node => node.type === 'productNode' && node.data.isRoot
+          );
+
+          if (newRootProduct) {
+            // Create the first process structure
+            await processNodeOrchestrator.createProcessStructure(
+              firstProcess.processId,
+              newRootProduct.id,
+              desiredAmount,
+              productId,
+              newNodes as InfluenceNode[],
+              newEdges
+            );
+
+            // TODO: Handle additional process selections if needed in a more complex graph
+            // This would require building the graph incrementally
           }
-        });
+        } else {
+          // If no process selections, just apply the new root structure
+          dispatch({
+            type: 'BATCH_UPDATE',
+            payload: {
+              nodes: newNodes,
+              edges: newEdges,
+              nodesReady: false,
+              rootNodeId: rootNodeId
+            }
+          });
+        }
 
         toast({
           title: "Configuration Replaced",

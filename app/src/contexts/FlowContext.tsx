@@ -608,6 +608,7 @@ export const FlowProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Handle load operations
   useEffect(() => {
     if (state.pendingLoadConfig && memoryDb) {
+      console.log("[FlowContext] Starting load operation");
       const loadConfig = async () => {
         try {
           const { nodeId, configId } = state.pendingLoadConfig ?? {};

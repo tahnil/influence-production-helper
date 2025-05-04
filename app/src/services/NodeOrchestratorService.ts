@@ -5,6 +5,8 @@ import { InfluenceNode } from '@/types/reactFlowTypes';
 import NodePlanningService from './NodePlanningService';
 import NodeRealizationService from './NodeRealizationService';
 import EdgeCreationService from './EdgeCreationService';
+import { OutflowsCompoundNode, OutflowsCompoundNodeData } from '@/components/TreeVisualizer/OutflowsCompoundNode';
+import { ProductNodeData } from '@/components/TreeVisualizer/ProductNode';
 
 export const NodeOrchestratorService = {
   /**
@@ -24,17 +26,37 @@ export const NodeOrchestratorService = {
 
     // 2. Realize the plans into actual nodes
     const { nodes, nodeIdMap } = NodeRealizationService.realizePlans(
-      nodePlans, 
+      nodePlans,
       { [productData.productDetails.id]: productData }
     );
-    
+
     // 3. Create edges between nodes
     const edges = EdgeCreationService.createEdges(nodes as InfluenceNode[], nodeIdMap);
-    
+
     // 4. Determine the root node ID (usually the outflows compound)
-    const rootOutflowsNodeId = nodeIdMap['ROOT_OUTFLOWS_COMPOUND_ID'] || 
-                             nodes.find(n => n.type === 'outflowsCompoundNode')?.id || 
-                             nodes[0].id;
+    // First try using the nodeIdMap
+    let rootOutflowsNodeId = nodeIdMap['ROOT_OUTFLOWS_COMPOUND_ID'];
+
+    // If that fails, try to find the outflow compound node directly
+    if (!rootOutflowsNodeId) {
+      const outflowsCompoundNode = nodes.find(n =>
+        n.type === 'outflowsCompoundNode' &&
+        ((n.data as OutflowsCompoundNodeData)?.isRoot === true)
+      );
+
+      if (outflowsCompoundNode) {
+        rootOutflowsNodeId = outflowsCompoundNode.id;
+      } else {
+        // Last resort - use any outflows compound node
+        const anyOutflowsCompound = nodes.find(n => n.type === 'outflowsCompoundNode');
+        if (anyOutflowsCompound) {
+          rootOutflowsNodeId = anyOutflowsCompound.id;
+        } else {
+          // If we still can't find an outflows compound, use the first node
+          rootOutflowsNodeId = nodes[0]?.id;
+        }
+      }
+    }
     
     // 5. Ensure all nodes with a parentId have the extent property set
     const enhancedNodes = nodes.map(node => {
@@ -66,14 +88,14 @@ export const NodeOrchestratorService = {
 
       return node;
     });
-    
-    return { 
-      nodes: enhancedNodes as InfluenceNode[], 
+
+    return {
+      nodes: enhancedNodes as InfluenceNode[],
       edges,
       rootNodeId: rootOutflowsNodeId
     };
   },
-  
+
   /**
    * Validates product data exists and meets requirements
    * @param productId The product ID to validate
@@ -84,11 +106,11 @@ export const NodeOrchestratorService = {
     if (!productData) {
       throw new Error(`Product data for ID ${productId} is missing or invalid`);
     }
-    
+
     if (!productData.productDetails) {
       throw new Error(`Product details for ID ${productId} are missing`);
     }
-    
+
     if (!productData.image) {
       throw new Error(`Product image for ID ${productId} is missing`);
     }
