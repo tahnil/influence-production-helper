@@ -24,6 +24,7 @@ import useProductDetails from '@/hooks/useInfluenceProductDetails';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 import useProductImage from '@/hooks/useProductImage';
 import ProductDataFetchingService from '@/services/ProductDataFecthingService';
+import { NodePlan } from '@/types/nodePlanTypes';
 
 interface NodeCreationRequest {
   type: 'product' | 'process';
@@ -39,6 +40,7 @@ interface NodeCreationRequest {
 interface FlowState {
   nodes: Node[];
   edges: Edge[];
+  nodePlans: NodePlan[];
   desiredAmount: number;
   nodesReady: boolean;
   rootNodeId: string;
@@ -107,7 +109,7 @@ export type FlowAction =
   | { type: 'NODE_CREATION_COMPLETED' }
   | { type: 'NODE_CREATION_FAILED'; payload: { error: string } }
   | { type: 'PROCESS_STRUCTURE_CREATED'; payload: { nodes: InfluenceNode[], edges: Edge[] } }
-  | { type: 'ROOT_NODE_CREATED'; payload: { nodes: InfluenceNode[], edges: Edge[], rootNodeId: string } }
+  | { type: 'ROOT_NODE_CREATED'; payload: { nodes: InfluenceNode[], edges: Edge[], rootNodeId: string, nodePlans?: NodePlan[] } }
   | { type: 'CONFIGURATION_REPLACED'; payload: { nodes: InfluenceNode[], edges: Edge[], rootNodeId?: string } }
   | { type: 'CONFIGURATION_PARTIALLY_LOADED'; payload: { nodes: InfluenceNode[], edges: Edge[], replacedNodeId: string, newNodeId: string } }
   ;
@@ -116,6 +118,7 @@ export type FlowAction =
 const initialState: FlowState = {
   nodes: [],
   edges: [],
+  nodePlans: [],
   desiredAmount: 1,
   nodesReady: false,
   rootNodeId: 'root',
@@ -381,6 +384,7 @@ const flowReducer = (state: FlowState, action: FlowAction): FlowState => {
         nodes: action.payload.nodes,
         edges: action.payload.edges,
         rootNodeId: action.payload.rootNodeId,
+        nodePlans: action.payload.nodePlans || [],
         nodesReady: true
       };
     };

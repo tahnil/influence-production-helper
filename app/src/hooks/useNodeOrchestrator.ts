@@ -6,6 +6,8 @@ import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 import useProductImage from '@/hooks/useProductImage';
 import NodeOrchestratorService from '@/services/NodeOrchestratorService';
 import ProductDataFetchingService from '@/services/ProductDataFecthingService';
+import NodePlanningService from '@/services/NodePlanningService';
+import { NodePlanMappingService } from '@/services/NodePlanMappingService';
 
 export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
   // Data fetching hooks
@@ -25,24 +27,28 @@ export function useNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
         productId,
         { getProductDetails, getProcessesByProductId, getProductImage }
       );
-      
+
       // 2. Validate product data
       ProductDataFetchingService.validateProductData(productId, productData);
-      
-      // 3. Create node structure using the service
-      const { nodes, edges, rootNodeId } = NodeOrchestratorService.createRootNodeStructure(
+
+      // 3. Use NodeOrchestratorService to create the node structure
+      // This service will handle BOTH node plans and node creation internally
+      const { nodes, edges, rootNodeId, nodePlans } = NodeOrchestratorService.createRootNodeStructure(
         productData,
         amount,
         isRoot
       );
-      
+
+      console.log('NodeOrchestratorService.createRootNodeStructure:', { nodes, edges, rootNodeId, nodePlans });
+
       // 4. Dispatch the node creation action
       dispatch({
         type: 'ROOT_NODE_CREATED',
         payload: {
           nodes,
           edges,
-          rootNodeId
+          rootNodeId,
+          nodePlans
         }
       });
 
