@@ -6,8 +6,7 @@ import NodePlanningService from './NodePlanningService';
 import NodeRealizationService from './NodeRealizationService';
 import EdgeCreationService from './EdgeCreationService';
 import { NodePlanMappingService } from './NodePlanMappingService';
-import { OutflowsCompoundNode, OutflowsCompoundNodeData } from '@/components/TreeVisualizer/OutflowsCompoundNode';
-import { ProductNodeData } from '@/components/TreeVisualizer/ProductNode';
+import { OutflowsCompoundNodeData } from '@/components/TreeVisualizer/OutflowsCompoundNode';
 import { NodePlan } from '@/types/nodePlanTypes';
 
 export const NodeOrchestratorService = {
