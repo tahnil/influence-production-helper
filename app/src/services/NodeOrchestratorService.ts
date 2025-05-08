@@ -127,6 +127,61 @@ export const NodeOrchestratorService = {
   },
 
   /**
+   * Creates process structure from node plans and product data
+   * @param processData Process data as defined by ProcessDataService.ts
+   * @returns Object containing nodes, edges, and updated node plans
+   */
+  createProcessStructure(
+    processData: any
+  ): { 
+    nodes: InfluenceNode[], 
+    edges: Edge[],
+    nodePlans: NodePlan[]
+  } {
+    // 1. Create process node plans
+    let nodePlans = NodePlanningService.createProcessNodePlan(processData, processData.mainOutflow);
+    
+    // 2. Ensure all plans have unique IDs
+    nodePlans = NodePlanningService.ensurePlanIds(nodePlans);
+    
+    // 3. Realize the plans into actual nodes
+    const { nodes, nodeIdMap } = NodeRealizationService.realizePlans(
+      nodePlans,
+      {} // Product data map would be populated here in a real scenario
+    );
+    
+    // 4. Create edges between nodes
+    const edges = EdgeCreationService.createEdges(
+      nodes as InfluenceNode[], 
+      nodeIdMap, 
+      processData.outflowsCompoundId
+    );
+    
+    // 5. Establish mappings between node plans and realized nodes
+    this.establishNodePlanMappings(nodePlans, nodes, nodeIdMap);
+    
+    // 6. Annotate node plans with their realized node IDs
+    const annotatedPlans = nodePlans.map(plan => {
+      // Find the corresponding node ID
+      const nodeId = plan.id ? NodePlanMappingService.getNodeId(plan.id) : undefined;
+      
+      return {
+        ...plan,
+        metadata: {
+          ...plan.metadata,
+          realizedNodeId: nodeId
+        }
+      };
+    });
+    
+    return {
+      nodes: nodes as InfluenceNode[],
+      edges,
+      nodePlans: annotatedPlans
+    };
+  },
+
+  /**
    * Establishes mappings between node plans and realized nodes
    * @param plans The node plans
    * @param nodes The realized nodes
