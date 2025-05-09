@@ -8,6 +8,9 @@ import EdgeCreationService from './EdgeCreationService';
 import { NodePlanMappingService } from './NodePlanMappingService';
 import { OutflowsCompoundNodeData } from '@/components/TreeVisualizer/OutflowsCompoundNode';
 import { NodePlan } from '@/types/nodePlanTypes';
+import NodeRemovalService from './NodeRemovalService';
+import { updateOutflowsCompoundDimensions } from '@/utils/TreeVisualizer/updateOutflowsCompoundDimensions';
+import { establishLogicalRelationships } from './NodeLogicalRelationshipService';
 
 export const NodeOrchestratorService = {
   /**
@@ -129,42 +132,71 @@ export const NodeOrchestratorService = {
   /**
    * Creates process structure from node plans and product data
    * @param processData Process data as defined by ProcessDataService.ts
+   * @param productDataMap Map of product data by product ID
+   * @param currentNodes Current nodes in the tree
+   * @param currentEdges Current edges in the tree
    * @returns Object containing nodes, edges, and updated node plans
    */
   createProcessStructure(
-    processData: any
-  ): { 
-    nodes: InfluenceNode[], 
+    logicalParentId: string,
+    processData: any,
+    productDataMap: Record<string, ProductData>,
+    currentNodes: InfluenceNode[],
+    currentEdges: Edge[],
+  ): {
+    nodes: InfluenceNode[],
     edges: Edge[],
     nodePlans: NodePlan[]
   } {
-    // 1. Create process node plans
-    let nodePlans = NodePlanningService.createProcessNodePlan(processData, processData.mainOutflow);
-    
-    // 2. Ensure all plans have unique IDs
+    // 1. Remove existing nodes if needed
+    const nodesToRemove = NodeRemovalService.findNodesToRemove(currentNodes, logicalParentId);
+    const { updatedNodes, updatedEdges } = nodesToRemove.length > 0
+      ? NodeRemovalService.removeNodes(currentNodes, currentEdges, nodesToRemove)
+      : { updatedNodes: currentNodes, updatedEdges: currentEdges };
+
+    // 2. Create node plans
+    let nodePlans = NodePlanningService.createProcessNodePlan(processData, logicalParentId);
+
+    // 3. Ensure all plans have unique IDs
     nodePlans = NodePlanningService.ensurePlanIds(nodePlans);
-    
-    // 3. Realize the plans into actual nodes
+
+    // 4. Realize the plans into actual nodes
     const { nodes, nodeIdMap } = NodeRealizationService.realizePlans(
       nodePlans,
-      {} // Product data map would be populated here in a real scenario
+      productDataMap,
     );
-    
-    // 4. Create edges between nodes
+
+    // 5. Create edges between nodes
     const edges = EdgeCreationService.createEdges(
-      nodes as InfluenceNode[], 
-      nodeIdMap, 
+      nodes as InfluenceNode[],
+      nodeIdMap,
       processData.outflowsCompoundId
     );
-    
-    // 5. Establish mappings between node plans and realized nodes
+
+    // 6. Prepare final nodes and edges
+    const preFinalNodes = [...updatedNodes, ...nodes];
+    const finalEdges = [...updatedEdges, ...edges];
+
+    // 7. Update compound node dimensions if needed
+    let finalNodes = preFinalNodes;
+    if (processData.hasSideProducts && processData.outflowsCompoundId) {
+      finalNodes = updateOutflowsCompoundDimensions(
+        preFinalNodes as InfluenceNode[],
+        processData.outflowsCompoundId
+      );
+    }
+
+    // 8. Establish logical relationships between nodes
+    const nodesWithUpdatedRelationships = establishLogicalRelationships(finalNodes as InfluenceNode[]);
+
+    // 9. Establish mappings between node plans and realized nodes
     this.establishNodePlanMappings(nodePlans, nodes, nodeIdMap);
-    
-    // 6. Annotate node plans with their realized node IDs
+
+    // 10. Annotate node plans with their realized node IDs
     const annotatedPlans = nodePlans.map(plan => {
       // Find the corresponding node ID
       const nodeId = plan.id ? NodePlanMappingService.getNodeId(plan.id) : undefined;
-      
+
       return {
         ...plan,
         metadata: {
@@ -173,10 +205,10 @@ export const NodeOrchestratorService = {
         }
       };
     });
-    
+
     return {
-      nodes: nodes as InfluenceNode[],
-      edges,
+      nodes: nodesWithUpdatedRelationships as InfluenceNode[],
+      edges: finalEdges,
       nodePlans: annotatedPlans
     };
   },

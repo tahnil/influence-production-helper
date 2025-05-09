@@ -72,8 +72,6 @@ export const NodePlanningService = {
       });
     });
 
-    console.log('[NodePlanningService] Process Node Plan:', plans);
-
     return plans;
   },
 

@@ -3,11 +3,8 @@ import { useCallback } from 'react';
 import { Edge } from '@xyflow/react';
 import { FlowAction } from '@/contexts/FlowContext';
 import { InfluenceNode } from '@/types/reactFlowTypes';
-import { updateOutflowsCompoundDimensions } from '@/utils/TreeVisualizer/updateOutflowsCompoundDimensions';
 
 // Import services
-import NodePlanningService from '@/services/NodePlanningService';
-import NodeRemovalService from '@/services/NodeRemovalService';
 import NodeRealizationService from '@/services/NodeRealizationService';
 import EdgeCreationService from '@/services/EdgeCreationService';
 import ProductDataService from '@/services/ProductDataService';
@@ -20,7 +17,8 @@ import useBuildingIcon from '@/hooks/useBuildingIcon';
 import useProductDetails from '@/hooks/useInfluenceProductDetails';
 import useProcessesByProductId from '@/hooks/useProcessesByProductId';
 import useProductImage from '@/hooks/useProductImage';
-import { establishLogicalRelationships } from '@/services/NodeLogicalRelationshipService';
+import NodePlanningService from '@/services/NodePlanningService';
+import NodeOrchestratorService from '@/services/NodeOrchestratorService';
 
 export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>) {
   // Data fetching hooks - kept in the hook for React Context integration
@@ -42,12 +40,10 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
     try {
       // 1. Find the parent compound node if exists
       const mainOutflowNode = currentNodes.find(node => node.id === logicalParentId);
-      // console.log('[useProcessNodeOrchestrator] Main outflow node:', mainOutflowNode);
       if (!mainOutflowNode) {
         throw new Error(`Main outflow node with id ${logicalParentId} not found`);
       }
-      const outflowsCompoundId = mainOutflowNode.parentId!;
-      // console.log('[useProcessNodeOrchestrator] Outflows compound ID:', outflowsCompoundId);
+      const outflowsCompoundId = mainOutflowNode.parentId;
 
       // 2. Fetch process data using the service
       const processData = await ProcessDataService.fetchProcessData(
@@ -62,59 +58,32 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
         outflowsCompoundId
       );
 
-      // 3. Remove existing nodes if needed
-      const nodesToRemove = NodeRemovalService.findNodesToRemove(currentNodes, logicalParentId);
-      // console.log('[useProcessNodeOrchestrator] Current nodes:', currentNodes);
-      // console.log('[useProcessNodeOrchestrator] Nodes to remove:', nodesToRemove);
-      const { updatedNodes, updatedEdges } = nodesToRemove.length > 0
-        ? NodeRemovalService.removeNodes(currentNodes, currentEdges, nodesToRemove)
-        : { updatedNodes: currentNodes, updatedEdges: currentEdges };
+      // 3. Create plans to determine product data requirements
+      const tempPlans = NodePlanningService.createProcessNodePlan(processData, logicalParentId);
 
-      // 4. Create node plans
-      const nodePlans = NodePlanningService.createProcessNodePlan(processData, logicalParentId);
-      // console.log('[useProcessNodeOrchestrator] Node plans:', nodePlans);
-
-      // 5. Fetch product data for all products in the plans
+      // 4. Fetch product data for all products in the plans
       const productDataMap = await ProductDataService.fetchProductDataMap(
-        nodePlans,
+        tempPlans,
         { getProductDetails, getProcessesByProductId, getProductImage }
       );
-      // console.log('[useProcessNodeOrchestrator] Product data map:', productDataMap);
 
-      // 6. Create nodes from plans
-      const { nodes, nodeIdMap } = NodeRealizationService.realizePlans(nodePlans, productDataMap);
-      // console.log('[useProcessNodeOrchestrator] Created nodes from plan:', nodes);
-      // console.log('[useProcessNodeOrchestrator] …by using node ID map:', nodeIdMap);
-
-      // 7. Create edges between nodes
-      const edges = EdgeCreationService.createEdges(nodes as InfluenceNode[], nodeIdMap, outflowsCompoundId);
-
-      // 8. Prepare final nodes and edges
-      const preFinalNodes = [...updatedNodes, ...nodes];
-      const finalEdges = [...updatedEdges, ...edges];
-
-      // 9. Update compound node dimensions if needed
-      let finalNodes = preFinalNodes;
-      if (processData.hasSideProducts && outflowsCompoundId) {
-        finalNodes = updateOutflowsCompoundDimensions(
-          preFinalNodes as InfluenceNode[],
-          outflowsCompoundId
-        );
-      }
-
-      // 10. Establish logical relationships between nodes (inflowIds, outflowIds)
-      const nodesWithUpdatedRelationships = establishLogicalRelationships(finalNodes as InfluenceNode[]);
-
-      // 11. Dispatch the state update
+      // 5. Use NodeOrchestratorService to create the process structure
+      const { nodes, edges, nodePlans } = NodeOrchestratorService.createProcessStructure(
+        logicalParentId,
+        processData,
+        productDataMap,
+        currentNodes,
+        currentEdges,
+      );
+      
+      // 6. Dispatch the state update
       dispatch({
         type: 'PROCESS_STRUCTURE_CREATED',
         payload: {
-          nodes: nodesWithUpdatedRelationships as InfluenceNode[],
-          edges: finalEdges,
+          nodes: nodes as InfluenceNode[],
+          edges: edges,
         }
       });
-
-      // console.log('[useProcessNodeOrchestrator] finalNodes:', finalNodes);
 
       return true;
     } catch (error) {
@@ -126,12 +95,12 @@ export function useProcessNodeOrchestrator(dispatch: React.Dispatch<FlowAction>)
       return false;
     }
   }, [
-    getProcessDetails, 
-    getInputsByProcessId, 
-    getBuildingIcon, 
-    getProductDetails, 
-    getProcessesByProductId, 
-    getProductImage, 
+    getProcessDetails,
+    getInputsByProcessId,
+    getBuildingIcon,
+    getProductDetails,
+    getProcessesByProductId,
+    getProductImage,
     dispatch
   ]);
 
